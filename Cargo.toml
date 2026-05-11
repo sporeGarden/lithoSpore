@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# lithoSpore — First Targeted GuideStone: LTEE Validation Artifact
+#
+# Seven science modules reproducing Barrick/Lenski LTEE papers + new
+# Anderson-QS predictions. Builds USB-deployable ecoBin binaries.
+
+[workspace]
+resolver = "2"
+members = [
+    "crates/litho-core",
+    "crates/ltee-fitness",
+    "crates/ltee-mutations",
+    "crates/ltee-alleles",
+    "crates/ltee-citrate",
+    "crates/ltee-biobricks",
+    "crates/ltee-breseq",
+    "crates/ltee-anderson",
+    "crates/ltee-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+repository = "https://github.com/sporeGarden/lithoSpore"
+
+[workspace.dependencies]
+litho-core = { path = "crates/litho-core" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+blake3 = "1"
+clap = { version = "4", features = ["derive"] }
+chrono = { version = "0.4", default-features = false, features = ["std", "serde", "now"] }
+thiserror = "2"
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }

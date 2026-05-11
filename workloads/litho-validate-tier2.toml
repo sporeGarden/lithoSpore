@@ -1,0 +1,19 @@
+# lithoSpore Tier 2 validation — dispatched by projectNUCLEUS
+# Runs all 7 LTEE modules via Rust ecoBin binaries
+
+[metadata]
+name = "litho-validate-tier2"
+description = "LTEE guideStone full Tier 2 validation — 7 modules, musl-static binaries"
+version = "0.1.0"
+
+[execution]
+type = "native"
+command = "$GARDENS_ROOT/lithoSpore/artifact/ltee validate --json"
+working_dir = "$GARDENS_ROOT/lithoSpore/artifact"
+
+[resources]
+max_memory_bytes = 4294967296
+max_cpu_percent = 100.0
+
+[security]
+isolation_level = "None"

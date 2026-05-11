@@ -1,0 +1,10 @@
+/target
+artifact/bin/x86_64/static/*
+artifact/bin/aarch64/static/*
+artifact/data/*/
+!artifact/data/.gitkeep
+artifact/notebooks/html/*.html
+artifact/CHECKSUMS
+*.pyc
+__pycache__/
+.DS_Store

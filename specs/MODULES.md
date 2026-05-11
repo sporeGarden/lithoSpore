@@ -1,0 +1,33 @@
+# lithoSpore Module Specifications
+
+## Module Registry
+
+| # | Crate | Binary | Paper | Tier 2 Spring Sources | Tier 1 Python |
+|---|-------|--------|-------|----------------------|---------------|
+| 1 | `ltee-fitness` | `ltee-fitness` | Wiser 2013 (B2) | groundSpring, wetSpring | `notebooks/module1_fitness/` |
+| 2 | `ltee-mutations` | `ltee-mutations` | Barrick 2009 (B1) | groundSpring, neuralSpring | `notebooks/module2_mutations/` |
+| 3 | `ltee-alleles` | `ltee-alleles` | Good 2017 (B3) | neuralSpring, groundSpring | `notebooks/module3_alleles/` |
+| 4 | `ltee-citrate` | `ltee-citrate` | Blount 2008/2012 (B4) | neuralSpring, groundSpring | `notebooks/module4_citrate/` |
+| 5 | `ltee-biobricks` | `ltee-biobricks` | Burden 2024 (B6) | neuralSpring, groundSpring | `notebooks/module5_biobricks/` |
+| 6 | `ltee-breseq` | `ltee-breseq` | Tenaillon 2016 (B7) | wetSpring, groundSpring | `notebooks/module6_breseq/` |
+| 7 | `ltee-anderson` | `ltee-anderson` | Anderson-QS (new) | hotSpring, groundSpring | `notebooks/module7_anderson/` |
+
+## Shared Infrastructure
+
+- `litho-core`: validation types, tolerance framework, provenance chain, liveSpore
+- `ltee-cli`: unified `litho` binary with subcommands (validate/refresh/status/spore)
+
+## Per-Module Contract
+
+Every module binary MUST:
+1. Accept `--data-dir`, `--expected`, and `--json` flags
+2. Return `ModuleResult` JSON when `--json` is set
+3. Exit 0 (pass), 1 (fail), or 2 (skip)
+4. Use named tolerances from `tolerances.toml`
+5. Reference source data by dataset ID from `data.toml`
+6. Be statically linked (musl) with zero runtime dependencies
+
+## Validation Targets
+
+See `data/targets/ltee_validation_targets.toml` for the 14 quantitative claims
+that the artifact must verify (T01–T14).

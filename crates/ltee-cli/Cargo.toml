@@ -1,0 +1,16 @@
+[package]
+name = "ltee-cli"
+description = "Unified CLI entry point for lithoSpore — validate, refresh, status, spore"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "litho"
+path = "src/main.rs"
+
+[dependencies]
+litho-core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+clap = { workspace = true }

@@ -1,0 +1,120 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Scope Graph — birth certificate for the LTEE Targeted GuideStone.
+# Declares which ecosystem components contribute to this artifact.
+
+[guidestone]
+name = "ltee-guidestone"
+version = "0.1.0"
+target = "Barrick Lab — Long-Term Evolution Experiment"
+created = "2026-05-11"
+standard = "TARGETED_GUIDESTONE_STANDARD v1.0"
+
+# --- Contributing Springs ---
+
+[[spring]]
+name = "wetSpring"
+contributes = [
+    "diversity metrics (Shannon, Pielou, UniFrac)",
+    "sovereign 16S pipeline",
+    "OTU analysis",
+    "264-genome download pipeline",
+]
+modules = ["ltee-fitness", "ltee-breseq"]
+papers = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "E1", "E5"]
+
+[[spring]]
+name = "groundSpring"
+contributes = [
+    "drift vs selection statistics",
+    "jackknife + AIC/BIC model selection",
+    "clonal interference statistics",
+    "rare event probability framework",
+    "Anderson Wc disorder analogy",
+    "epistasis quantification",
+    "DFE fitting (gamma/exponential/lognormal)",
+]
+modules = ["ltee-fitness", "ltee-mutations", "ltee-alleles", "ltee-citrate", "ltee-biobricks", "ltee-breseq", "ltee-anderson"]
+papers = ["B1", "B2", "B3", "B4", "B6", "B7", "B8", "B9"]
+
+[[spring]]
+name = "neuralSpring"
+contributes = [
+    "LSTM time-series prediction",
+    "ESN regime detection",
+    "HMM clade state detection",
+    "ML burden prediction from sequence features",
+    "early warning ESN for pre-citrate trajectories",
+]
+modules = ["ltee-mutations", "ltee-alleles", "ltee-citrate", "ltee-biobricks"]
+papers = ["B1", "B2", "B3", "B4", "B6", "B7", "B8", "B9", "E2", "E3", "E4", "E5"]
+
+[[spring]]
+name = "hotSpring"
+contributes = [
+    "Anderson disorder analogy (fitness as disordered potential)",
+    "DFE ↔ RMT connection (eigenvalue distribution)",
+]
+modules = ["ltee-anderson"]
+papers = ["B2", "B9"]
+
+[[spring]]
+name = "healthSpring"
+contributes = [
+    "symbiont PK/PD modeling",
+    "protein-ligand binding predictions",
+]
+modules = []
+papers = ["B5", "E2", "E4"]
+
+[[spring]]
+name = "airSpring"
+contributes = [
+    "FLS2 plant immunity sentinel",
+]
+modules = []
+papers = ["E3"]
+
+# --- Primals (Tier 3 only, optional) ---
+
+[[primal]]
+name = "rhizoCrypt"
+tier = 3
+required = false
+purpose = "DAG provenance chain (when NUCLEUS available)"
+
+[[primal]]
+name = "loamSpine"
+tier = 3
+required = false
+purpose = "Certificate chain for immutable provenance"
+
+[[primal]]
+name = "sweetGrass"
+tier = 3
+required = false
+purpose = "Attribution braid integrity"
+
+[[primal]]
+name = "toadStool"
+tier = 3
+required = false
+purpose = "GPU compute dispatch for accelerated validation"
+
+# --- Foundation Threads ---
+
+[[foundation_thread]]
+id = "04"
+name = "Environmental Genomics"
+datasets = ["wiser_2013_fitness", "good_2017_alleles", "tenaillon_2016_genomes", "barrick_2009_mutations"]
+
+[[foundation_thread]]
+id = "07"
+name = "Anderson Framework"
+datasets = ["anderson_predictions", "dfe_evolution_2024"]
+
+[[foundation_thread]]
+id = "02"
+name = "Plasma Physics / Lattice QCD"
+datasets = []
+notes = "RMT connection to DFE via eigenvalue distributions"

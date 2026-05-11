@@ -1,0 +1,78 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Named tolerances for LTEE guideStone validation.
+# Every tolerance has a scientific justification — no magic numbers.
+
+# --- Module 1: Power-law fitness ---
+
+[[tolerance]]
+name = "power_law_exponent"
+value = 0.001
+justification = "Wiser 2013 reports exponent to 3 decimal places (Table 1)"
+
+[[tolerance]]
+name = "fitness_relative_error"
+value = 0.01
+justification = "1% relative error on fitness measurements — standard competition assay uncertainty"
+
+# --- Module 2: Mutation accumulation ---
+
+[[tolerance]]
+name = "mutation_rate_per_gen"
+value = 1e-10
+justification = "Barrick 2009 detection limit from whole-genome sequencing at ~40x coverage"
+
+[[tolerance]]
+name = "mutation_count_abs"
+value = 2.0
+justification = "±2 mutations per genome — sequencing error + mapping ambiguity at repetitive regions"
+
+# --- Module 3: Allele trajectories ---
+
+[[tolerance]]
+name = "allele_frequency_abs"
+value = 0.02
+justification = "Good 2017 reports frequencies to 2% resolution (sequencing depth ~100x)"
+
+[[tolerance]]
+name = "clade_classification_accuracy"
+value = 0.95
+justification = "95% accuracy for HMM/ESN regime classification — sweep vs interference vs coexistence"
+
+# --- Module 4: Citrate innovation ---
+
+[[tolerance]]
+name = "potentiation_generation"
+value = 500.0
+justification = "±500 generations for potentiating mutation window — Blount 2008 replay resolution"
+
+# --- Module 5: BioBrick burden ---
+
+[[tolerance]]
+name = "burden_relative_error"
+value = 0.05
+justification = "5% relative error on growth rate burden — standard plate reader measurement noise"
+
+# --- Module 6: breseq comparison ---
+
+[[tolerance]]
+name = "mutation_call_sensitivity"
+value = 0.99
+justification = "99% sensitivity for known mutations — breseq benchmark on LTEE reference genomes"
+
+[[tolerance]]
+name = "parallel_evolution_pvalue"
+value = 0.01
+justification = "p < 0.01 for parallel evolution significance — Tenaillon 2016 threshold"
+
+# --- Module 7: Anderson-QS predictions ---
+
+[[tolerance]]
+name = "anderson_disorder_parameter"
+value = 0.1
+justification = "W/V disorder ratio to 0.1 precision — sufficient for localization regime classification"
+
+[[tolerance]]
+name = "dfe_shape_parameter"
+value = 0.05
+justification = "DFE gamma shape parameter to 0.05 — standard MLE precision at LTEE sample sizes"

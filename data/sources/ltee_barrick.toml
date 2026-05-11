@@ -1,0 +1,90 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Data sources for LTEE guideStone — Barrick/Lenski papers.
+# These are the upstream data sources that feed into artifact/data.toml.
+# Follows foundation data/sources/ pattern.
+
+[meta]
+artifact = "ltee-guidestone"
+contact = "Barrick Lab, UT Austin"
+last_updated = "2026-05-11"
+total_sources = 7
+
+[[sources]]
+id = "wiser_2013_fitness"
+database = "Dryad"
+description = "Fitness time-series data for 12 LTEE populations over 50,000 generations"
+accessions = ["doi:10.5061/dryad.0hc2m"]
+url = "https://datadryad.org/stash/dataset/doi:10.5061/dryad.0hc2m"
+format = "csv"
+license = "CC0"
+paper = "B2 — Wiser et al. 2013, Science"
+module = "ltee-fitness"
+
+[[sources]]
+id = "barrick_2009_mutations"
+database = "NCBI BioProject"
+description = "Whole-genome sequences of evolved E. coli populations (20K generations)"
+accessions = ["PRJNA29543"]
+url = "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA29543"
+format = "sra"
+license = "public-domain"
+paper = "B1 — Barrick et al. 2009, Nature"
+module = "ltee-mutations"
+
+[[sources]]
+id = "good_2017_alleles"
+database = "NCBI BioProject"
+description = "Deep sequencing of LTEE populations — allele frequencies at ~500-gen intervals"
+accessions = ["PRJNA380528"]
+url = "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA380528"
+format = "sra"
+license = "public-domain"
+paper = "B3 — Good et al. 2017, Nature"
+module = "ltee-alleles"
+
+[[sources]]
+id = "blount_2012_citrate"
+database = "NCBI BioProject"
+description = "Citrate-using E. coli: genome sequences of Cit+ and ancestral clones"
+accessions = ["PRJNA188627"]
+url = "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA188627"
+format = "sra"
+license = "public-domain"
+paper = "B4 — Blount et al. 2012, Nature"
+module = "ltee-citrate"
+
+[[sources]]
+id = "tenaillon_2016_genomes"
+database = "NCBI BioProject"
+description = "264 whole-genome sequences across 12 LTEE populations at 50K generations"
+accessions = ["PRJNA294072"]
+url = "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA294072"
+format = "sra"
+license = "public-domain"
+paper = "B7 — Tenaillon et al. 2016, Nature"
+module = "ltee-breseq"
+
+[[sources]]
+id = "biobricks_2024_burden"
+database = "Journal supplemental"
+description = "Growth burden measurements for 301 BioBrick plasmids"
+accessions = []
+url = ""
+format = "csv"
+license = "CC-BY-4.0"
+paper = "B6 — Measuring the burden of hundreds of BioBricks 2024, Nat Comms"
+module = "ltee-biobricks"
+notes = "URL pending final publication DOI"
+
+[[sources]]
+id = "dfe_evolution_2024"
+database = "Journal supplemental"
+description = "Distribution of fitness effects measured across LTEE time points"
+accessions = []
+url = ""
+format = "csv"
+license = "public-domain"
+paper = "B9 — DFE Evolution in LTEE 2024, Science"
+module = "ltee-anderson"
+notes = "URL pending confirmation"

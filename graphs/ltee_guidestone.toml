@@ -1,0 +1,71 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Deploy graph for LTEE guideStone Tier 3 composition.
+# Requires NUCLEUS — primals come from plasmidBin, not bundled.
+
+[graph]
+name = "ltee_guidestone"
+description = "LTEE Targeted GuideStone — Tier 3 primal composition for full provenance"
+version = "0.1.0"
+coordination = "sequential"
+
+[graph.metadata]
+security_model = "btsp_enforced"
+purpose = "scientific_validation"
+tier = 3
+artifact = "ltee-guidestone"
+
+[graph.bonding_policy]
+type = "covalent"
+shared_seed = true
+
+# Provenance trio — full chain when NUCLEUS is available
+
+[[graph.nodes]]
+name = "rhizocrypt"
+binary = "rhizocrypt"
+source = "plasmidBin"
+order = 1
+purpose = "DAG provenance chain"
+health_method = "health.liveness"
+capabilities = ["memory.store", "memory.retrieve", "memory.dehydrate"]
+
+[[graph.nodes]]
+name = "loamspine"
+binary = "loamspine"
+source = "plasmidBin"
+order = 2
+depends_on = ["rhizocrypt"]
+purpose = "Certificate chain for immutable provenance"
+health_method = "health.liveness"
+capabilities = ["ledger.append", "ledger.verify", "certificate.issue"]
+
+[[graph.nodes]]
+name = "sweetgrass"
+binary = "sweetgrass"
+source = "plasmidBin"
+order = 3
+depends_on = ["rhizocrypt", "loamspine"]
+purpose = "Attribution braid integrity"
+health_method = "health.liveness"
+capabilities = ["attribution.braid", "attribution.verify"]
+
+[[graph.nodes]]
+name = "toadstool"
+binary = "toadstool"
+source = "plasmidBin"
+order = 4
+depends_on = []
+purpose = "GPU compute dispatch for accelerated validation"
+health_method = "health.liveness"
+capabilities = ["compute.dispatch", "compute.status"]
+optional = true
+
+[[graph.nodes]]
+name = "beardog"
+binary = "beardog"
+source = "plasmidBin"
+order = 0
+purpose = "BLAKE3 hashing and BTSP verification"
+health_method = "health.liveness"
+capabilities = ["crypto.hash", "crypto.verify", "crypto.sign"]

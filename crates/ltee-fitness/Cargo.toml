@@ -1,0 +1,16 @@
+[package]
+name = "ltee-fitness"
+description = "Module 1: Power-law fitness trajectories (Wiser 2013 / B2)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "ltee-fitness"
+path = "src/main.rs"
+
+[dependencies]
+litho-core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+clap = { workspace = true }

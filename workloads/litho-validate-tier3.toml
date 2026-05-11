@@ -1,0 +1,20 @@
+# lithoSpore Tier 3 validation — requires NUCLEUS composition
+# Runs all modules + provenance trio verification
+
+[metadata]
+name = "litho-validate-tier3"
+description = "LTEE guideStone Tier 3 validation — full provenance via NUCLEUS composition"
+version = "0.1.0"
+
+[execution]
+type = "composition"
+graph = "graphs/ltee_guidestone.toml"
+command = "$GARDENS_ROOT/lithoSpore/artifact/ltee validate --json --max-tier 3"
+working_dir = "$GARDENS_ROOT/lithoSpore/artifact"
+
+[resources]
+max_memory_bytes = 8589934592
+max_cpu_percent = 100.0
+
+[security]
+isolation_level = "btsp"

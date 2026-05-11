@@ -1,0 +1,69 @@
+#!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# ltee — entry point for the LTEE Targeted GuideStone artifact.
+#
+# Usage:
+#   ./ltee validate          Run all 7 modules, produce validation report
+#   ./ltee validate --json   Structured JSON output
+#   ./ltee refresh           Re-fetch datasets from source URIs
+#   ./ltee status            Show artifact info
+#   ./ltee spore             Show deployment history (liveSpore.json)
+#
+# Exit codes:
+#   0 = all modules PASS at achieved tier
+#   1 = one or more modules FAIL
+#   2 = partial (Tier 1/2 PASS but Tier 3 unavailable)
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ARCH="$(uname -m)"
+OS="$(uname -s)"
+
+case "$ARCH" in
+    x86_64)  BIN_DIR="$SCRIPT_DIR/bin/x86_64/static" ;;
+    aarch64) BIN_DIR="$SCRIPT_DIR/bin/aarch64/static" ;;
+    arm64)   BIN_DIR="$SCRIPT_DIR/bin/aarch64/static" ;; # macOS reports arm64
+    *)       BIN_DIR="" ;;
+esac
+
+if [ -n "$BIN_DIR" ] && [ -d "$BIN_DIR" ] && [ -f "$BIN_DIR/litho" ]; then
+    echo "lithoSpore: $OS $ARCH — Tier 2 (Rust ecoBin) available"
+    exec "$BIN_DIR/litho" "$@"
+fi
+
+if command -v python3 >/dev/null 2>&1; then
+    PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+    echo "lithoSpore: $OS $ARCH — Tier 1 (Python $PYVER) only"
+    echo "  Rust binaries not found for $ARCH. Falling back to Python notebooks."
+    echo "  For full Tier 2 validation, run on Linux x86_64 or aarch64."
+    echo ""
+
+    if [ "$1" = "validate" ]; then
+        echo "Running Python-only validation..."
+        for nb in "$SCRIPT_DIR"/notebooks/module*/*.py; do
+            if [ -f "$nb" ]; then
+                echo "  Running: $nb"
+                python3 "$nb" || echo "  WARNING: $nb failed"
+            fi
+        done
+        exit 2
+    fi
+
+    echo "Available commands: validate, status"
+    echo "  validate — run Python-only validation (Tier 1)"
+    echo "  status   — show artifact info"
+    echo ""
+    echo "For structured JSON output, pre-rendered HTML notebooks are in:"
+    echo "  $SCRIPT_DIR/notebooks/html/"
+    exit 0
+fi
+
+echo "lithoSpore: $OS $ARCH — no Rust binary, no Python found"
+echo "  Pre-rendered HTML notebooks are viewable in any browser:"
+echo "  $SCRIPT_DIR/notebooks/html/"
+echo ""
+echo "  For Tier 2 validation, run on Linux x86_64 or aarch64."
+echo "  For Tier 1 validation, install Python 3.10+."
+exit 2

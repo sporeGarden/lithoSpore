@@ -1,0 +1,16 @@
+[package]
+name = "ltee-biobricks"
+description = "Module 5: BioBrick burden distribution (Burden 2024 / B6)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "ltee-biobricks"
+path = "src/main.rs"
+
+[dependencies]
+litho-core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+clap = { workspace = true }

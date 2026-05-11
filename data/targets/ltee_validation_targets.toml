@@ -1,0 +1,136 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Validation targets for LTEE guideStone.
+# Each target is a quantitative claim that the artifact must verify.
+# Follows foundation data/targets/ pattern.
+
+[meta]
+artifact = "ltee-guidestone"
+last_updated = "2026-05-11"
+total_targets = 14
+
+# --- Module 1: Power-law fitness ---
+
+[[targets]]
+id = "T01"
+module = "ltee-fitness"
+claim = "LTEE fitness follows power law w(t) ~ t^β with β ≈ 0.12"
+source = "Wiser 2013 Table 1"
+tolerance = "power_law_exponent"
+status = "pending"
+
+[[targets]]
+id = "T02"
+module = "ltee-fitness"
+claim = "Power law provides better AIC/BIC fit than hyperbolic or logarithmic"
+source = "Wiser 2013 Fig 2"
+tolerance = "fitness_relative_error"
+status = "pending"
+
+# --- Module 2: Mutation accumulation ---
+
+[[targets]]
+id = "T03"
+module = "ltee-mutations"
+claim = "Mutation rate ~8.9e-11 per bp per generation (synonymous clock)"
+source = "Barrick 2009 Table 1"
+tolerance = "mutation_rate_per_gen"
+status = "pending"
+
+[[targets]]
+id = "T04"
+module = "ltee-mutations"
+claim = "~45 mutations fixed per genome at 20,000 generations"
+source = "Barrick 2009 Fig 1"
+tolerance = "mutation_count_abs"
+status = "pending"
+
+# --- Module 3: Allele trajectories ---
+
+[[targets]]
+id = "T05"
+module = "ltee-alleles"
+claim = "Multiple competing clades visible at allele frequency resolution"
+source = "Good 2017 Fig 1"
+tolerance = "allele_frequency_abs"
+status = "pending"
+
+[[targets]]
+id = "T06"
+module = "ltee-alleles"
+claim = "HMM/ESN regime classifier achieves ≥95% accuracy on labeled trajectories"
+source = "Internal — neuralSpring B3"
+tolerance = "clade_classification_accuracy"
+status = "pending"
+
+# --- Module 4: Citrate innovation ---
+
+[[targets]]
+id = "T07"
+module = "ltee-citrate"
+claim = "Potentiating mutations present ~2000 generations before Cit+ innovation"
+source = "Blount 2008/2012"
+tolerance = "potentiation_generation"
+status = "pending"
+
+# --- Module 5: BioBrick burden ---
+
+[[targets]]
+id = "T08"
+module = "ltee-biobricks"
+claim = "Burden distribution across 301 plasmids follows fat-tailed distribution"
+source = "Burden 2024 Fig 2"
+tolerance = "burden_relative_error"
+status = "pending"
+
+# --- Module 6: breseq comparison ---
+
+[[targets]]
+id = "T09"
+module = "ltee-breseq"
+claim = "Sovereign pipeline achieves ≥99% sensitivity vs breseq reference calls"
+source = "Tenaillon 2016 supplemental"
+tolerance = "mutation_call_sensitivity"
+status = "pending"
+
+[[targets]]
+id = "T10"
+module = "ltee-breseq"
+claim = "Significant parallel evolution in ≥15 genes (p < 0.01)"
+source = "Tenaillon 2016 Table 2"
+tolerance = "parallel_evolution_pvalue"
+status = "pending"
+
+# --- Module 7: Anderson-QS predictions ---
+
+[[targets]]
+id = "T11"
+module = "ltee-anderson"
+claim = "LTEE fitness landscape maps to Anderson disorder parameter W/V ~ 2-4"
+source = "Internal — hotSpring B2 Anderson analogy"
+tolerance = "anderson_disorder_parameter"
+status = "pending"
+
+[[targets]]
+id = "T12"
+module = "ltee-anderson"
+claim = "DFE eigenvalue spacing follows GOE statistics (Wigner surmise)"
+source = "Internal — hotSpring B9 RMT connection"
+tolerance = "dfe_shape_parameter"
+status = "pending"
+
+[[targets]]
+id = "T13"
+module = "ltee-anderson"
+claim = "Localization transition predicts fitness plateau onset"
+source = "Internal — new prediction"
+tolerance = "anderson_disorder_parameter"
+status = "pending"
+
+[[targets]]
+id = "T14"
+module = "ltee-anderson"
+claim = "Anderson-QS predicts citrate innovation probability from disorder parameter"
+source = "Internal — new prediction"
+tolerance = "anderson_disorder_parameter"
+status = "pending"

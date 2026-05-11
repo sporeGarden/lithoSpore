@@ -1,25 +1,31 @@
 # lithoSpore — Upstream & River Delta Gap Analysis
 
-**Last Updated**: May 11, 2026 (scaffold)
+**Last Updated**: May 11, 2026 (interstadial exit tagging + foundation thread coverage)
 **Purpose**: Track what lithoSpore needs from upstream springs and the river delta
 to complete each module. This is the gap inventory that drives evolution cycles.
+**Interstadial exit criteria**: `infra/wateringHole/INTERSTADIAL_EXIT_CRITERIA.md` (Pillar 4)
 
 ---
 
 ## Gap Summary
 
-| Module | Ready | Blocked By | Severity |
-|--------|-------|-----------|----------|
-| 1. ltee-fitness | Scaffold | groundSpring B2, wetSpring B2 | Medium |
-| 2. ltee-mutations | Scaffold | groundSpring B1, neuralSpring B1 | Medium |
-| 3. ltee-alleles | Scaffold | neuralSpring B3, groundSpring B3 | Medium |
-| 4. ltee-citrate | Scaffold | neuralSpring B4, groundSpring B4 | Medium |
-| 5. ltee-biobricks | Scaffold | neuralSpring B6, groundSpring B6 | Medium |
-| 6. ltee-breseq | Scaffold | wetSpring B7, groundSpring B7 | Medium |
-| 7. ltee-anderson | Scaffold | hotSpring B2+B9, groundSpring B9 | Medium |
+| Module | Ready | Blocked By | Severity | Phase |
+|--------|-------|-----------|----------|-------|
+| 1. ltee-fitness | Scaffold | groundSpring B2, wetSpring B2 | **BLOCKER** | Interstadial |
+| 2. ltee-mutations | Scaffold | groundSpring B1, neuralSpring B1 | **BLOCKER** | Interstadial |
+| 3. ltee-alleles | Scaffold | neuralSpring B3, groundSpring B3 | Medium | Interstadial |
+| 4. ltee-citrate | Scaffold | neuralSpring B4, groundSpring B4 | Medium | Interstadial |
+| 5. ltee-biobricks | Scaffold | neuralSpring B6, groundSpring B6 | Medium | Stadial |
+| 6. ltee-breseq | Scaffold | wetSpring B7, groundSpring B7 | Medium | Stadial |
+| 7. ltee-anderson | Scaffold | hotSpring B2+B9, groundSpring B9 | Medium | Stadial |
 
 **All 7 modules are scaffold-only** — awaiting upstream spring paper queue
 reproductions before implementation can begin.
+
+**Interstadial exit gate (Pillar 4)**: At least 2 modules PASS at Tier 1
+(Python) with real data fetched from Dryad/NCBI. Modules 1 + 2 are the
+interstadial target (groundSpring is the critical path — contributes to all 7).
+Modules 5–7 are stadial targets.
 
 ---
 
@@ -121,30 +127,61 @@ seed future modules or extend existing ones.
 
 ## Cross-Cutting Gaps
 
-| Gap | Owner | Description |
-|-----|-------|-------------|
-| Data fetching scripts | lithoSpore | `scripts/fetch_*.sh` for each dataset — need actual URLs and formats |
-| Expected values | Springs → lithoSpore | Each module needs reference outputs from spring reproductions |
-| musl cross-compilation | lithoSpore | Need `x86_64-unknown-linux-musl` and `aarch64-unknown-linux-musl` targets |
-| Python baseline implementations | lithoSpore | 7 notebooks need actual analysis code (not just scaffold) |
-| HTML pre-rendering | lithoSpore | Convert Python notebooks to static HTML for zero-dep viewing |
-| Foundation thread linkage validation | foundation | Verify thread 04/07 source TOMLs cover LTEE accessions |
-| projectNUCLEUS workload integration | projectNUCLEUS | Add lithoSpore workloads to NUCLEUS dispatch |
-| BioBrick paper DOI | External | B6 DOI placeholder — update when Nat Comms finalizes |
-| DFE paper DOI | External | B9 DOI placeholder — update when Science finalizes |
+| Gap | Owner | Phase | Description |
+|-----|-------|-------|-------------|
+| Data fetching scripts | lithoSpore | **INTERSTADIAL** | `scripts/fetch_*.sh` for each dataset — need actual URLs and formats |
+| Expected values (modules 1+2) | Springs → lithoSpore | **INTERSTADIAL** | Modules 1+2 need reference outputs for exit gate |
+| Expected values (modules 3–7) | Springs → lithoSpore | Stadial | Remaining modules need reference outputs |
+| musl cross-compilation | lithoSpore | Interstadial | Need `x86_64-unknown-linux-musl` and `aarch64-unknown-linux-musl` targets |
+| Python baseline implementations (1+2) | lithoSpore | **INTERSTADIAL** | Modules 1+2 need actual analysis code for exit gate |
+| Python baseline implementations (3–7) | lithoSpore | Stadial | Remaining notebooks need analysis code |
+| HTML pre-rendering | lithoSpore | Stadial | Convert Python notebooks to static HTML for zero-dep viewing |
+| Foundation thread linkage validation | foundation | **INTERSTADIAL** | Verify thread 04/05/07 source TOMLs cover LTEE accessions |
+| projectNUCLEUS workload integration | projectNUCLEUS | Interstadial | lithoSpore workloads in NUCLEUS dispatch (after Phase 2) |
+| BioBrick paper DOI | External | Stadial | B6 DOI placeholder — update when Nat Comms finalizes |
+| DFE paper DOI | External | Stadial | B9 DOI placeholder — update when Science finalizes |
+
+---
+
+## Foundation Thread Coverage
+
+lithoSpore depends on `sporeGarden/foundation` threads for data anchoring and
+provenance. Current coverage:
+
+| Thread | Name | lithoSpore Relevance | Status |
+|--------|------|---------------------|--------|
+| 01 | Whole-Cell Modeling | Karr 2012 metabolic context for LTEE growth conditions | Active (ABG WCM) |
+| 02 | Plasma Physics | Anderson disorder analogy (modules 5, 7) | Seeded (hotSpring) |
+| 03 | Immunology | Not directly relevant | Not seeded |
+| 04 | Environmental Genomics | LTEE genomic data (264 genomes, NCBI BioProject) | **CRITICAL** — needs LTEE accessions |
+| 05 | Evolutionary Biology | LTEE paper anchoring (Barrick/Lenski corpus) | **CRITICAL** — needs sources/targets |
+| 06 | Ecology & Environment | Population dynamics context | Active (airSpring) |
+| 07 | Computational Science | Algorithm validation (stats/ML methods) | **HIGH** — needs LTEE benchmarks |
+| 08 | Network Science | Population network topology | Not seeded |
+| 09 | Material Science | Not directly relevant | Not seeded |
+| 10 | Data Science | Data pipeline provenance | Not seeded |
+
+**Interstadial target**: Threads 04 and 05 must have LTEE-specific source TOMLs
+with NCBI/Dryad accessions. Thread 07 should have algorithm validation targets.
 
 ---
 
 ## Evolution Cycle: How Gaps Close
 
 ```
-1. Springs work LTEE paper queue items (L3)
-2. Springs produce: Python baselines + Rust validators + expected values
-3. lithoSpore absorbs: copy expected values, implement module logic
-4. lithoSpore tests: cargo test + validate.sh + Python baselines
-5. Build: scripts/build-artifact.sh produces musl-static binaries
-6. projectNUCLEUS dispatches: workloads/litho-validate-tier2.toml
-7. External deployment: USB to Barrick Lab (Phase 5)
+INTERSTADIAL (current):
+  1. Springs work LTEE paper queue items — B1, B2 priority (L3)
+  2. Springs produce: Python baselines + Rust validators + expected values
+  3. lithoSpore absorbs: implement modules 1+2 with real data
+  4. lithoSpore tests: cargo test + validate.sh + Python baselines
+  5. Foundation: seed Threads 04+05 with LTEE accessions
+  → EXIT GATE: 2+ modules PASS at Tier 1 (Python) with real data
+
+STADIAL (next):
+  6. Complete modules 3–7 as spring reproductions land
+  7. Build: scripts/build-artifact.sh produces musl-static ecoBin binaries
+  8. projectNUCLEUS dispatches: litho-validate-tier2.toml, tier3.toml
+  9. External deployment: USB to Barrick Lab (Phase 5)
 ```
 
 The scaffold is complete. The gap is upstream spring reproductions.

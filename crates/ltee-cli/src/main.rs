@@ -155,7 +155,13 @@ fn cmd_validate(root: &str, json: bool, max_tier: u8) {
     if json {
         println!(
             "{}",
-            serde_json::to_string_pretty(&report).expect("JSON serialization")
+            match serde_json::to_string_pretty(&report) {
+                Ok(json) => json,
+                Err(e) => {
+                    eprintln!("Error serializing report: {e}");
+                    std::process::exit(2);
+                }
+            }
         );
     } else {
         println!("lithoSpore v{} — LTEE GuideStone", env!("CARGO_PKG_VERSION"));
@@ -171,8 +177,32 @@ fn cmd_validate(root: &str, json: bool, max_tier: u8) {
         }
     }
 
-    let _ = root;
+    write_livespore(root, &report);
     std::process::exit(report.exit_code());
+}
+
+fn write_livespore(root: &str, report: &litho_core::ValidationReport) {
+    let spore_path = std::path::Path::new(root).join("artifact/liveSpore.json");
+
+    let mut entries: Vec<litho_core::LiveSporeEntry> = spore_path
+        .exists()
+        .then(|| std::fs::read_to_string(&spore_path).ok())
+        .flatten()
+        .and_then(|c| serde_json::from_str(&c).ok())
+        .unwrap_or_default();
+
+    entries.push(litho_core::LiveSporeEntry::from_report(report));
+
+    match serde_json::to_string_pretty(&entries) {
+        Ok(json) => {
+            if let Err(e) = std::fs::write(&spore_path, json) {
+                eprintln!("Warning: could not write liveSpore.json: {e}");
+            } else {
+                eprintln!("liveSpore: recorded validation run ({} entries)", entries.len());
+            }
+        }
+        Err(e) => eprintln!("Warning: could not serialize liveSpore: {e}"),
+    }
 }
 
 fn dispatch_python_tier1(
@@ -266,7 +296,82 @@ fn dispatch_python_tier1(
 fn cmd_refresh(root: &str) {
     println!("litho refresh: re-fetching datasets from source URIs...");
     println!("  artifact root: {root}");
-    println!("  TODO: implement data manifest refresh when data.toml is populated");
+
+    let root_path = std::path::Path::new(root);
+    let data_toml = root_path.join("artifact/data.toml");
+
+    let toml_content = match std::fs::read_to_string(&data_toml) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("  ERROR: Cannot read {}: {e}", data_toml.display());
+            std::process::exit(1);
+        }
+    };
+
+    let manifest: toml::Value = match toml::from_str(&toml_content) {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("  ERROR: Failed to parse data.toml: {e}");
+            std::process::exit(1);
+        }
+    };
+
+    let datasets = match manifest.get("dataset").and_then(|v| v.as_array()) {
+        Some(arr) => arr,
+        None => {
+            println!("  No [[dataset]] entries found in data.toml");
+            return;
+        }
+    };
+
+    let mut fetched = 0u32;
+    let mut skipped = 0u32;
+    let mut failed = 0u32;
+
+    for ds in datasets {
+        let id = ds.get("id").and_then(|v| v.as_str()).unwrap_or("unknown");
+        let refresh_cmd = ds.get("refresh_command").and_then(|v| v.as_str()).unwrap_or("");
+
+        if refresh_cmd.is_empty() {
+            println!("  [{id}] no refresh_command — skip");
+            skipped += 1;
+            continue;
+        }
+
+        let script_path = root_path.join(refresh_cmd);
+        if !script_path.exists() {
+            println!("  [{id}] script not found: {refresh_cmd} — skip");
+            skipped += 1;
+            continue;
+        }
+
+        println!("  [{id}] running {refresh_cmd}...");
+        let result = std::process::Command::new("bash")
+            .arg(&script_path)
+            .current_dir(root)
+            .status();
+
+        match result {
+            Ok(s) if s.success() => {
+                println!("  [{id}] OK");
+                fetched += 1;
+            }
+            Ok(s) => {
+                eprintln!("  [{id}] FAILED (exit {})", s.code().unwrap_or(-1));
+                failed += 1;
+            }
+            Err(e) => {
+                eprintln!("  [{id}] FAILED ({e})");
+                failed += 1;
+            }
+        }
+    }
+
+    println!();
+    println!("  Refresh complete: {fetched} fetched, {skipped} skipped, {failed} failed");
+    if failed > 0 {
+        std::process::exit(1);
+    }
 }
 
 fn cmd_status(root: &str) {

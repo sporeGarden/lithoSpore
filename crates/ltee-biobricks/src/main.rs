@@ -31,7 +31,13 @@ fn main() {
     let result = run_validation(&cli);
 
     if cli.json {
-        println!("{}", serde_json::to_string_pretty(&result).expect("JSON serialization"));
+        match serde_json::to_string_pretty(&result) {
+            Ok(json) => println!("{json}"),
+            Err(e) => {
+                eprintln!("Error serializing result: {e}");
+                std::process::exit(2);
+            }
+        }
     } else {
         println!(
             "Module 5 (biobricks): {} — {}/{} checks",

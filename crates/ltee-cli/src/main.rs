@@ -69,12 +69,70 @@ fn main() {
 
 fn cmd_validate(root: &str, json: bool, max_tier: u8) {
     let mut report = litho_core::ValidationReport::new("ltee-guidestone", env!("CARGO_PKG_VERSION"));
+    let root_path = std::path::Path::new(root);
 
-    // TODO: Dispatch to each module binary or run inline when implementations land.
-    // For now, report scaffold status.
-    let modules = [
-        "power_law_fitness",
-        "mutation_accumulation",
+    let live_modules: &[(&str, &str, &str, &str)] = &[
+        ("power_law_fitness", "ltee-fitness", "data/wiser_2013", "validation/expected/module1_fitness.json"),
+        ("mutation_accumulation", "ltee-mutations", "data/barrick_2009", "validation/expected/module2_mutations.json"),
+    ];
+
+    for (name, binary, data_dir, expected) in live_modules {
+        let data_path = root_path.join(data_dir);
+        let expected_path = root_path.join(expected);
+        let binary_path = root_path.join(format!("target/release/{binary}"));
+
+        if binary_path.exists() && data_path.exists() && expected_path.exists() {
+            let start = std::time::Instant::now();
+            let output = std::process::Command::new(&binary_path)
+                .arg("--data-dir").arg(&data_path)
+                .arg("--expected").arg(&expected_path)
+                .arg("--max-tier").arg(max_tier.to_string())
+                .arg("--json")
+                .output();
+
+            match output {
+                Ok(out) => {
+                    if let Ok(result) = serde_json::from_slice::<litho_core::ModuleResult>(&out.stdout) {
+                        report.add_module(result);
+                    } else {
+                        let stdout = String::from_utf8_lossy(&out.stdout);
+                        let passed = stdout.matches("[PASS]").count() as u32;
+                        let failed = stdout.matches("[FAIL]").count() as u32;
+                        report.add_module(litho_core::ModuleResult {
+                            name: (*name).to_string(),
+                            status: if failed == 0 && passed > 0 {
+                                litho_core::ValidationStatus::Pass
+                            } else if failed > 0 {
+                                litho_core::ValidationStatus::Fail
+                            } else {
+                                litho_core::ValidationStatus::Skip
+                            },
+                            tier: max_tier.min(2),
+                            checks: passed + failed,
+                            checks_passed: passed,
+                            runtime_ms: start.elapsed().as_millis() as u64,
+                            error: if failed > 0 { Some(format!("{failed} check(s) failed")) } else { None },
+                        });
+                    }
+                }
+                Err(e) => {
+                    report.add_module(litho_core::ModuleResult {
+                        name: (*name).to_string(),
+                        status: litho_core::ValidationStatus::Skip,
+                        tier: 1,
+                        checks: 0,
+                        checks_passed: 0,
+                        runtime_ms: start.elapsed().as_millis() as u64,
+                        error: Some(format!("Binary dispatch failed: {e}")),
+                    });
+                }
+            }
+        } else {
+            report.add_module(dispatch_python_tier1(name, root, &data_path, &expected_path));
+        }
+    }
+
+    let scaffold_modules = [
         "allele_trajectories",
         "citrate_innovation",
         "biobrick_burden",
@@ -82,7 +140,7 @@ fn cmd_validate(root: &str, json: bool, max_tier: u8) {
         "anderson_qs_predictions",
     ];
 
-    for name in &modules {
+    for name in &scaffold_modules {
         report.add_module(litho_core::ModuleResult {
             name: (*name).to_string(),
             status: litho_core::ValidationStatus::Skip,
@@ -117,6 +175,94 @@ fn cmd_validate(root: &str, json: bool, max_tier: u8) {
     std::process::exit(report.exit_code());
 }
 
+fn dispatch_python_tier1(
+    name: &str,
+    root: &str,
+    data_path: &std::path::Path,
+    expected_path: &std::path::Path,
+) -> litho_core::ModuleResult {
+    let start = std::time::Instant::now();
+
+    if !data_path.exists() || !expected_path.exists() {
+        return litho_core::ModuleResult {
+            name: name.to_string(),
+            status: litho_core::ValidationStatus::Skip,
+            tier: 1,
+            checks: 0,
+            checks_passed: 0,
+            runtime_ms: start.elapsed().as_millis() as u64,
+            error: Some("Data or expected values not found — run fetch scripts first".to_string()),
+        };
+    }
+
+    let notebook = match name {
+        "power_law_fitness" => "notebooks/module1_fitness/power_law_fitness.py",
+        "mutation_accumulation" => "notebooks/module2_mutations/mutation_accumulation.py",
+        _ => return litho_core::ModuleResult {
+            name: name.to_string(),
+            status: litho_core::ValidationStatus::Skip,
+            tier: 1,
+            checks: 0,
+            checks_passed: 0,
+            runtime_ms: 0,
+            error: Some("No Python baseline available".to_string()),
+        },
+    };
+
+    let root_path = std::path::Path::new(root);
+    let nb_path = root_path.join(notebook);
+    if !nb_path.exists() {
+        return litho_core::ModuleResult {
+            name: name.to_string(),
+            status: litho_core::ValidationStatus::Skip,
+            tier: 1,
+            checks: 0,
+            checks_passed: 0,
+            runtime_ms: start.elapsed().as_millis() as u64,
+            error: Some(format!("Python baseline not found: {notebook}")),
+        };
+    }
+
+    let output = std::process::Command::new("python3")
+        .arg(&nb_path)
+        .current_dir(root)
+        .output();
+
+    match output {
+        Ok(out) => {
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            let passed = stdout.matches("[PASS]").count() as u32;
+            let failed = stdout.matches("[FAIL]").count() as u32;
+            let total = passed + failed;
+
+            litho_core::ModuleResult {
+                name: name.to_string(),
+                status: if out.status.code() == Some(0) && failed == 0 {
+                    litho_core::ValidationStatus::Pass
+                } else if out.status.code() == Some(2) {
+                    litho_core::ValidationStatus::Skip
+                } else {
+                    litho_core::ValidationStatus::Fail
+                },
+                tier: 1,
+                checks: total,
+                checks_passed: passed,
+                runtime_ms: start.elapsed().as_millis() as u64,
+                error: if failed > 0 { Some(format!("{failed} check(s) failed")) } else { None },
+            }
+        }
+        Err(e) => litho_core::ModuleResult {
+            name: name.to_string(),
+            status: litho_core::ValidationStatus::Skip,
+            tier: 1,
+            checks: 0,
+            checks_passed: 0,
+            runtime_ms: start.elapsed().as_millis() as u64,
+            error: Some(format!("Python dispatch failed: {e}")),
+        },
+    }
+}
+
 fn cmd_refresh(root: &str) {
     println!("litho refresh: re-fetching datasets from source URIs...");
     println!("  artifact root: {root}");
@@ -124,12 +270,21 @@ fn cmd_refresh(root: &str) {
 }
 
 fn cmd_status(root: &str) {
+    let root_path = std::path::Path::new(root);
+    let m1_ready = root_path.join("validation/expected/module1_fitness.json").exists();
+    let m2_ready = root_path.join("validation/expected/module2_mutations.json").exists();
+    let m1_data = root_path.join("artifact/data/wiser_2013").exists();
+    let m2_data = root_path.join("artifact/data/barrick_2009").exists();
+    let live = (if m1_ready { 1 } else { 0 }) + (if m2_ready { 1 } else { 0 });
+
     println!("lithoSpore v{} — LTEE Targeted GuideStone", env!("CARGO_PKG_VERSION"));
     println!("  Artifact root: {root}");
-    println!("  Modules: 7 (all scaffold — awaiting spring reproductions)");
+    println!("  Modules: 7 ({live} live w/ expected values, {} scaffold)", 7 - live);
+    println!("  Module 1 (fitness):   expected={m1_ready} data={m1_data}");
+    println!("  Module 2 (mutations): expected={m2_ready} data={m2_data}");
     println!("  Tier support: 1 (Python) + 2 (Rust) + 3 (Primal/NUCLEUS)");
-    println!("  Data manifest: data.toml (template)");
-    println!("  Tolerances: tolerances.toml (template)");
+    println!("  Data manifest: data.toml");
+    println!("  Tolerances: tolerances.toml");
 }
 
 fn cmd_spore(root: &str) {

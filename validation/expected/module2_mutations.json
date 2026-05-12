@@ -1,0 +1,13 @@
+{
+  "experiment": "037_ltee_neutral_mutation",
+  "paper": "Barrick2009",
+  "paper_id": "B1",
+  "litho_module": 2,
+  "kimura_fixation_prob_neutral": 2e-06,
+  "molecular_clock_rate": 0.0009152594557881484,
+  "molecular_clock_pearson_r": 0.9988297282064581,
+  "mean_trajectory_final": 17.666666666666668,
+  "drift_dominance_ratio": 2.313030659405011,
+  "checks_passed": 8,
+  "checks_total": 8
+}

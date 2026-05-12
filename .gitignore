@@ -3,6 +3,9 @@ artifact/bin/x86_64/static/*
 artifact/bin/aarch64/static/*
 artifact/data/*/
 !artifact/data/.gitkeep
+!artifact/data/wiser_2013/fitness_data.csv
+!artifact/data/barrick_2009/mutation_parameters.json
+!artifact/data/barrick_2009/README_fetch.md
 artifact/notebooks/html/*.html
 artifact/CHECKSUMS
 *.pyc

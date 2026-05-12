@@ -92,14 +92,16 @@ For Tier 1 (Python) validation, the mutation parameter JSON is sufficient.
 Full SRA data is needed for Tier 2 (Rust) breseq-style analysis.
 HEREDOC
 
-if command -v b3sum >/dev/null 2>&1; then
-    log "Computing BLAKE3 hashes..."
-    HASH=$(find "$DATA_DIR" -type f | sort | xargs cat | b3sum | cut -d' ' -f1)
-    log "  Dataset BLAKE3: ${HASH}"
-    TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-    log "  Retrieved: ${TIMESTAMP}"
-else
-    log "WARN: b3sum not found — skipping hash computation"
+if ! command -v b3sum >/dev/null 2>&1; then
+    log "ERROR: b3sum not found — BLAKE3 hashing is required for provenance."
+    log "  Install: cargo install b3sum"
+    exit 1
 fi
+
+log "Computing BLAKE3 hashes..."
+HASH=$(find "$DATA_DIR" -type f | sort | xargs cat | b3sum | cut -d' ' -f1)
+TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+log "  Dataset BLAKE3: ${HASH}"
+log "  Retrieved: ${TIMESTAMP}"
 
 log "Done."

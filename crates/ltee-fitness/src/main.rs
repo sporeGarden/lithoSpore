@@ -16,7 +16,7 @@ use std::time::Instant;
 #[derive(Parser)]
 #[command(name = "ltee-fitness", about = "Power-law fitness trajectory validation")]
 struct Cli {
-    #[arg(long, default_value = "data/wiser_2013")]
+    #[arg(long, default_value = "artifact/data/wiser_2013")]
     data_dir: String,
 
     #[arg(long, default_value = "validation/expected/module1_fitness.json")]
@@ -126,7 +126,7 @@ fn rss_for_model(
     model: fn(f64, f64, f64) -> f64, p: &[f64; 2],
 ) -> f64 {
     gens.iter().zip(fitness)
-        .filter(|(&t, _)| t > 0.0)
+        .filter(|&(&t, _)| t > 0.0)
         .map(|(&t, &y)| { let d = y - model(t, p[0], p[1]); d * d })
         .sum()
 }
@@ -207,7 +207,7 @@ fn fit_model(
 
     let (mut ss_res, mut ss_tot, mut n) = (0.0_f64, 0.0_f64, 0_usize);
     let mean_y: f64 = {
-        let (s, c) = fitness.iter().zip(gens).filter(|(_, &t)| t > 0.0)
+        let (s, c) = fitness.iter().zip(gens).filter(|&(_, &t)| t > 0.0)
             .fold((0.0, 0), |(s, c), (&y, _)| (s + y, c + 1));
         s / c as f64
     };
@@ -244,11 +244,11 @@ fn load_csv(data_dir: &str) -> Option<(Vec<f64>, Vec<f64>)> {
     let mut fitness = Vec::new();
     for line in content.lines().skip(1) {
         let cols: Vec<&str> = line.split(',').collect();
-        if cols.len() >= 2 {
-            if let (Ok(g), Ok(f)) = (cols[0].trim().parse::<f64>(), cols[1].trim().parse::<f64>()) {
-                gens.push(g);
-                fitness.push(f);
-            }
+        if cols.len() >= 2
+            && let (Ok(g), Ok(f)) = (cols[0].trim().parse::<f64>(), cols[1].trim().parse::<f64>())
+        {
+            gens.push(g);
+            fitness.push(f);
         }
     }
     if gens.is_empty() { None } else { Some((gens, fitness)) }
@@ -425,5 +425,60 @@ fn run_tier1_python(start: Instant) -> ModuleResult {
         }
         Err(e) => skip_result("power_law_fitness", 1, start,
             &format!("Python dispatch failed: {e}")),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn power_law_known_values() {
+        assert!((power_law(1000.0, 0.004, 0.65) - 1.0).abs() > 0.1);
+        let val = power_law(0.0, 0.004, 0.65);
+        assert!((val - 1.0).abs() < 0.01, "t=0 ⇒ w≈1: got {val}");
+    }
+
+    #[test]
+    fn hyperbolic_known_values() {
+        let val = hyperbolic(0.0, 0.001, 0.0001);
+        assert!((val - 1.0).abs() < 1e-10);
+        let val = hyperbolic(50000.0, 0.0002, 2.5e-5);
+        assert!(val > 1.0);
+    }
+
+    #[test]
+    fn logarithmic_known_values() {
+        let val = logarithmic(1.0, 0.98, -6.7);
+        assert!(val < 1.0, "ln(1)=0, so w=1+0-6.7 < 1");
+    }
+
+    #[test]
+    fn nelder_mead_fits_simple_quadratic() {
+        let xs: Vec<f64> = (1..=20).map(|i| i as f64).collect();
+        let ys: Vec<f64> = xs.iter().map(|&x| 1.0 + 0.01 * x.powf(0.5)).collect();
+        let result = nelder_mead_2d(&xs, &ys, power_law, [0.005, 0.4]);
+        assert!(result.is_some(), "optimizer should converge");
+        let p = result.unwrap();
+        assert!((p[0] - 0.01).abs() < 0.005, "a≈0.01: got {}", p[0]);
+        assert!((p[1] - 0.5).abs() < 0.1, "b≈0.5: got {}", p[1]);
+    }
+
+    #[test]
+    fn fit_model_returns_valid_r_squared() {
+        let xs: Vec<f64> = (1..=10).map(|i| i as f64 * 5000.0).collect();
+        let ys: Vec<f64> = xs.iter().map(|&x| 1.0 + 0.004 * x.powf(0.66)).collect();
+        let fit = fit_model(&xs, &ys, "power_law", power_law, [0.01, 0.5]);
+        assert!(fit.is_some());
+        let f = fit.unwrap();
+        assert!(f.r_squared > 0.99, "R²>0.99: got {}", f.r_squared);
+    }
+
+    #[test]
+    fn rss_zero_for_perfect_fit() {
+        let xs = vec![1.0, 2.0, 3.0];
+        let ys: Vec<f64> = xs.iter().map(|&x| power_law(x, 0.5, 0.3)).collect();
+        let rss = rss_for_model(&xs, &ys, power_law, &[0.5, 0.3]);
+        assert!(rss < 1e-20, "perfect params ⇒ RSS≈0: got {rss}");
     }
 }

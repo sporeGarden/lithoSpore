@@ -1,0 +1,70 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Clippy (pedantic)
+        run: cargo clippy --workspace -- -D warnings
+
+      - name: Build (release)
+        run: cargo build --release --workspace
+
+      - name: Unit tests
+        run: cargo test --workspace
+
+      - name: Install b3sum
+        run: cargo install b3sum --locked
+
+      - name: Fetch data
+        run: |
+          bash scripts/fetch_wiser_2013.sh
+          bash scripts/fetch_barrick_2009.sh
+
+      - name: Module 1 — Rust Tier 2
+        run: |
+          ./target/release/ltee-fitness \
+            --data-dir artifact/data/wiser_2013 \
+            --expected validation/expected/module1_fitness.json \
+            --max-tier 2
+
+      - name: Module 2 — Rust Tier 2
+        run: |
+          ./target/release/ltee-mutations \
+            --data-dir artifact/data/barrick_2009 \
+            --expected validation/expected/module2_mutations.json \
+            --max-tier 2
+
+      - name: Litho CLI validate
+        run: ./target/release/litho validate || true
+
+  python-baselines:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python deps
+        run: pip install numpy scipy
+
+      - name: Module 1 — Python Tier 1
+        run: python3 notebooks/module1_fitness/power_law_fitness.py
+
+      - name: Module 2 — Python Tier 1
+        run: python3 notebooks/module2_mutations/mutation_accumulation.py

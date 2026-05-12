@@ -72,3 +72,123 @@ impl ValidationReport {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn empty_report_exit_zero() {
+        let r = ValidationReport::new("test", "0.0.0");
+        assert_eq!(r.exit_code(), 0);
+        assert_eq!(r.tier_reached, 0);
+    }
+
+    #[test]
+    fn pass_updates_tier() {
+        let mut r = ValidationReport::new("test", "0.0.0");
+        r.add_module(ModuleResult {
+            name: "m1".into(),
+            status: ValidationStatus::Pass,
+            tier: 2,
+            checks: 5,
+            checks_passed: 5,
+            runtime_ms: 10,
+            error: None,
+        });
+        assert_eq!(r.tier_reached, 2);
+        assert_eq!(r.exit_code(), 0);
+    }
+
+    #[test]
+    fn fail_yields_exit_one() {
+        let mut r = ValidationReport::new("test", "0.0.0");
+        r.add_module(ModuleResult {
+            name: "m1".into(),
+            status: ValidationStatus::Fail,
+            tier: 1,
+            checks: 3,
+            checks_passed: 1,
+            runtime_ms: 5,
+            error: Some("2 check(s) failed".into()),
+        });
+        assert_eq!(r.exit_code(), 1);
+        assert_eq!(r.tier_reached, 0);
+    }
+
+    #[test]
+    fn skip_yields_exit_two() {
+        let mut r = ValidationReport::new("test", "0.0.0");
+        r.add_module(ModuleResult {
+            name: "m1".into(),
+            status: ValidationStatus::Pass,
+            tier: 2,
+            checks: 5,
+            checks_passed: 5,
+            runtime_ms: 10,
+            error: None,
+        });
+        r.add_module(ModuleResult {
+            name: "scaffold".into(),
+            status: ValidationStatus::Skip,
+            tier: 1,
+            checks: 0,
+            checks_passed: 0,
+            runtime_ms: 0,
+            error: Some("awaiting upstream".into()),
+        });
+        assert_eq!(r.exit_code(), 2);
+    }
+
+    #[test]
+    fn fail_takes_priority_over_skip() {
+        let mut r = ValidationReport::new("test", "0.0.0");
+        r.add_module(ModuleResult {
+            name: "fail".into(),
+            status: ValidationStatus::Fail,
+            tier: 1,
+            checks: 1,
+            checks_passed: 0,
+            runtime_ms: 1,
+            error: Some("failed".into()),
+        });
+        r.add_module(ModuleResult {
+            name: "skip".into(),
+            status: ValidationStatus::Skip,
+            tier: 1,
+            checks: 0,
+            checks_passed: 0,
+            runtime_ms: 0,
+            error: Some("skipped".into()),
+        });
+        assert_eq!(r.exit_code(), 1);
+    }
+
+    #[test]
+    fn module_result_json_roundtrip() {
+        let m = ModuleResult {
+            name: "test_module".into(),
+            status: ValidationStatus::Pass,
+            tier: 2,
+            checks: 8,
+            checks_passed: 8,
+            runtime_ms: 42,
+            error: None,
+        };
+        let json = serde_json::to_string(&m).unwrap();
+        let deserialized: ModuleResult = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.name, "test_module");
+        assert_eq!(deserialized.status, ValidationStatus::Pass);
+        assert_eq!(deserialized.checks, 8);
+    }
+
+    #[test]
+    fn status_serializes_uppercase() {
+        let json = serde_json::to_string(&ValidationStatus::Pass).unwrap();
+        assert_eq!(json, "\"PASS\"");
+        let json = serde_json::to_string(&ValidationStatus::Fail).unwrap();
+        assert_eq!(json, "\"FAIL\"");
+        let json = serde_json::to_string(&ValidationStatus::Skip).unwrap();
+        assert_eq!(json, "\"SKIP\"");
+    }
+}

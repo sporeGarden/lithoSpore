@@ -40,3 +40,45 @@ impl DataManifest {
             .collect()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample_dataset(id: &str, hash: &str) -> Dataset {
+        Dataset {
+            id: id.into(),
+            source_uri: "https://example.com".into(),
+            license: "CC0".into(),
+            local_path: format!("data/{id}/"),
+            blake3: hash.into(),
+            retrieved: "2026-05-12".into(),
+            refresh_command: String::new(),
+        }
+    }
+
+    #[test]
+    fn verify_hashes_finds_empty() {
+        let m = DataManifest {
+            datasets: vec![
+                sample_dataset("a", "abc123"),
+                sample_dataset("b", ""),
+                sample_dataset("c", "def456"),
+            ],
+        };
+        let unhashed = m.verify_hashes();
+        assert_eq!(unhashed.len(), 1);
+        assert_eq!(unhashed[0].id, "b");
+    }
+
+    #[test]
+    fn verify_hashes_all_present() {
+        let m = DataManifest {
+            datasets: vec![
+                sample_dataset("a", "abc"),
+                sample_dataset("b", "def"),
+            ],
+        };
+        assert!(m.verify_hashes().is_empty());
+    }
+}

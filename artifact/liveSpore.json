@@ -7,7 +7,26 @@
     "tier_reached": 2,
     "modules_passed": 2,
     "modules_total": 7,
-    "runtime_ms": 0,
-    "_note": "Seed entry: Tier 2 Rust validation wired for modules 1 (fitness) and 2 (mutations). Remaining 5 modules awaiting upstream spring reproductions."
+    "runtime_ms": 0
+  },
+  {
+    "timestamp": "2026-05-12T22:49:38.725189195+00:00",
+    "hostname_hash": "ea7afbf5c3a4aadd86d2c7fca7154df661ec16df98311dc61319dd454ed7f053",
+    "arch": "x86_64",
+    "os": "linux",
+    "tier_reached": 2,
+    "modules_passed": 2,
+    "modules_total": 7,
+    "runtime_ms": 8
+  },
+  {
+    "timestamp": "2026-05-12T22:53:53.167895659+00:00",
+    "hostname_hash": "ea7afbf5c3a4aadd86d2c7fca7154df661ec16df98311dc61319dd454ed7f053",
+    "arch": "x86_64",
+    "os": "linux",
+    "tier_reached": 2,
+    "modules_passed": 2,
+    "modules_total": 7,
+    "runtime_ms": 1
   }
 ]

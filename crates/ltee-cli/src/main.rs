@@ -72,8 +72,8 @@ fn cmd_validate(root: &str, json: bool, max_tier: u8) {
     let root_path = std::path::Path::new(root);
 
     let live_modules: &[(&str, &str, &str, &str)] = &[
-        ("power_law_fitness", "ltee-fitness", "data/wiser_2013", "validation/expected/module1_fitness.json"),
-        ("mutation_accumulation", "ltee-mutations", "data/barrick_2009", "validation/expected/module2_mutations.json"),
+        ("power_law_fitness", "ltee-fitness", "artifact/data/wiser_2013", "validation/expected/module1_fitness.json"),
+        ("mutation_accumulation", "ltee-mutations", "artifact/data/barrick_2009", "validation/expected/module2_mutations.json"),
     ];
 
     for (name, binary, data_dir, expected) in live_modules {
@@ -393,7 +393,7 @@ fn cmd_status(root: &str) {
 }
 
 fn cmd_spore(root: &str) {
-    let spore_path = format!("{root}/liveSpore.json");
+    let spore_path = format!("{root}/artifact/liveSpore.json");
     match std::fs::read_to_string(&spore_path) {
         Ok(contents) => {
             let entries: Vec<litho_core::LiveSporeEntry> =

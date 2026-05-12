@@ -33,3 +33,42 @@ impl ToleranceSet {
         self.tolerance.iter().find(|t| t.name == name)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tolerance_set_get_by_name() {
+        let set = ToleranceSet {
+            tolerance: vec![
+                Tolerance {
+                    name: "alpha".into(),
+                    value: 0.01,
+                    justification: "test".into(),
+                },
+                Tolerance {
+                    name: "beta".into(),
+                    value: 0.05,
+                    justification: "test".into(),
+                },
+            ],
+        };
+        assert_eq!(set.get("alpha").unwrap().value, 0.01);
+        assert_eq!(set.get("beta").unwrap().value, 0.05);
+        assert!(set.get("gamma").is_none());
+    }
+
+    #[test]
+    fn tolerance_toml_roundtrip() {
+        let toml_str = r#"
+[[tolerance]]
+name = "test_tol"
+value = 0.001
+justification = "unit test"
+"#;
+        let set: ToleranceSet = toml::from_str(toml_str).unwrap();
+        assert_eq!(set.tolerance.len(), 1);
+        assert_eq!(set.tolerance[0].name, "test_tol");
+    }
+}

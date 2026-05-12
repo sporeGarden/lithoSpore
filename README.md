@@ -111,20 +111,30 @@ cargo run --bin litho -- validate --json
 - Foundation thread linkage established
 - 36 paper-spring assignments seeded across 6 upstream springs
 
-**Phase 2: Spring Reproductions** — AWAITING UPSTREAM
+**Phase 2: Tier 1 Python Baselines** — 2/7 MODULES PASS (2026-05-11)
 
-All 7 modules currently report SKIP — they are scaffolded and wired to the
-validation harness but await upstream spring teams to complete their LTEE
-paper queue items. See `docs/UPSTREAM_GAPS.md` for the full gap analysis.
+- **Module 1 (fitness)**: Tier 1 PASS — 8/8 checks, Wiser 2013 power-law fitting validated against groundSpring B2
+- **Module 2 (mutations)**: Tier 1 PASS — 7/7 checks, Barrick 2009 Kimura/drift validated against groundSpring B1
+- Modules 3–7: scaffolded, report SKIP — awaiting upstream spring reproductions
+
+**Phase 3: Tier 2 Rust Validation** — WIRED FOR MODULES 1+2
+
+- **Module 1**: Pure Rust Nelder-Mead curve fitting (power-law/hyperbolic/logarithmic) + AIC/BIC model selection
+- **Module 2**: Pure Rust Kimura fixation probability, Poisson neutral accumulation, Pearson molecular clock
+- `cmd_refresh` evolved from stub to real `data.toml`-driven fetch pipeline
+- All `expect()` calls replaced with proper `Result` error handling
+- First `liveSpore.json` entry seeded — deployment tracking operational
+
+See `docs/UPSTREAM_GAPS.md` for the full gap analysis on modules 3–7.
 
 ## Upstream Dependencies
 
 | Spring | Papers | Module(s) | Status |
 |--------|--------|-----------|--------|
-| wetSpring | B1-B8, E1, E5 | fitness, breseq | Queued |
-| neuralSpring | B1-B4, B6-B9, E2-E5 | mutations, alleles, citrate, biobricks | Queued |
-| groundSpring | B1-B4, B6-B9 | ALL 7 modules | Queued |
-| hotSpring | B2, B9 | anderson | Queued |
+| groundSpring | B1-B4, B6-B9 | ALL 7 modules | **B1+B2 COMPLETE** (fitness + mutations) |
+| wetSpring | B1-B8, E1, E5 | fitness, breseq | Active |
+| neuralSpring | B1-B4, B6-B9, E2-E5 | mutations, alleles, citrate, biobricks | Active |
+| hotSpring | B2, B9 | anderson | Active |
 | healthSpring | B5, E2, E4 | (future) | Queued |
 | airSpring | E3 | (future) | Queued |
 

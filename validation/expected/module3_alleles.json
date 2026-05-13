@@ -1,0 +1,67 @@
+{
+  "experiment": "038_ltee_clonal_interference",
+  "paper": "Good2017",
+  "paper_id": "B3",
+  "litho_module": 3,
+  "module_name": "ltee-alleles",
+  "description": "Allele frequency trajectories \u2014 clonal interference dynamics",
+  "pop_sizes": [
+    100,
+    1000,
+    10000,
+    100000
+  ],
+  "results_by_size": {
+    "100": {
+      "pop_size": 100,
+      "total_fixations": 27,
+      "total_mutations": 1016,
+      "fixation_probability": 0.0265748031496063,
+      "neutral_probability": 0.01,
+      "haldane_probability": 0.02,
+      "interference_ratio": 1.328740157480315,
+      "mean_final_fitness": 1.0158016094985254,
+      "std_final_fitness": 0.013248179435267578,
+      "adaptation_rate": 3.1187242867780583e-06
+    },
+    "1000": {
+      "pop_size": 1000,
+      "total_fixations": 180,
+      "total_mutations": 10079,
+      "fixation_probability": 0.017858914574858616,
+      "neutral_probability": 0.001,
+      "haldane_probability": 0.02,
+      "interference_ratio": 0.8929457287429308,
+      "mean_final_fitness": 1.2164635981713405,
+      "std_final_fitness": 0.0848867282495784,
+      "adaptation_rate": 3.870951800604936e-05
+    },
+    "10000": {
+      "pop_size": 10000,
+      "total_fixations": 1619,
+      "total_mutations": 100117,
+      "fixation_probability": 0.016171079836591187,
+      "neutral_probability": 0.0001,
+      "haldane_probability": 0.02,
+      "interference_ratio": 0.8085539918295593,
+      "mean_final_fitness": 5.912480460126347,
+      "std_final_fitness": 1.3737963057090765,
+      "adaptation_rate": 0.0003499435003022243
+    },
+    "100000": {
+      "pop_size": 100000,
+      "total_fixations": 14033,
+      "total_mutations": 1000225,
+      "fixation_probability": 0.014029843285260817,
+      "neutral_probability": 1e-05,
+      "haldane_probability": 0.02,
+      "interference_ratio": 0.7014921642630408,
+      "mean_final_fitness": 8719953.677241795,
+      "std_final_fitness": 6117697.885885733,
+      "adaptation_rate": 0.0031537036554838715
+    }
+  },
+  "checks_total": 7,
+  "source": "groundSpring V140 control/ltee_clonal_interference",
+  "provenance": "BLAKE3-anchored via lithoSpore fetch_good_2017.sh"
+}

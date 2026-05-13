@@ -21,6 +21,9 @@ struct Cli {
     #[arg(long, default_value = "validation/expected/module4_citrate.json")]
     expected: String,
 
+    #[arg(long, default_value = "2")]
+    max_tier: u8,
+
     #[arg(long)]
     json: bool,
 }
@@ -108,15 +111,15 @@ fn run_validation(cli: &Cli) -> ModuleResult {
     }
 
     // Mean potentiation generation (should be ~41,000)
-    if let Some(gen) = expected.get("mean_potentiation_gen").and_then(|v| v.as_f64()) {
+    if let Some(pot_gen) = expected.get("mean_potentiation_gen").and_then(|v| v.as_f64()) {
         checks += 1;
-        if gen > 30000.0 && gen < 50000.0 { passed += 1; }
+        if pot_gen > 30000.0 && pot_gen < 50000.0 { passed += 1; }
     }
 
     // Mean Cit+ generation (should be ~46,000)
-    if let Some(gen) = expected.get("mean_cit_plus_gen").and_then(|v| v.as_f64()) {
+    if let Some(cit_gen) = expected.get("mean_cit_plus_gen").and_then(|v| v.as_f64()) {
         checks += 1;
-        if gen > 40000.0 && gen < 55000.0 { passed += 1; }
+        if cit_gen > 40000.0 && cit_gen < 55000.0 { passed += 1; }
     }
 
     // Replay probability monotonicity check

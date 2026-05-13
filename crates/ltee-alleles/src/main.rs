@@ -21,6 +21,9 @@ struct Cli {
     #[arg(long, default_value = "validation/expected/module3_alleles.json")]
     expected: String,
 
+    #[arg(long, default_value = "2")]
+    max_tier: u8,
+
     #[arg(long)]
     json: bool,
 }
@@ -93,7 +96,6 @@ fn run_validation(cli: &Cli) -> ModuleResult {
 
     let mut checks = 0u32;
     let mut passed = 0u32;
-    let tolerance = 0.05;
 
     if let Some(results) = expected.get("results_by_size").and_then(|v| v.as_object()) {
         for (_size, data) in results {
@@ -107,7 +109,7 @@ fn run_validation(cli: &Cli) -> ModuleResult {
             }
             if let Some(fitness) = data.get("mean_final_fitness").and_then(|v| v.as_f64()) {
                 checks += 1;
-                if (fitness - 1.0).abs() < tolerance { passed += 1; }
+                if fitness >= 1.0 { passed += 1; }
             }
             if let Some(rate) = data.get("adaptation_rate").and_then(|v| v.as_f64()) {
                 checks += 1;

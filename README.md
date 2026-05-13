@@ -100,30 +100,32 @@ cargo build --release
 cargo run --bin litho -- validate --json
 ```
 
-## Current Status — 4/7 Modules PASS (May 12, 2026)
+## Current Status — 4/7 Modules PASS (May 13, 2026)
 
-**Pillar 4 EXIT GATE: MET** — exceeds interstadial requirement (2+ modules Tier 1).
+**Pillar 4 EXIT GATE: EXCEEDED** — 4 modules PASS Tier 2 (28/28 checks), gate required 2+.
 
 | Module | Status | Checks | Source |
 |--------|--------|--------|--------|
 | 1. ltee-fitness | **PASS** Tier 2 | 8/8 | groundSpring B2 Wiser 2013 |
 | 2. ltee-mutations | **PASS** Tier 2 | 7/7 | groundSpring B1 Barrick 2009 |
-| 6. ltee-breseq | **PASS** Tier 2 | 8/8 | wetSpring B7 Tenaillon 2016 |
-| 7. ltee-anderson | **PASS** Tier 2 | 5/5 | hotSpring B2 Anderson disorder |
 | 3. ltee-alleles | SKIP | — | Awaiting neuralSpring B3 |
 | 4. ltee-citrate | SKIP | — | Awaiting neuralSpring B4 |
 | 5. ltee-biobricks | SKIP | — | Awaiting neuralSpring B6 |
+| 6. ltee-breseq | **PASS** Tier 2 | 8/8 | wetSpring B7 Tenaillon 2016 |
+| 7. ltee-anderson | **PASS** Tier 2 | 5/5 | hotSpring B2 Anderson disorder |
+
+**Tier 2 Rust implementations**:
+- **Module 1**: Nelder-Mead curve fitting (power-law/hyperbolic/logarithmic) + AIC/BIC model selection
+- **Module 2**: Kimura fixation probability, Poisson neutral accumulation, Pearson molecular clock
+- **Module 6**: Mutation accumulation analysis, parallel evolution significance
+- **Module 7**: Anderson disorder mapping, GOE/Poisson eigenvalue statistics
 
 **Infrastructure**: `litho-core` crate (validation, provenance, tolerance, spore tracking),
 27+ unit tests, CI wired, zero clippy warnings, zero unsafe, zero `#[allow]`.
+`cmd_refresh` real `data.toml`-driven fetch pipeline. `liveSpore.json` operational.
+All `expect()` calls replaced with proper `Result` error handling.
 
-**Data provenance**: Wiser 2013 `e5189448…` + Barrick 2009 `ee14abb2…` BLAKE3-hashed
-from Dryad/NCBI. Modules 6+7 validate against spring expected-values (Tier 2 Rust-only).
-
-**Python Tier 1 baselines**: Modules 1, 2, 6, 7 all have complete Python implementations
-(numpy/scipy) that match Rust output within documented tolerances.
-
-See `docs/UPSTREAM_GAPS.md` for remaining module gaps (3–5).
+See `docs/UPSTREAM_GAPS.md` for remaining module gaps (3-5).
 
 ## Upstream Dependencies
 

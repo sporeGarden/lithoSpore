@@ -1,6 +1,6 @@
 # lithoSpore — Upstream & River Delta Gap Analysis
 
-**Last Updated**: May 12, 2026 (4/7 modules PASS Tier 2 — Pillar 4 GATE EXCEEDED)
+**Last Updated**: May 13, 2026 (4/7 modules PASS Tier 2 — Pillar 4 GATE EXCEEDED)
 **Purpose**: Track what lithoSpore needs from upstream springs and the river delta
 to complete each module. This is the gap inventory that drives evolution cycles.
 **Interstadial exit criteria**: `infra/wateringHole/INTERSTADIAL_EXIT_CRITERIA.md` (Pillar 4)
@@ -184,12 +184,15 @@ STADIAL (next):
   9. External deployment: USB to Barrick Lab (Phase 5)
 ```
 
-Modules 1+2 are live and passing at Tier 1. The interstadial exit gate is met.
-Remaining gap is upstream spring reproductions for modules 3–7 and Tier 2 (Rust)
-implementations for modules 1+2.
+Modules 1, 2, 6, 7 are live and passing at Tier 2. The interstadial exit gate
+is exceeded. Remaining gap is upstream neuralSpring reproductions for modules 3–5.
 
 ### Changelog
 
+- **2026-05-13**: Gap summary updated: 4/7 modules PASS Tier 2 (28/28 checks).
+  Modules 6+7 marked RESOLVED (wetSpring B7, hotSpring B2). Gate status EXCEEDED.
+- **2026-05-12**: Modules 6+7 integrated — wetSpring B7 Tenaillon (8/8 PASS),
+  hotSpring B2 Anderson disorder (5/5 PASS). Pillar 4 gate exceeded (4/7 > 2+).
 - **2026-05-11**: Modules 1+2 Tier 1 PASS — groundSpring B2/B1 integrated,
   fetch scripts created, Python baselines ported, expected values cross-validated.
   Rust crates updated to dispatch to Python Tier 1. `ltee-cli validate` now

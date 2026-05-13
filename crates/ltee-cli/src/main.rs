@@ -74,6 +74,8 @@ fn cmd_validate(root: &str, json: bool, max_tier: u8) {
     let live_modules: &[(&str, &str, &str, &str)] = &[
         ("power_law_fitness", "ltee-fitness", "artifact/data/wiser_2013", "validation/expected/module1_fitness.json"),
         ("mutation_accumulation", "ltee-mutations", "artifact/data/barrick_2009", "validation/expected/module2_mutations.json"),
+        ("breseq_264_genomes", "ltee-breseq", "artifact/data/tenaillon_2016", "validation/expected/module6_breseq.json"),
+        ("anderson_qs_predictions", "ltee-anderson", "artifact/data/anderson_predictions", "validation/expected/module7_anderson.json"),
     ];
 
     for (name, binary, data_dir, expected) in live_modules {
@@ -136,8 +138,6 @@ fn cmd_validate(root: &str, json: bool, max_tier: u8) {
         "allele_trajectories",
         "citrate_innovation",
         "biobrick_burden",
-        "breseq_264_genomes",
-        "anderson_qs_predictions",
     ];
 
     for name in &scaffold_modules {

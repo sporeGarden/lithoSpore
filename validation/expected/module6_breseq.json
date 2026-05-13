@@ -1,0 +1,91 @@
+{
+  "experiment": "Exp380",
+  "paper": "Tenaillon et al. Nature 536, 165-170 (2016)",
+  "doi": "10.1038/nature18959",
+  "bioproject": "PRJNA294072",
+  "ltee_queue_id": "B7",
+  "litho_module": 6,
+  "foundation_thread": 5,
+  "tier": "Tier 1 (Python baseline)",
+  "targets": {
+    "n_populations": {
+      "value": 12,
+      "unit": "count",
+      "tolerance": 0,
+      "source": "Paper methods: 12 replicate populations"
+    },
+    "n_genomes": {
+      "value": 264,
+      "unit": "count",
+      "tolerance": 0,
+      "source": "BioProject PRJNA294072: 264 sequenced clones"
+    },
+    "genome_length_bp": {
+      "value": 4629812,
+      "unit": "bp",
+      "tolerance": 100,
+      "source": "REL606 ancestor genome NC_012967.1"
+    },
+    "nonmutator_rate_per_bp_per_gen": {
+      "value": 8.9e-11,
+      "unit": "mutations/bp/generation",
+      "tolerance": 1e-11,
+      "source": "Fig 1, non-hypermutator populations"
+    },
+    "nonmutator_mutations_at_50k": {
+      "value": 20.6,
+      "unit": "point_mutations",
+      "tolerance": 2.3,
+      "source": "Linear model: mu * L * 50000"
+    },
+    "ts_tv_ratio": {
+      "value": 1.7,
+      "unit": "ratio",
+      "tolerance": 0.3,
+      "source": "Table S2, aggregate across non-mutator populations"
+    },
+    "gc_to_at_fraction": {
+      "value": 0.68,
+      "unit": "fraction",
+      "tolerance": 0.05,
+      "source": "Table S2, dominant mutation class"
+    },
+    "mutator_rate_multiplier": {
+      "value": 100.0,
+      "unit": "fold_increase",
+      "tolerance": 50.0,
+      "source": "Fig 1, Ara-1 vs non-mutator populations"
+    },
+    "mutation_spectrum": {
+      "value": {
+        "GC_to_AT": 0.68,
+        "AT_to_GC": 0.08,
+        "GC_to_TA": 0.10,
+        "GC_to_CG": 0.02,
+        "AT_to_TA": 0.07,
+        "AT_to_CG": 0.05
+      },
+      "unit": "fraction_per_class",
+      "tolerance": 0.05,
+      "source": "Table S2, 6-class point mutation spectrum"
+    },
+    "accumulation_model": {
+      "value": "near_linear",
+      "unit": "model_type",
+      "tolerance": null,
+      "source": "Fig 2, consistent with clock-like accumulation"
+    }
+  },
+  "mutation_accumulation_curve": {
+    "generations": [0, 2000, 5000, 10000, 15000, 20000, 30000, 40000, 50000],
+    "expected_mutations_nonmutator": [0.0, 0.8, 2.1, 4.1, 6.2, 8.2, 12.4, 16.5, 20.6],
+    "model": "linear",
+    "rate_per_bp_per_gen": 8.9e-11
+  },
+  "provenance": {
+    "pipeline": "wetSpring Exp380 Tier 1",
+    "version": "V164",
+    "spring": "wetSpring",
+    "ncbi_fetch": "ncbi/efetch.rs sovereign pipeline"
+  }
+}

@@ -318,12 +318,9 @@ fn cmd_refresh(root: &str) {
         }
     };
 
-    let datasets = match manifest.get("dataset").and_then(|v| v.as_array()) {
-        Some(arr) => arr,
-        None => {
-            println!("  No [[dataset]] entries found in data.toml");
-            return;
-        }
+    let datasets = if let Some(arr) = manifest.get("dataset").and_then(|v| v.as_array()) { arr } else {
+        println!("  No [[dataset]] entries found in data.toml");
+        return;
     };
 
     let mut fetched = 0u32;
@@ -384,6 +381,7 @@ fn cmd_status(root: &str) {
         ("2 (mutations)", "validation/expected/module2_mutations.json", "artifact/data/barrick_2009"),
         ("3 (alleles)", "validation/expected/module3_alleles.json", "artifact/data/good_2017"),
         ("4 (citrate)", "validation/expected/module4_citrate.json", "artifact/data/blount_2012"),
+        ("5 (biobricks)", "validation/expected/module5_biobricks.json", "artifact/data/biobricks_2024"),
         ("6 (breseq)", "validation/expected/module6_breseq.json", "artifact/data/tenaillon_2016"),
         ("7 (anderson)", "validation/expected/module7_anderson.json", "artifact/data/anderson_predictions"),
     ];

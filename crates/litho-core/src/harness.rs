@@ -19,9 +19,13 @@ pub fn skip(name: &str, tier: u8, start: Instant, reason: &str) -> ModuleResult 
         tier,
         checks: 0,
         checks_passed: 0,
-        runtime_ms: start.elapsed().as_millis() as u64,
+        runtime_ms: elapsed_ms(start),
         error: Some(reason.to_string()),
     }
+}
+
+fn elapsed_ms(start: Instant) -> u64 {
+    u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX)
 }
 
 /// Load and parse a JSON expected-values file.
@@ -38,6 +42,7 @@ pub fn load_expected(path: &str) -> Option<serde_json::Value> {
 ///
 /// Protocol: the Python script prints `[PASS]` / `[FAIL]` markers.
 /// Exit code 0 with no `[FAIL]` = pass, exit code 2 = skip, else fail.
+#[must_use]
 pub fn dispatch_python(name: &str, script_path: &Path, working_dir: &Path) -> ModuleResult {
     let start = Instant::now();
 
@@ -62,7 +67,9 @@ pub fn dispatch_python(name: &str, script_path: &Path, working_dir: &Path) -> Mo
                 eprintln!("{stderr}");
             }
 
+            #[allow(clippy::cast_possible_truncation)]
             let passed = stdout.matches("[PASS]").count() as u32;
+            #[allow(clippy::cast_possible_truncation)]
             let failed = stdout.matches("[FAIL]").count() as u32;
 
             let status = if out.status.code() == Some(0) && failed == 0 {
@@ -79,7 +86,7 @@ pub fn dispatch_python(name: &str, script_path: &Path, working_dir: &Path) -> Mo
                 tier: 1,
                 checks: passed + failed,
                 checks_passed: passed,
-                runtime_ms: start.elapsed().as_millis() as u64,
+                runtime_ms: elapsed_ms(start),
                 error: if failed > 0 {
                     Some(format!("{failed} check(s) failed"))
                 } else {
@@ -92,7 +99,7 @@ pub fn dispatch_python(name: &str, script_path: &Path, working_dir: &Path) -> Mo
 }
 
 /// Print a `ModuleResult` as JSON or human-readable text, then exit
-/// with the appropriate code per the Targeted GuideStone standard.
+/// with the appropriate code per the Targeted `GuideStone` standard.
 pub fn output_and_exit(result: &ModuleResult, json: bool) -> ! {
     if json {
         match serde_json::to_string_pretty(result) {

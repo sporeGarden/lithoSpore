@@ -78,23 +78,23 @@ fn run_validation(cli: &Cli) -> ModuleResult {
     let mut checks = 0u32;
     let mut passed = 0u32;
 
-    if let Some(frac) = expected.get("cit_plus_fraction").and_then(|v| v.as_f64()) {
+    if let Some(frac) = expected.get("cit_plus_fraction").and_then(serde_json::Value::as_f64) {
         checks += 1;
         let expected_frac = 1.0 / 6.0;
         if (frac - expected_frac).abs() < 0.01 { passed += 1; }
     }
 
-    if let Some(pot) = expected.get("potentiation_fraction").and_then(|v| v.as_f64()) {
+    if let Some(pot) = expected.get("potentiation_fraction").and_then(serde_json::Value::as_f64) {
         checks += 1;
         if pot > 0.0 && pot <= 1.0 { passed += 1; }
     }
 
-    if let Some(pot_gen) = expected.get("mean_potentiation_gen").and_then(|v| v.as_f64()) {
+    if let Some(pot_gen) = expected.get("mean_potentiation_gen").and_then(serde_json::Value::as_f64) {
         checks += 1;
         if pot_gen > 30000.0 && pot_gen < 50000.0 { passed += 1; }
     }
 
-    if let Some(cit_gen) = expected.get("mean_cit_plus_gen").and_then(|v| v.as_f64()) {
+    if let Some(cit_gen) = expected.get("mean_cit_plus_gen").and_then(serde_json::Value::as_f64) {
         checks += 1;
         if cit_gen > 40000.0 && cit_gen < 55000.0 { passed += 1; }
     }
@@ -107,14 +107,14 @@ fn run_validation(cli: &Cli) -> ModuleResult {
         if all_valid { passed += 1; }
     }
 
-    let single = expected.get("single_hit_mean_wait").and_then(|v| v.as_f64());
-    let two_hit = expected.get("two_hit_analytical_mean").and_then(|v| v.as_f64());
+    let single = expected.get("single_hit_mean_wait").and_then(serde_json::Value::as_f64);
+    let two_hit = expected.get("two_hit_analytical_mean").and_then(serde_json::Value::as_f64);
     if let (Some(s), Some(t)) = (single, two_hit) {
         checks += 1;
         if t > s * 10.0 { passed += 1; }
     }
 
-    let empirical = expected.get("two_hit_empirical_mean").and_then(|v| v.as_f64());
+    let empirical = expected.get("two_hit_empirical_mean").and_then(serde_json::Value::as_f64);
     if let (Some(e), Some(a)) = (empirical, two_hit) {
         checks += 1;
         if e < a { passed += 1; }

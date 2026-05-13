@@ -79,19 +79,19 @@ fn run_validation(cli: &Cli) -> ModuleResult {
 
     if let Some(results) = expected.get("results_by_size").and_then(|v| v.as_object()) {
         for (_size, data) in results {
-            if let Some(fix_prob) = data.get("fixation_probability").and_then(|v| v.as_f64()) {
+            if let Some(fix_prob) = data.get("fixation_probability").and_then(serde_json::Value::as_f64) {
                 checks += 1;
                 if fix_prob > 0.0 && fix_prob < 1.0 { passed += 1; }
             }
-            if let Some(interference) = data.get("interference_ratio").and_then(|v| v.as_f64()) {
+            if let Some(interference) = data.get("interference_ratio").and_then(serde_json::Value::as_f64) {
                 checks += 1;
                 if interference > 0.0 { passed += 1; }
             }
-            if let Some(fitness) = data.get("mean_final_fitness").and_then(|v| v.as_f64()) {
+            if let Some(fitness) = data.get("mean_final_fitness").and_then(serde_json::Value::as_f64) {
                 checks += 1;
                 if fitness >= 1.0 { passed += 1; }
             }
-            if let Some(rate) = data.get("adaptation_rate").and_then(|v| v.as_f64()) {
+            if let Some(rate) = data.get("adaptation_rate").and_then(serde_json::Value::as_f64) {
                 checks += 1;
                 if rate >= 0.0 { passed += 1; }
             }

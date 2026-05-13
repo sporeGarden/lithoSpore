@@ -68,7 +68,7 @@ fn run_validation(cli: &Cli) -> ModuleResult {
 // ── Tier 2: Pure Rust ────────────────────────────────────────────────
 
 /// Kimura fixation probability for a new mutation in a haploid population.
-/// P_fix = (1 - exp(-2sNp)) / (1 - exp(-2sN)), or p when s≈0.
+/// `P_fix` = (1 - exp(-2sNp)) / (1 - exp(-2sN)), or p when s≈0.
 fn kimura_fixation_prob(pop_size: u64, selection: f64, initial_freq: Option<f64>) -> f64 {
     let p = initial_freq.unwrap_or(1.0 / pop_size as f64);
     if selection.abs() < 1e-10 {
@@ -308,7 +308,7 @@ mod tests {
         let lambda = 5.0;
         let n = 10_000;
         let sum: u64 = (0..n).map(|_| rng.poisson(lambda)).sum();
-        let mean = sum as f64 / n as f64;
+        let mean = sum as f64 / f64::from(n);
         assert!((mean - lambda).abs() < 0.2);
     }
 

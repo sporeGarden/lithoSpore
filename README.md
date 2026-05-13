@@ -118,18 +118,22 @@ cargo run --bin litho -- validate --json
 - **Module 2**: Kimura fixation probability, Poisson neutral accumulation, Pearson molecular clock
 - **Module 3**: Clonal interference dynamics — fixation probability, interference ratio, adaptation rate validation
 - **Module 4**: Citrate innovation cascade — Cit+ fraction, potentiation, replay probabilities, two-hit model
-- **Module 6**: Mutation accumulation analysis, parallel evolution significance
+- **Module 6**: breseq 264-genome comparison, mutation accumulation analysis, parallel evolution significance
 - **Module 7**: Anderson disorder mapping, GOE/Poisson eigenvalue statistics
 
 **Infrastructure**: `litho-core` crate with 6 modules (validation, provenance, tolerance,
 spore tracking, capability-based discovery, shared stats + harness), 33 unit tests,
-CI wired, zero clippy warnings, zero unsafe, pure Rust BLAKE3 (ecoBin compliant).
+CI wired, zero clippy warnings, `#![forbid(unsafe_code)]` workspace-wide,
+pure Rust BLAKE3 (ecoBin compliant), `liveSpore.json` operational.
 
-**Architecture** (May 13 deep-debt sweep):
+**Architecture** (May 13 audit sweep):
+- `unsafe_code = "forbid"` enforced at workspace lint level — all 9 crates inherit
 - Shared harness (`litho_core::harness`) eliminates ~200 LOC of duplicated skip/load/dispatch
-- Shared stats (`litho_core::stats`) deduplicates `pearson_r` across modules
-- Capability-based discovery (`litho_core::discovery`) — primal resolution at runtime via
-  environment → UDS discovery socket → graceful skip. No hardcoded primal names.
+- Shared stats (`litho_core::stats`) deduplicates `pearson_r` with safe length checks
+- Capability-based discovery (`litho_core::discovery`) — primal resolution via
+  `$PRIMAL_HOST` + env → UDS discovery socket → graceful skip. No hardcoded primal names.
+- Clippy pedantic clean — `cast_precision_loss`, `float_cmp`, `manual_let_else` allowed
+  (inherent to scientific computing); all other pedantic lints enforced
 - `cmd_refresh` real `data.toml`-driven fetch pipeline (5 fetch scripts: B1–B4, B7)
 
 See `docs/UPSTREAM_GAPS.md` for remaining module gap (module 5 only).

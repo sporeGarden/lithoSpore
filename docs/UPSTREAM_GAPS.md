@@ -44,6 +44,22 @@ with upstream data (B1–B4, B7).
 | FN-HOST | `foundation_validate.sh` hardcoded `127.0.0.1` for Songbird | Replaced with `$PRIMAL_HOST` everywhere |
 | FN-EXPR | `expressions/README.md` missing 4 expressions | Added threads 5-ML, 6, 9, 10 to table |
 
+### Hardening Debt Resolved (May 13, 2026 — second pass)
+
+| ID | Gap | Resolution |
+|----|-----|-----------|
+| LS-UNSAFE | No `#![forbid(unsafe_code)]` on any crate | `unsafe_code = "forbid"` at workspace lint level, all 9 crates inherit via `[lints] workspace = true` |
+| LS-PANIC | `pearson_r` used `assert_eq!` (panics on mismatch) | Changed to `debug_assert_eq!` + early return 0.0 on length mismatch or empty |
+| LS-DISC2 | `discovery.rs` hardcoded `127.0.0.1` fallback | Now checks `$PRIMAL_HOST` env var before falling back to localhost |
+| LS-PORT | Port parsing via truncating `as u16` cast | Replaced with `u16::try_from().ok()?` — returns `None` on overflow |
+| LS-CLIPPY | Many pedantic clippy warnings | Auto-fixed (`f64::midpoint`, `f64::from`, closures); scientific casts allowed at workspace level |
+| FN-FETCH | `fetch_sources.sh` hardcoded `127.0.0.1` for NestGate | Replaced with `${PRIMAL_HOST:-127.0.0.1}` |
+| FN-GRAPH | `foundation_validation.toml` stale method names | `store.put`→`storage.store`, `dag.session_start`→`dag.session.create`, etc. |
+| FN-GPATH | `graphs/README.md` stale `sporeGarden/` paths | Fixed to `../../projectNUCLEUS/deploy` and direct graph paths |
+| FN-DEAD | `fetch_from_manifest` 54 LOC dead code | Removed from `deploy/fetch_sources.sh` |
+| FN-WK | Workload TOMLs missing SPDX headers | Added `AGPL-3.0-or-later` to all 20 workload TOMLs |
+| FN-CI | Shellcheck in CI was `|| true` (advisory) | Made blocking — removed `|| true` |
+
 ## Remaining — Foundation
 
 | ID | Priority | Gap | Action |
@@ -51,18 +67,16 @@ with upstream data (B1–B4, B7).
 | FN-1 | HIGH | All `data/sources/*.toml` have `blake3 = ""` and `retrieved = ""` | Run `deploy/fetch_sources.sh --thread all`, capture hashes, backfill TOMLs |
 | FN-5 | MEDIUM | Thread 1 WCM: all 24 targets `validated = false` despite existing logs | Review `validation/wcm-20260509/` results, flip validated where justified |
 | FN-4 | MEDIUM | Thread 5 ML: `thread05_ml_surrogates.toml` has `accessions = []` everywhere | ML sources are internal (neuralSpring models) — document as `source_type = "internal"` |
-| FN-WK | LOW | Workload TOMLs missing SPDX headers | Batch add |
 | FN-WK2 | LOW | Anderson/enviro workloads embed synthetic actuals=expected | Wire to real spring output or mark `synthetic = true` |
-| FN-CI | LOW | Shellcheck in CI is `|| true` (advisory only) | Make blocking when scripts are clean |
 
 ## Ecosystem Gaps (Upstream / Cross-cutting)
 
 | ID | Priority | Gap | Owner |
 |----|----------|-----|-------|
 | CC-1 | INFO | `SCYBORG_PROVENANCE_TRIO_GUIDANCE.md` only in external fossilRecord repo | infra team |
-| CC-2 | MEDIUM | `LTEE_GUIDESTONE_SUBSYSTEM_HANDOFF_MAY11_2026.md` missing from `handoffs/` | primalSpring |
-| CC-3 | MEDIUM | No CATHEDRAL handoffs written back to primalSpring | CATHEDRAL team — written May 13 |
-| FN-DATA | LOW | `data/README.md` schema example shows `expected_value` but scripts expect `expected` | Aligned May 13 |
+| CC-2 | MEDIUM | `LTEE_GUIDESTONE_SUBSYSTEM_HANDOFF_MAY11_2026.md` missing from `handoffs/` | primalSpring — file never committed |
+| CC-3 | RESOLVED | No CATHEDRAL handoffs written back to primalSpring | Written May 13: `CATHEDRAL_DEEP_DEBT_AUDIT_MAY13_2026.md` |
+| FN-DATA | RESOLVED | `data/README.md` schema stale | Updated to reflect all 10 threads May 13 |
 
 ---
 

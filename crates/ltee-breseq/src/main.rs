@@ -128,10 +128,10 @@ fn run_tier2_rust(cli: &Cli, start: Instant) -> ModuleResult {
     total += 1;
     let curve = &expected["mutation_accumulation_curve"];
     let gens: Vec<f64> = curve["generations"].as_array()
-        .map(|a| a.iter().filter_map(|v| v.as_f64()).collect())
+        .map(|a| a.iter().filter_map(serde_json::value::Value::as_f64).collect())
         .unwrap_or_default();
     let muts: Vec<f64> = curve["expected_mutations_nonmutator"].as_array()
-        .map(|a| a.iter().filter_map(|v| v.as_f64()).collect())
+        .map(|a| a.iter().filter_map(serde_json::value::Value::as_f64).collect())
         .unwrap_or_default();
 
     let linear_ok = if gens.len() >= 3 && gens.len() == muts.len() {

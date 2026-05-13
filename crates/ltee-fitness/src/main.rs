@@ -123,8 +123,8 @@ fn nelder_mead_2d(
             break;
         }
 
-        let cx = [(simplex[0].0[0] + simplex[1].0[0]) / 2.0,
-                   (simplex[0].0[1] + simplex[1].0[1]) / 2.0];
+        let cx = [f64::midpoint(simplex[0].0[0], simplex[1].0[0]),
+                   f64::midpoint(simplex[0].0[1], simplex[1].0[1])];
 
         let xr = [2.0 * cx[0] - simplex[2].0[0], 2.0 * cx[1] - simplex[2].0[1]];
         let fr = obj(&xr);
@@ -142,8 +142,8 @@ fn nelder_mead_2d(
             continue;
         }
 
-        let xc = [(cx[0] + simplex[2].0[0]) / 2.0,
-                   (cx[1] + simplex[2].0[1]) / 2.0];
+        let xc = [f64::midpoint(cx[0], simplex[2].0[0]),
+                   f64::midpoint(cx[1], simplex[2].0[1])];
         let fc = obj(&xc);
         if fc < worst {
             simplex[2] = (xc, fc);
@@ -174,7 +174,7 @@ fn fit_model(
     let mean_y: f64 = {
         let (s, c) = fitness.iter().zip(gens).filter(|&(_, &t)| t > 0.0)
             .fold((0.0, 0), |(s, c), (&y, _)| (s + y, c + 1));
-        s / c as f64
+        s / f64::from(c)
     };
     for (&t, &y) in gens.iter().zip(fitness) {
         if t <= 0.0 { continue; }
@@ -353,7 +353,7 @@ mod tests {
 
     #[test]
     fn nelder_mead_fits_simple_quadratic() {
-        let xs: Vec<f64> = (1..=20).map(|i| i as f64).collect();
+        let xs: Vec<f64> = (1..=20).map(f64::from).collect();
         let ys: Vec<f64> = xs.iter().map(|&x| 1.0 + 0.01 * x.powf(0.5)).collect();
         let result = nelder_mead_2d(&xs, &ys, power_law, [0.005, 0.4]);
         assert!(result.is_some(), "optimizer should converge");
@@ -364,7 +364,7 @@ mod tests {
 
     #[test]
     fn fit_model_returns_valid_r_squared() {
-        let xs: Vec<f64> = (1..=10).map(|i| i as f64 * 5000.0).collect();
+        let xs: Vec<f64> = (1..=10).map(|i| f64::from(i) * 5000.0).collect();
         let ys: Vec<f64> = xs.iter().map(|&x| 1.0 + 0.004 * x.powf(0.66)).collect();
         let fit = fit_model(&xs, &ys, "power_law", power_law, [0.01, 0.5]);
         assert!(fit.is_some());

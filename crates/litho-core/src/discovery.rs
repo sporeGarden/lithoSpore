@@ -91,12 +91,12 @@ fn discover_from_socket(capability: &str) -> Option<PrimalEndpoint> {
 fn parse_discovery_response(capability: &str, response: &str) -> Option<PrimalEndpoint> {
     let v: serde_json::Value = serde_json::from_str(response).ok()?;
     let result = v.get("result")?;
-    let port = result.get("port")?.as_u64()? as u16;
+    let port = u16::try_from(result.get("port")?.as_u64()?).ok()?;
     let host = result
         .get("host")
-        .and_then(|h| h.as_str())
-        .unwrap_or("127.0.0.1")
-        .to_string();
+        .and_then(|h| h.as_str()).map_or_else(|| {
+            std::env::var("PRIMAL_HOST").unwrap_or_else(|_| "127.0.0.1".to_string())
+        }, String::from);
 
     Some(PrimalEndpoint {
         capability: capability.to_string(),
@@ -110,6 +110,7 @@ fn parse_discovery_response(capability: &str, response: &str) -> Option<PrimalEn
 ///
 /// Returns `None` on connection/timeout/parse failure — callers degrade
 /// gracefully rather than panicking.
+#[must_use]
 pub fn rpc_call(endpoint: &PrimalEndpoint, request: &str) -> Option<serde_json::Value> {
     match endpoint.transport {
         Transport::Tcp => rpc_tcp(endpoint, request),

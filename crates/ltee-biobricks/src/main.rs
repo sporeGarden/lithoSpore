@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! Module 5: BioBrick metabolic burden
+//! Module 5: `BioBrick` metabolic burden
 //!
-//! Reproduces burden measurements from 2024 BioBrick fitness assays.
-//! Springs: healthSpring (burden quantification), airSpring (FLS2 immunity).
+//! Reproduces burden measurements from Burden 2024 (B6) fitness assays.
+//! Springs: neuralSpring (surrogate models), groundSpring (baseline validation).
 //!
 //! Upstream gaps:
-//! - healthSpring B5: BioBrick burden quantification pipeline
-//! - airSpring: FLS2 plant immunity cross-validation
+//! - neuralSpring B6: surrogate model for `BioBrick` burden quantification
+//! - groundSpring B6: baseline validation data
 
 use clap::Parser;
 use litho_core::harness;

@@ -93,7 +93,7 @@ fn run_tier2_rust(cli: &Cli, start: Instant) -> ModuleResult {
     let poisson_ref = diagnostics["poisson_reference"].as_f64().unwrap_or(0.3863);
 
     total += 1;
-    let midpoint = (goe_ref + poisson_ref) / 2.0;
+    let midpoint = f64::midpoint(goe_ref, poisson_ref);
     let in_range = midpoint > poisson_ref && midpoint < goe_ref;
     if in_range { passed += 1; }
     eprintln!("  [{}] <r> in [Poisson, GOE]: {midpoint:.4} in [{poisson_ref:.4}, {goe_ref:.4}]",

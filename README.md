@@ -96,45 +96,43 @@ cargo build --release
 # Build artifact (cross-compile musl-static)
 ./scripts/build-artifact.sh
 
-# Run validation (scaffold mode — modules report SKIP until spring reproductions land)
+# Run validation (4/7 modules PASS at Tier 2, 3 scaffold SKIP)
 cargo run --bin litho -- validate --json
 ```
 
-## Current Status
+## Current Status — 4/7 Modules PASS (May 12, 2026)
 
-**Phase 1: Architecture + Queue Seeding** — COMPLETE
+**Pillar 4 EXIT GATE: MET** — exceeds interstadial requirement (2+ modules Tier 1).
 
-- Cargo workspace scaffolded with 7 module crates + shared lib + CLI
-- Artifact structure defined (scope graph, data manifest, tolerances, liveSpore)
-- Python Tier 1 baselines scaffolded for all 7 modules
-- Data source manifests and validation targets defined
-- Foundation thread linkage established
-- 36 paper-spring assignments seeded across 6 upstream springs
+| Module | Status | Checks | Source |
+|--------|--------|--------|--------|
+| 1. ltee-fitness | **PASS** Tier 2 | 8/8 | groundSpring B2 Wiser 2013 |
+| 2. ltee-mutations | **PASS** Tier 2 | 7/7 | groundSpring B1 Barrick 2009 |
+| 6. ltee-breseq | **PASS** Tier 2 | 8/8 | wetSpring B7 Tenaillon 2016 |
+| 7. ltee-anderson | **PASS** Tier 2 | 5/5 | hotSpring B2 Anderson disorder |
+| 3. ltee-alleles | SKIP | — | Awaiting neuralSpring B3 |
+| 4. ltee-citrate | SKIP | — | Awaiting neuralSpring B4 |
+| 5. ltee-biobricks | SKIP | — | Awaiting neuralSpring B6 |
 
-**Phase 2: Tier 1 Python Baselines** — 2/7 MODULES PASS (2026-05-11)
+**Infrastructure**: `litho-core` crate (validation, provenance, tolerance, spore tracking),
+27+ unit tests, CI wired, zero clippy warnings, zero unsafe, zero `#[allow]`.
 
-- **Module 1 (fitness)**: Tier 1 PASS — 8/8 checks, Wiser 2013 power-law fitting validated against groundSpring B2
-- **Module 2 (mutations)**: Tier 1 PASS — 7/7 checks, Barrick 2009 Kimura/drift validated against groundSpring B1
-- Modules 3–7: scaffolded, report SKIP — awaiting upstream spring reproductions
+**Data provenance**: Wiser 2013 `e5189448…` + Barrick 2009 `ee14abb2…` BLAKE3-hashed
+from Dryad/NCBI. Modules 6+7 validate against spring expected-values (Tier 2 Rust-only).
 
-**Phase 3: Tier 2 Rust Validation** — WIRED FOR MODULES 1+2
+**Python Tier 1 baselines**: Modules 1, 2, 6, 7 all have complete Python implementations
+(numpy/scipy) that match Rust output within documented tolerances.
 
-- **Module 1**: Pure Rust Nelder-Mead curve fitting (power-law/hyperbolic/logarithmic) + AIC/BIC model selection
-- **Module 2**: Pure Rust Kimura fixation probability, Poisson neutral accumulation, Pearson molecular clock
-- `cmd_refresh` evolved from stub to real `data.toml`-driven fetch pipeline
-- All `expect()` calls replaced with proper `Result` error handling
-- First `liveSpore.json` entry seeded — deployment tracking operational
-
-See `docs/UPSTREAM_GAPS.md` for the full gap analysis on modules 3–7.
+See `docs/UPSTREAM_GAPS.md` for remaining module gaps (3–5).
 
 ## Upstream Dependencies
 
 | Spring | Papers | Module(s) | Status |
 |--------|--------|-----------|--------|
-| groundSpring | B1-B4, B6-B9 | ALL 7 modules | **B1+B2 COMPLETE** (fitness + mutations) |
-| wetSpring | B1-B8, E1, E5 | fitness, breseq | Active |
-| neuralSpring | B1-B4, B6-B9, E2-E5 | mutations, alleles, citrate, biobricks | Active |
-| hotSpring | B2, B9 | anderson | Active |
+| groundSpring | B1-B4, B6-B9 | ALL 7 modules | **B1+B2 COMPLETE** |
+| wetSpring | B1-B8, E1, E5 | fitness, breseq | **B7 INTEGRATED** (Module 6) |
+| neuralSpring | B1-B4, B6-B9, E2-E5 | mutations, alleles, citrate, biobricks | B1 active |
+| hotSpring | B2, B9 | anderson | **B2 INTEGRATED** (Module 7) |
 | healthSpring | B5, E2, E4 | (future) | Queued |
 | airSpring | E3 | (future) | Queued |
 

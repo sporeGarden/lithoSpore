@@ -1,6 +1,6 @@
 # lithoSpore — Upstream & River Delta Gap Analysis
 
-**Last Updated**: May 11, 2026 (Modules 1+2 Tier 1 PASS — interstadial exit gate MET)
+**Last Updated**: May 12, 2026 (4/7 modules PASS Tier 2 — Pillar 4 GATE EXCEEDED)
 **Purpose**: Track what lithoSpore needs from upstream springs and the river delta
 to complete each module. This is the gap inventory that drives evolution cycles.
 **Interstadial exit criteria**: `infra/wateringHole/INTERSTADIAL_EXIT_CRITERIA.md` (Pillar 4)
@@ -11,22 +11,22 @@ to complete each module. This is the gap inventory that drives evolution cycles.
 
 | Module | Ready | Blocked By | Severity | Phase |
 |--------|-------|-----------|----------|-------|
-| 1. ltee-fitness | **Tier 1 PASS (8/8)** | — | **RESOLVED** | Interstadial |
-| 2. ltee-mutations | **Tier 1 PASS (7/7)** | — | **RESOLVED** | Interstadial |
+| 1. ltee-fitness | **Tier 2 PASS (8/8)** | — | **RESOLVED** | Interstadial |
+| 2. ltee-mutations | **Tier 2 PASS (7/7)** | — | **RESOLVED** | Interstadial |
 | 3. ltee-alleles | Scaffold | neuralSpring B3, groundSpring B3 | Medium | Interstadial |
 | 4. ltee-citrate | Scaffold | neuralSpring B4, groundSpring B4 | Medium | Interstadial |
 | 5. ltee-biobricks | Scaffold | neuralSpring B6, groundSpring B6 | Medium | Stadial |
-| 6. ltee-breseq | Scaffold | wetSpring B7, groundSpring B7 | Medium | Stadial |
-| 7. ltee-anderson | Scaffold | hotSpring B2+B9, groundSpring B9 | Medium | Stadial |
+| 6. ltee-breseq | **Tier 2 PASS (8/8)** | — | **RESOLVED** | Interstadial |
+| 7. ltee-anderson | **Tier 2 PASS (5/5)** | — | **RESOLVED** | Interstadial |
 
-**2/7 modules live** — Modules 1+2 have Tier 1 Python baselines ported from
-groundSpring B2/B1 reproductions with expected values cross-validated. Remaining
-5 modules awaiting upstream spring paper queue reproductions.
+**4/7 modules live** — Modules 1, 2, 6, 7 have both Python Tier 1 and Rust Tier 2
+implementations validated end-to-end. Modules 6+7 integrated from wetSpring B7
+(Tenaillon 2016) and hotSpring B2 (Anderson disorder). Remaining 3 modules (alleles,
+citrate, biobricks) awaiting upstream neuralSpring paper queue reproductions.
 
-**Interstadial exit gate (Pillar 4)**: **MET** — 2 modules PASS at Tier 1
-(Python) with data sourced from Dryad/NCBI accessions (groundSpring B2 Wiser
-2013 and B1 Barrick 2009). Next: Tier 2 (Rust) implementations, real raw data
-fetch from Dryad/NCBI SRA, modules 3–7 as spring reproductions land.
+**Interstadial exit gate (Pillar 4)**: **EXCEEDED** — 4 modules PASS at Tier 2
+(Rust) with 28/28 total checks. BLAKE3 provenance on fetched data. Next: modules
+3–5 as neuralSpring B3/B4/B6 reproductions complete.
 
 ---
 

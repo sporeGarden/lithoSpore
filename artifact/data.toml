@@ -66,7 +66,7 @@ module = "ltee-citrate"
 
 [[dataset]]
 id = "biobricks_2024_burden"
-source_uri = "https://doi.org/10.1038/s41467-024-XXXXX"
+source_uri = ""
 license = "CC-BY-4.0"
 local_path = "data/biobricks_2024/"
 blake3 = ""
@@ -74,7 +74,7 @@ retrieved = ""
 refresh_command = "scripts/fetch_biobricks_2024.sh"
 paper = "Measuring the burden of hundreds of BioBricks, 2024, Nat Comms"
 module = "ltee-biobricks"
-notes = "DOI placeholder — update when paper finalizes"
+notes = "DOI pending — paper not yet published, source URI TBD"
 
 # --- Module 6: 264 genomes (Tenaillon 2016) ---
 
@@ -93,7 +93,7 @@ module = "ltee-breseq"
 
 [[dataset]]
 id = "dfe_evolution_2024"
-source_uri = "https://doi.org/10.1126/science.XXXXX"
+source_uri = ""
 license = "public-domain"
 local_path = "data/dfe_2024/"
 blake3 = ""
@@ -101,7 +101,7 @@ retrieved = ""
 refresh_command = "scripts/fetch_dfe_2024.sh"
 paper = "DFE Evolution in LTEE 2024, Science"
 module = "ltee-anderson"
-notes = "DOI placeholder — update when paper source URI confirmed"
+notes = "DOI pending — DFE evolution paper source URI TBD"
 
 [[dataset]]
 id = "anderson_predictions"

@@ -376,20 +376,27 @@ fn cmd_refresh(root: &str) {
 
 fn cmd_status(root: &str) {
     let root_path = std::path::Path::new(root);
-    let m1_ready = root_path.join("validation/expected/module1_fitness.json").exists();
-    let m2_ready = root_path.join("validation/expected/module2_mutations.json").exists();
-    let m1_data = root_path.join("artifact/data/wiser_2013").exists();
-    let m2_data = root_path.join("artifact/data/barrick_2009").exists();
-    let live = (if m1_ready { 1 } else { 0 }) + (if m2_ready { 1 } else { 0 });
 
+    let modules: &[(&str, &str, &str)] = &[
+        ("1 (fitness)", "validation/expected/module1_fitness.json", "artifact/data/wiser_2013"),
+        ("2 (mutations)", "validation/expected/module2_mutations.json", "artifact/data/barrick_2009"),
+        ("6 (breseq)", "validation/expected/module6_breseq.json", "artifact/data/tenaillon_2016"),
+        ("7 (anderson)", "validation/expected/module7_anderson.json", "artifact/data/anderson_predictions"),
+    ];
+
+    let mut live = 0_u32;
     println!("lithoSpore v{} — LTEE Targeted GuideStone", env!("CARGO_PKG_VERSION"));
     println!("  Artifact root: {root}");
-    println!("  Modules: 7 ({live} live w/ expected values, {} scaffold)", 7 - live);
-    println!("  Module 1 (fitness):   expected={m1_ready} data={m1_data}");
-    println!("  Module 2 (mutations): expected={m2_ready} data={m2_data}");
+
+    for &(name, expected_path, data_path) in modules {
+        let has_expected = root_path.join(expected_path).exists();
+        let has_data = root_path.join(data_path).exists();
+        if has_expected { live += 1; }
+        println!("  Module {name:<14} expected={has_expected} data={has_data}");
+    }
+
+    println!("  Modules: 7 ({live} live, {} scaffold)", 7 - live);
     println!("  Tier support: 1 (Python) + 2 (Rust) + 3 (Primal/NUCLEUS)");
-    println!("  Data manifest: data.toml");
-    println!("  Tolerances: tolerances.toml");
 }
 
 fn cmd_spore(root: &str) {

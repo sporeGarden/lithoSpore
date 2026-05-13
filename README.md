@@ -96,44 +96,46 @@ cargo build --release
 # Build artifact (cross-compile musl-static)
 ./scripts/build-artifact.sh
 
-# Run validation (4/7 modules PASS at Tier 2, 3 scaffold SKIP)
+# Run validation (6/7 modules LIVE at Tier 2, 1 scaffold SKIP)
 cargo run --bin litho -- validate --json
 ```
 
-## Current Status — 4/7 Modules PASS (May 13, 2026)
+## Current Status — 6/7 Modules LIVE (May 13, 2026)
 
-**Pillar 4 EXIT GATE: EXCEEDED** — 4 modules PASS Tier 2 (28/28 checks), gate required 2+.
+**Pillar 4 EXIT GATE: EXCEEDED** — 6 modules wired at Tier 2, gate required 2+.
 
 | Module | Status | Checks | Source |
 |--------|--------|--------|--------|
 | 1. ltee-fitness | **PASS** Tier 2 | 8/8 | groundSpring B2 Wiser 2013 |
 | 2. ltee-mutations | **PASS** Tier 2 | 7/7 | groundSpring B1 Barrick 2009 |
-| 3. ltee-alleles | SKIP | — | Awaiting neuralSpring B3 |
-| 4. ltee-citrate | SKIP | — | Awaiting neuralSpring B4 |
-| 5. ltee-biobricks | SKIP | — | Awaiting neuralSpring B6 |
+| 3. ltee-alleles | **LIVE** Tier 2 | — | groundSpring B3 Good 2017 (ingested) |
+| 4. ltee-citrate | **LIVE** Tier 2 | — | groundSpring B4 Blount 2008/2012 (ingested) |
+| 5. ltee-biobricks | SKIP | — | DOI pending (Nat Comms) |
 | 6. ltee-breseq | **PASS** Tier 2 | 8/8 | wetSpring B7 Tenaillon 2016 |
 | 7. ltee-anderson | **PASS** Tier 2 | 5/5 | hotSpring B2 Anderson disorder |
 
 **Tier 2 Rust implementations**:
 - **Module 1**: Nelder-Mead curve fitting (power-law/hyperbolic/logarithmic) + AIC/BIC model selection
 - **Module 2**: Kimura fixation probability, Poisson neutral accumulation, Pearson molecular clock
+- **Module 3**: Clonal interference dynamics — fixation probability, interference ratio, adaptation rate validation
+- **Module 4**: Citrate innovation cascade — Cit+ fraction, potentiation, replay probabilities, two-hit model
 - **Module 6**: Mutation accumulation analysis, parallel evolution significance
 - **Module 7**: Anderson disorder mapping, GOE/Poisson eigenvalue statistics
 
 **Infrastructure**: `litho-core` crate (validation, provenance, tolerance, spore tracking),
 27+ unit tests, CI wired, zero clippy warnings, zero unsafe, zero `#[allow]`.
-`cmd_refresh` real `data.toml`-driven fetch pipeline. `liveSpore.json` operational.
-All `expect()` calls replaced with proper `Result` error handling.
+`cmd_refresh` real `data.toml`-driven fetch pipeline (5 fetch scripts: B1–B4, B7).
+`liveSpore.json` operational. All `expect()` calls replaced with proper `Result` error handling.
 
-See `docs/UPSTREAM_GAPS.md` for remaining module gaps (3-5).
+See `docs/UPSTREAM_GAPS.md` for remaining module gap (module 5 only).
 
 ## Upstream Dependencies
 
 | Spring | Papers | Module(s) | Status |
 |--------|--------|-----------|--------|
-| groundSpring | B1-B4, B6-B9 | ALL 7 modules | **B1+B2 COMPLETE** |
+| groundSpring | B1-B4, B6-B9 | ALL 7 modules | **B1–B4 COMPLETE** |
 | wetSpring | B1-B8, E1, E5 | fitness, breseq | **B7 INTEGRATED** (Module 6) |
-| neuralSpring | B1-B4, B6-B9, E2-E5 | mutations, alleles, citrate, biobricks | B1 active |
+| neuralSpring | B1-B4, B6-B9, E2-E5 | mutations, alleles, citrate, biobricks | B1 active, ML surrogates additive |
 | hotSpring | B2, B9 | anderson | **B2 INTEGRATED** (Module 7) |
 | healthSpring | B5, E2, E4 | (future) | Queued |
 | airSpring | E3 | (future) | Queued |

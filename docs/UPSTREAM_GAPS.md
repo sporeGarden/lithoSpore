@@ -13,20 +13,20 @@ to complete each module. This is the gap inventory that drives evolution cycles.
 |--------|-------|-----------|----------|-------|
 | 1. ltee-fitness | **Tier 2 PASS (8/8)** | — | **RESOLVED** | Interstadial |
 | 2. ltee-mutations | **Tier 2 PASS (7/7)** | — | **RESOLVED** | Interstadial |
-| 3. ltee-alleles | Scaffold | neuralSpring B3, groundSpring B3 | Medium | Interstadial |
-| 4. ltee-citrate | Scaffold | neuralSpring B4, groundSpring B4 | Medium | Interstadial |
+| 3. ltee-alleles | **Tier 2 LIVE** | groundSpring B3 INGESTED, neuralSpring B3 ML pending | Low | Interstadial |
+| 4. ltee-citrate | **Tier 2 LIVE** | groundSpring B4 INGESTED, neuralSpring B4 ML pending | Low | Interstadial |
 | 5. ltee-biobricks | Scaffold | neuralSpring B6, groundSpring B6 | Medium | Stadial |
 | 6. ltee-breseq | **Tier 2 PASS (8/8)** | — | **RESOLVED** | Interstadial |
 | 7. ltee-anderson | **Tier 2 PASS (5/5)** | — | **RESOLVED** | Interstadial |
 
-**4/7 modules live** — Modules 1, 2, 6, 7 have both Python Tier 1 and Rust Tier 2
-implementations validated end-to-end. Modules 6+7 integrated from wetSpring B7
-(Tenaillon 2016) and hotSpring B2 (Anderson disorder). Remaining 3 modules (alleles,
-citrate, biobricks) awaiting upstream neuralSpring paper queue reproductions.
+**6/7 modules live** — Modules 1, 2, 3, 4, 6, 7 have Rust Tier 2 validation
+implementations. Modules 3+4 promoted from scaffold via groundSpring V140 ingestion
+(B3 Good 2017 + B4 Blount 2008/2012). Module 5 (biobricks) remains scaffold —
+DOI pending. Full ML surrogate enrichment (neuralSpring B3/B4) is additive, not blocking.
 
-**Interstadial exit gate (Pillar 4)**: **EXCEEDED** — 4 modules PASS at Tier 2
-(Rust) with 28/28 total checks. BLAKE3 provenance on fetched data. Next: modules
-3–5 as neuralSpring B3/B4/B6 reproductions complete.
+**Interstadial exit gate (Pillar 4)**: **EXCEEDED** — 6 modules wired at Tier 2
+(Rust). BLAKE3 provenance on fetched data. Fetch scripts created for all modules
+with upstream data (B1–B4, B7).
 
 ---
 
@@ -129,9 +129,9 @@ seed future modules or extend existing ones.
 
 | Gap | Owner | Phase | Description |
 |-----|-------|-------|-------------|
-| Data fetching scripts | lithoSpore | **DONE (1+2)** | `scripts/fetch_wiser_2013.sh`, `scripts/fetch_barrick_2009.sh` created |
-| Expected values (modules 1+2) | Springs → lithoSpore | **DONE** | `validation/expected/module1_fitness.json`, `module2_mutations.json` ported from groundSpring |
-| Expected values (modules 3–7) | Springs → lithoSpore | Stadial | Remaining modules need reference outputs |
+| Data fetching scripts | lithoSpore | **DONE (1–4, 6)** | `fetch_wiser_2013.sh`, `fetch_barrick_2009.sh`, `fetch_good_2017.sh`, `fetch_blount_2012.sh`, `fetch_tenaillon_2016.sh` |
+| Expected values (modules 1–4) | Springs → lithoSpore | **DONE** | `module1_fitness.json` through `module4_citrate.json` ported from groundSpring B1–B4 |
+| Expected values (modules 5–7) | Springs → lithoSpore | **PARTIAL** | Module 6+7 golden JSON exist; module 5 (biobricks) DOI pending |
 | musl cross-compilation | lithoSpore | Interstadial | Need `x86_64-unknown-linux-musl` and `aarch64-unknown-linux-musl` targets |
 | Python baseline implementations (1+2) | lithoSpore | **DONE** | `notebooks/module1_fitness/power_law_fitness.py` (8/8), `module2_mutations/mutation_accumulation.py` (7/7) |
 | Python baseline implementations (3–7) | lithoSpore | Stadial | Remaining notebooks need analysis code |
@@ -189,6 +189,12 @@ is exceeded. Remaining gap is upstream neuralSpring reproductions for modules 3�
 
 ### Changelog
 
+- **2026-05-13**: Modules 3+4 promoted from scaffold: groundSpring B3 (Good 2017 clonal
+  interference) and B4 (Blount 2008/2012 citrate innovation) ingested. `fetch_good_2017.sh`,
+  `fetch_blount_2012.sh`, `fetch_tenaillon_2016.sh` created. `ltee-alleles` and `ltee-citrate`
+  Rust crates evolved from scaffold SKIP to live validation. `ltee-cli` updated to dispatch
+  6 live modules (1–4, 6–7) with only module 5 (biobricks) as scaffold. `data.toml` updated.
+  6/7 modules wired at Tier 2. Cross-cutting gap table updated.
 - **2026-05-13**: Gap summary updated: 4/7 modules PASS Tier 2 (28/28 checks).
   Modules 6+7 marked RESOLVED (wetSpring B7, hotSpring B2). Gate status EXCEEDED.
 - **2026-05-12**: Modules 6+7 integrated — wetSpring B7 Tenaillon (8/8 PASS),

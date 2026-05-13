@@ -74,6 +74,8 @@ fn cmd_validate(root: &str, json: bool, max_tier: u8) {
     let live_modules: &[(&str, &str, &str, &str)] = &[
         ("power_law_fitness", "ltee-fitness", "artifact/data/wiser_2013", "validation/expected/module1_fitness.json"),
         ("mutation_accumulation", "ltee-mutations", "artifact/data/barrick_2009", "validation/expected/module2_mutations.json"),
+        ("allele_trajectories", "ltee-alleles", "artifact/data/good_2017", "validation/expected/module3_alleles.json"),
+        ("citrate_innovation", "ltee-citrate", "artifact/data/blount_2012", "validation/expected/module4_citrate.json"),
         ("breseq_264_genomes", "ltee-breseq", "artifact/data/tenaillon_2016", "validation/expected/module6_breseq.json"),
         ("anderson_qs_predictions", "ltee-anderson", "artifact/data/anderson_predictions", "validation/expected/module7_anderson.json"),
     ];
@@ -135,8 +137,6 @@ fn cmd_validate(root: &str, json: bool, max_tier: u8) {
     }
 
     let scaffold_modules = [
-        "allele_trajectories",
-        "citrate_innovation",
         "biobrick_burden",
     ];
 
@@ -228,6 +228,8 @@ fn dispatch_python_tier1(
     let notebook = match name {
         "power_law_fitness" => "notebooks/module1_fitness/power_law_fitness.py",
         "mutation_accumulation" => "notebooks/module2_mutations/mutation_accumulation.py",
+        "allele_trajectories" => "notebooks/module3_alleles/allele_trajectories.py",
+        "citrate_innovation" => "notebooks/module4_citrate/citrate_innovation.py",
         _ => return litho_core::ModuleResult {
             name: name.to_string(),
             status: litho_core::ValidationStatus::Skip,
@@ -380,6 +382,8 @@ fn cmd_status(root: &str) {
     let modules: &[(&str, &str, &str)] = &[
         ("1 (fitness)", "validation/expected/module1_fitness.json", "artifact/data/wiser_2013"),
         ("2 (mutations)", "validation/expected/module2_mutations.json", "artifact/data/barrick_2009"),
+        ("3 (alleles)", "validation/expected/module3_alleles.json", "artifact/data/good_2017"),
+        ("4 (citrate)", "validation/expected/module4_citrate.json", "artifact/data/blount_2012"),
         ("6 (breseq)", "validation/expected/module6_breseq.json", "artifact/data/tenaillon_2016"),
         ("7 (anderson)", "validation/expected/module7_anderson.json", "artifact/data/anderson_predictions"),
     ];

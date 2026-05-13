@@ -35,10 +35,8 @@ impl LiveSporeEntry {
             arch: std::env::consts::ARCH.to_string(),
             os: std::env::consts::OS.to_string(),
             tier_reached: report.tier_reached,
-            #[allow(clippy::cast_possible_truncation)]
-            modules_passed: passed as u32,
-            #[allow(clippy::cast_possible_truncation)]
-            modules_total: report.modules.len() as u32,
+            modules_passed: u32::try_from(passed).unwrap_or(u32::MAX),
+            modules_total: u32::try_from(report.modules.len()).unwrap_or(u32::MAX),
             runtime_ms: total_runtime,
         }
     }
@@ -46,14 +44,36 @@ impl LiveSporeEntry {
 
 /// BLAKE3 hash of the system hostname — no PII stored.
 fn hostname_hash() -> String {
-    let hostname = gethostname();
+    let hostname = discover_hostname();
     let hash = blake3::hash(hostname.as_bytes());
     hash.to_hex().to_string()
 }
 
-fn gethostname() -> String {
-    std::fs::read_to_string("/etc/hostname")
-        .unwrap_or_else(|_| "unknown".to_string())
-        .trim()
-        .to_string()
+/// Capability-based hostname discovery — tries multiple platform-agnostic
+/// sources in priority order, never assumes a specific OS layout.
+fn discover_hostname() -> String {
+    if let Ok(val) = std::env::var("HOSTNAME") {
+        let trimmed = val.trim().to_string();
+        if !trimmed.is_empty() {
+            return trimmed;
+        }
+    }
+
+    if let Ok(val) = std::fs::read_to_string("/etc/hostname") {
+        let trimmed = val.trim().to_string();
+        if !trimmed.is_empty() {
+            return trimmed;
+        }
+    }
+
+    if let Ok(output) = std::process::Command::new("hostname").output()
+        && output.status.success()
+    {
+        let name = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if !name.is_empty() {
+            return name;
+        }
+    }
+
+    "unknown".to_string()
 }

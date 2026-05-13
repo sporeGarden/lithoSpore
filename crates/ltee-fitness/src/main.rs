@@ -303,7 +303,7 @@ fn run_tier2_rust(cli: &Cli, start: Instant) -> ModuleResult {
 
     // Check 2: AIC selects power_law
     total += 1;
-    if let Some(best) = results.iter().min_by(|a, b| a.aic.partial_cmp(&b.aic).unwrap()) {
+    if let Some(best) = results.iter().min_by(|a, b| a.aic.total_cmp(&b.aic)) {
         let ok = best.model == "power_law";
         if ok { passed += 1; }
         eprintln!("  [{}] Best model by AIC: {} (expected: power_law)",
@@ -312,7 +312,7 @@ fn run_tier2_rust(cli: &Cli, start: Instant) -> ModuleResult {
 
     // Check 3: BIC selects power_law
     total += 1;
-    if let Some(best) = results.iter().min_by(|a, b| a.bic.partial_cmp(&b.bic).unwrap()) {
+    if let Some(best) = results.iter().min_by(|a, b| a.bic.total_cmp(&b.bic)) {
         let ok = best.model == "power_law";
         if ok { passed += 1; }
         eprintln!("  [{}] Best model by BIC: {} (expected: power_law)",

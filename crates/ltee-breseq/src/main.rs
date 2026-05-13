@@ -80,6 +80,12 @@ fn run_validation(cli: &Cli) -> ModuleResult {
             "Expected values not found — run wetSpring B7 first");
     }
 
+    let data_path = Path::new(&cli.data_dir);
+    if !data_path.exists() {
+        return skip_result("breseq_264_genomes", 1, start,
+            &format!("Data directory not found: {}", cli.data_dir));
+    }
+
     if cli.max_tier >= 2 {
         return run_tier2_rust(cli, start);
     }

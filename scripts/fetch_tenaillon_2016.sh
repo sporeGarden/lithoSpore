@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
 # fetch_tenaillon_2016.sh — Fetch Tenaillon et al. 2016 264-genome breseq data
 # BioProject: PRJNA294072 (public-domain)
 # Paper: Tenaillon O et al. (2016) Tempo and mode of genome evolution in a

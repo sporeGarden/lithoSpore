@@ -10,12 +10,13 @@
 //! - groundSpring B3: clonal interference statistics
 
 use clap::Parser;
-use litho_core::{ModuleResult, ValidationStatus};
+use litho_core::harness;
+use litho_core::validation::{ModuleResult, ValidationStatus};
 
 #[derive(Parser)]
 #[command(name = "ltee-alleles", about = "Allele frequency trajectory validation")]
 struct Cli {
-    #[arg(long, default_value = "data/good_2017")]
+    #[arg(long, default_value = "artifact/data/good_2017")]
     data_dir: String,
 
     #[arg(long, default_value = "validation/expected/module3_alleles.json")]
@@ -30,29 +31,8 @@ struct Cli {
 
 fn main() {
     let cli = Cli::parse();
-
     let result = run_validation(&cli);
-
-    if cli.json {
-        match serde_json::to_string_pretty(&result) {
-            Ok(json) => println!("{json}"),
-            Err(e) => {
-                eprintln!("Error serializing result: {e}");
-                std::process::exit(2);
-            }
-        }
-    } else {
-        println!(
-            "Module 3 (alleles): {} — {}/{} checks",
-            match result.status {
-                ValidationStatus::Pass => "PASS",
-                ValidationStatus::Fail => "FAIL",
-                ValidationStatus::Skip => "SKIP",
-            },
-            result.checks_passed,
-            result.checks
-        );
-    }
+    harness::output_and_exit(&result, cli.json);
 }
 
 fn run_validation(cli: &Cli) -> ModuleResult {

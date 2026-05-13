@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
 # fetch_blount_2012.sh — Fetch Blount et al. 2008/2012 citrate innovation data
 # BioProject: PRJNA188627 (public-domain)
 # Papers: Blount ZD et al. (2008) Historical contingency and the evolution of a

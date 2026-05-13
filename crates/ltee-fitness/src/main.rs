@@ -9,6 +9,7 @@
 //! Tier 2: pure Rust curve fitting (Nelder-Mead + AIC/BIC model selection).
 
 use clap::Parser;
+use litho_core::harness;
 use litho_core::{ModuleResult, ValidationStatus};
 use std::path::Path;
 use std::time::Instant;
@@ -32,44 +33,19 @@ struct Cli {
 fn main() {
     let cli = Cli::parse();
     let result = run_validation(&cli);
-
-    if cli.json {
-        match serde_json::to_string_pretty(&result) {
-            Ok(json) => println!("{json}"),
-            Err(e) => {
-                eprintln!("Error serializing result: {e}");
-                std::process::exit(2);
-            }
-        }
-    } else {
-        println!(
-            "Module 1 (fitness): {} — {}/{} checks ({}ms)",
-            match result.status {
-                ValidationStatus::Pass => "PASS",
-                ValidationStatus::Fail => "FAIL",
-                ValidationStatus::Skip => "SKIP",
-            },
-            result.checks_passed,
-            result.checks,
-            result.runtime_ms,
-        );
-    }
-
-    if matches!(result.status, ValidationStatus::Fail) {
-        std::process::exit(1);
-    }
+    harness::output_and_exit(&result, cli.json);
 }
 
 fn run_validation(cli: &Cli) -> ModuleResult {
     let start = Instant::now();
 
     if !Path::new(&cli.expected).exists() {
-        return skip_result("power_law_fitness", 1, start,
+        return harness::skip("power_law_fitness", 1, start,
             "Expected values not found — run groundSpring B2 first");
     }
 
     if !Path::new(&cli.data_dir).exists() {
-        return skip_result("power_law_fitness", 1, start,
+        return harness::skip("power_law_fitness", 1, start,
             "Data not fetched — run scripts/fetch_wiser_2013.sh");
     }
 
@@ -77,23 +53,15 @@ fn run_validation(cli: &Cli) -> ModuleResult {
         return run_tier2_rust(cli, start);
     }
     if cli.max_tier >= 1 {
-        return run_tier1_python(start);
+        return harness::dispatch_python(
+            "power_law_fitness",
+            Path::new("notebooks/module1_fitness/power_law_fitness.py"),
+            Path::new("."),
+        );
     }
 
-    skip_result("power_law_fitness", cli.max_tier, start,
+    harness::skip("power_law_fitness", cli.max_tier, start,
         &format!("Tier {} not implemented yet", cli.max_tier))
-}
-
-fn skip_result(name: &str, tier: u8, start: Instant, msg: &str) -> ModuleResult {
-    ModuleResult {
-        name: name.to_string(),
-        status: ValidationStatus::Skip,
-        tier,
-        checks: 0,
-        checks_passed: 0,
-        runtime_ms: start.elapsed().as_millis() as u64,
-        error: Some(msg.to_string()),
-    }
 }
 
 // ── Tier 2: Pure Rust curve fitting ──────────────────────────────────
@@ -158,7 +126,6 @@ fn nelder_mead_2d(
         let cx = [(simplex[0].0[0] + simplex[1].0[0]) / 2.0,
                    (simplex[0].0[1] + simplex[1].0[1]) / 2.0];
 
-        // Reflect
         let xr = [2.0 * cx[0] - simplex[2].0[0], 2.0 * cx[1] - simplex[2].0[1]];
         let fr = obj(&xr);
 
@@ -175,7 +142,6 @@ fn nelder_mead_2d(
             continue;
         }
 
-        // Contract
         let xc = [(cx[0] + simplex[2].0[0]) / 2.0,
                    (cx[1] + simplex[2].0[1]) / 2.0];
         let fc = obj(&xc);
@@ -184,7 +150,6 @@ fn nelder_mead_2d(
             continue;
         }
 
-        // Shrink toward best
         let b0 = simplex[0].0;
         for v in &mut simplex[1..] {
             v.0[0] = b0[0] + 0.5 * (v.0[0] - b0[0]);
@@ -254,21 +219,16 @@ fn load_csv(data_dir: &str) -> Option<(Vec<f64>, Vec<f64>)> {
     if gens.is_empty() { None } else { Some((gens, fitness)) }
 }
 
-fn load_expected(path: &str) -> Option<serde_json::Value> {
-    let content = std::fs::read_to_string(path).ok()?;
-    serde_json::from_str(&content).ok()
-}
-
 fn run_tier2_rust(cli: &Cli, start: Instant) -> ModuleResult {
-    let expected = match load_expected(&cli.expected) {
+    let expected = match harness::load_expected(&cli.expected) {
         Some(v) => v,
-        None => return skip_result("power_law_fitness", 2, start,
+        None => return harness::skip("power_law_fitness", 2, start,
             "Cannot parse expected values JSON"),
     };
 
     let (gens, fitness) = match load_csv(&cli.data_dir) {
         Some(d) => d,
-        None => return skip_result("power_law_fitness", 2, start,
+        None => return harness::skip("power_law_fitness", 2, start,
             "No fitness_data.csv in data directory"),
     };
 
@@ -278,7 +238,6 @@ fn run_tier2_rust(cli: &Cli, start: Instant) -> ModuleResult {
     let mut passed = 0_u32;
     let mut total = 0_u32;
 
-    // Check 1: fitness generally increasing
     total += 1;
     let increasing_count = fitness.windows(2).filter(|w| w[1] >= w[0]).count();
     let increasing = increasing_count >= (fitness.len() - 1) * 4 / 5;
@@ -286,7 +245,6 @@ fn run_tier2_rust(cli: &Cli, start: Instant) -> ModuleResult {
     eprintln!("  [{}] Fitness trajectory is increasing",
         if increasing { "PASS" } else { "FAIL" });
 
-    // Fit all three models
     let pl = fit_model(&gens, &fitness, "power_law", power_law, [0.01, 0.5]);
     let hyp = fit_model(&gens, &fitness, "hyperbolic", hyperbolic, [1e-3, 1e-4]);
     let log = fit_model(&gens, &fitness, "logarithmic", logarithmic, [0.1, 0.0]);
@@ -301,7 +259,6 @@ fn run_tier2_rust(cli: &Cli, start: Instant) -> ModuleResult {
             r.model, r.r_squared, r.aic, r.bic);
     }
 
-    // Check 2: AIC selects power_law
     total += 1;
     if let Some(best) = results.iter().min_by(|a, b| a.aic.total_cmp(&b.aic)) {
         let ok = best.model == "power_law";
@@ -310,7 +267,6 @@ fn run_tier2_rust(cli: &Cli, start: Instant) -> ModuleResult {
             if ok { "PASS" } else { "FAIL" }, best.model);
     }
 
-    // Check 3: BIC selects power_law
     total += 1;
     if let Some(best) = results.iter().min_by(|a, b| a.bic.total_cmp(&b.bic)) {
         let ok = best.model == "power_law";
@@ -320,14 +276,12 @@ fn run_tier2_rust(cli: &Cli, start: Instant) -> ModuleResult {
     }
 
     if let Some(ref pl_fit) = pl {
-        // Check 4: R² >= 0.99
         total += 1;
         let ok = pl_fit.r_squared >= 0.99;
         if ok { passed += 1; }
         eprintln!("  [{}] Power-law R² = {:.5} (min: 0.99)",
             if ok { "PASS" } else { "FAIL" }, pl_fit.r_squared);
 
-        // Check 5: exponent in [0.40, 0.70]
         total += 1;
         let b_exp = pl_fit.params[1];
         let ok = (0.40..=0.70).contains(&b_exp);
@@ -335,7 +289,6 @@ fn run_tier2_rust(cli: &Cli, start: Instant) -> ModuleResult {
         eprintln!("  [{}] Power-law exponent b = {:.4} (expected: [0.40, 0.70])",
             if ok { "PASS" } else { "FAIL" }, b_exp);
 
-        // Check 6: AIC(power_law) < AIC(hyperbolic)
         if let Some(ref h) = hyp {
             total += 1;
             let ok = pl_fit.aic < h.aic;
@@ -344,7 +297,6 @@ fn run_tier2_rust(cli: &Cli, start: Instant) -> ModuleResult {
                 if ok { "PASS" } else { "FAIL" });
         }
 
-        // Check 7: R² matches expected within 0.01
         total += 1;
         let exp_r2 = expected["model_fits"]["power_law"]["r_squared"]
             .as_f64().unwrap_or(0.0);
@@ -353,7 +305,6 @@ fn run_tier2_rust(cli: &Cli, start: Instant) -> ModuleResult {
         eprintln!("  [{}] R² matches expected: {:.5} vs {:.5}",
             if ok { "PASS" } else { "FAIL" }, pl_fit.r_squared, exp_r2);
 
-        // Check 8: exponent matches expected within 0.05
         total += 1;
         let exp_b = expected["model_fits"]["power_law"]["params"][1]
             .as_f64().unwrap_or(0.0);
@@ -372,59 +323,6 @@ fn run_tier2_rust(cli: &Cli, start: Instant) -> ModuleResult {
         checks_passed: passed,
         runtime_ms: start.elapsed().as_millis() as u64,
         error: if passed < total { Some(format!("{} check(s) failed", total - passed)) } else { None },
-    }
-}
-
-// ── Tier 1: Python dispatch ──────────────────────────────────────────
-
-fn run_tier1_python(start: Instant) -> ModuleResult {
-    let notebook_path = Path::new("notebooks/module1_fitness/power_law_fitness.py");
-    if !notebook_path.exists() {
-        return skip_result("power_law_fitness", 1, start, "Python baseline not found");
-    }
-
-    let output = std::process::Command::new("python3")
-        .arg(notebook_path)
-        .output();
-
-    match output {
-        Ok(out) => {
-            let stdout = String::from_utf8_lossy(&out.stdout);
-            let stderr = String::from_utf8_lossy(&out.stderr);
-
-            eprintln!("{stdout}");
-            if !stderr.is_empty() {
-                eprintln!("{stderr}");
-            }
-
-            let passed = stdout.matches("[PASS]").count() as u32;
-            let failed = stdout.matches("[FAIL]").count() as u32;
-            let total = passed + failed;
-
-            let status = if out.status.code() == Some(0) && failed == 0 {
-                ValidationStatus::Pass
-            } else if out.status.code() == Some(2) {
-                ValidationStatus::Skip
-            } else {
-                ValidationStatus::Fail
-            };
-
-            ModuleResult {
-                name: "power_law_fitness".to_string(),
-                status,
-                tier: 1,
-                checks: total,
-                checks_passed: passed,
-                runtime_ms: start.elapsed().as_millis() as u64,
-                error: if failed > 0 {
-                    Some(format!("{failed} check(s) failed"))
-                } else {
-                    None
-                },
-            }
-        }
-        Err(e) => skip_result("power_law_fitness", 1, start,
-            &format!("Python dispatch failed: {e}")),
     }
 }
 

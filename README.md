@@ -50,7 +50,7 @@ via genomeBin if needed for Tier 3.
 lithoSpore/
 ├── Cargo.toml                    # Workspace: 7 modules + core + CLI
 ├── crates/
-│   ├── litho-core/               # Shared types: validation, tolerance, provenance, liveSpore
+│   ├── litho-core/               # Shared library: validation, tolerance, provenance, discovery, stats, harness
 │   ├── ltee-fitness/             # Module 1: power-law fitness
 │   ├── ltee-mutations/           # Module 2: mutation accumulation
 │   ├── ltee-alleles/             # Module 3: allele trajectories
@@ -77,12 +77,11 @@ lithoSpore/
 │   └── targets/                  # Validation targets (quantitative claims)
 │
 ├── notebooks/                    # Python Tier 1 baselines (7 modules)
-├── validation/                   # Validation harness + scenarios
+├── validation/                   # Validation harness (validate.sh) + scenarios
 ├── graphs/                       # Tier 3 deploy graphs
 ├── workloads/                    # projectNUCLEUS workload TOMLs
 ├── lineage/                      # Foundation thread linkage
-├── deploy/                       # Deployment scripts
-├── scripts/                      # Build + utility scripts
+├── scripts/                      # Build, fetch, and utility scripts
 ├── specs/                        # Specifications
 └── docs/                         # Architecture + gap analysis
 ```
@@ -122,10 +121,16 @@ cargo run --bin litho -- validate --json
 - **Module 6**: Mutation accumulation analysis, parallel evolution significance
 - **Module 7**: Anderson disorder mapping, GOE/Poisson eigenvalue statistics
 
-**Infrastructure**: `litho-core` crate (validation, provenance, tolerance, spore tracking),
-27+ unit tests, CI wired, zero clippy warnings, zero unsafe, zero `#[allow]`.
-`cmd_refresh` real `data.toml`-driven fetch pipeline (5 fetch scripts: B1–B4, B7).
-`liveSpore.json` operational. All `expect()` calls replaced with proper `Result` error handling.
+**Infrastructure**: `litho-core` crate with 6 modules (validation, provenance, tolerance,
+spore tracking, capability-based discovery, shared stats + harness), 33 unit tests,
+CI wired, zero clippy warnings, zero unsafe, pure Rust BLAKE3 (ecoBin compliant).
+
+**Architecture** (May 13 deep-debt sweep):
+- Shared harness (`litho_core::harness`) eliminates ~200 LOC of duplicated skip/load/dispatch
+- Shared stats (`litho_core::stats`) deduplicates `pearson_r` across modules
+- Capability-based discovery (`litho_core::discovery`) — primal resolution at runtime via
+  environment → UDS discovery socket → graceful skip. No hardcoded primal names.
+- `cmd_refresh` real `data.toml`-driven fetch pipeline (5 fetch scripts: B1–B4, B7)
 
 See `docs/UPSTREAM_GAPS.md` for remaining module gap (module 5 only).
 

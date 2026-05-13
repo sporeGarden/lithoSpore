@@ -1,21 +1,23 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! Module 4: Citrate innovation cascade
+//! Module 4: Citrate innovation
 //!
-//! Reproduces Blount et al. 2008/2012 (B4) — Cit+ innovation.
-//! Springs: neuralSpring (early warning ESN), groundSpring (rare event statistics).
+//! Reproduces Blount et al. 2008/2012 (B4) — historical contingency and
+//! the evolution of a novel metabolic capability.
+//! Springs: groundSpring (Cit+ potentiation), wetSpring (replay experiments).
 //!
 //! Upstream gaps:
-//! - neuralSpring B4: early warning ESN on pre-citrate allele trajectories
-//! - groundSpring B4: rare event probability framework
+//! - groundSpring B4: citrate utilization replay statistics
+//! - wetSpring B4: multi-step innovation probability
 
 use clap::Parser;
-use litho_core::{ModuleResult, ValidationStatus};
+use litho_core::harness;
+use litho_core::validation::{ModuleResult, ValidationStatus};
 
 #[derive(Parser)]
-#[command(name = "ltee-citrate", about = "Citrate innovation cascade validation")]
+#[command(name = "ltee-citrate", about = "Citrate innovation validation")]
 struct Cli {
-    #[arg(long, default_value = "data/blount_2012")]
+    #[arg(long, default_value = "artifact/data/blount_2012")]
     data_dir: String,
 
     #[arg(long, default_value = "validation/expected/module4_citrate.json")]
@@ -30,29 +32,8 @@ struct Cli {
 
 fn main() {
     let cli = Cli::parse();
-
     let result = run_validation(&cli);
-
-    if cli.json {
-        match serde_json::to_string_pretty(&result) {
-            Ok(json) => println!("{json}"),
-            Err(e) => {
-                eprintln!("Error serializing result: {e}");
-                std::process::exit(2);
-            }
-        }
-    } else {
-        println!(
-            "Module 4 (citrate): {} — {}/{} checks",
-            match result.status {
-                ValidationStatus::Pass => "PASS",
-                ValidationStatus::Fail => "FAIL",
-                ValidationStatus::Skip => "SKIP",
-            },
-            result.checks_passed,
-            result.checks
-        );
-    }
+    harness::output_and_exit(&result, cli.json);
 }
 
 fn run_validation(cli: &Cli) -> ModuleResult {
@@ -97,41 +78,35 @@ fn run_validation(cli: &Cli) -> ModuleResult {
     let mut checks = 0u32;
     let mut passed = 0u32;
 
-    // Cit+ fraction: 1/6 populations evolved Cit+ (Blount 2008)
     if let Some(frac) = expected.get("cit_plus_fraction").and_then(|v| v.as_f64()) {
         checks += 1;
         let expected_frac = 1.0 / 6.0;
         if (frac - expected_frac).abs() < 0.01 { passed += 1; }
     }
 
-    // Potentiation fraction
     if let Some(pot) = expected.get("potentiation_fraction").and_then(|v| v.as_f64()) {
         checks += 1;
         if pot > 0.0 && pot <= 1.0 { passed += 1; }
     }
 
-    // Mean potentiation generation (should be ~41,000)
     if let Some(pot_gen) = expected.get("mean_potentiation_gen").and_then(|v| v.as_f64()) {
         checks += 1;
         if pot_gen > 30000.0 && pot_gen < 50000.0 { passed += 1; }
     }
 
-    // Mean Cit+ generation (should be ~46,000)
     if let Some(cit_gen) = expected.get("mean_cit_plus_gen").and_then(|v| v.as_f64()) {
         checks += 1;
         if cit_gen > 40000.0 && cit_gen < 55000.0 { passed += 1; }
     }
 
-    // Replay probability monotonicity check
     if let Some(replay) = expected.get("replay_probabilities").and_then(|v| v.as_object()) {
         checks += 1;
         let all_valid = replay.values().all(|v| {
-            v.as_f64().map_or(false, |p| (0.0..=1.0).contains(&p))
+            v.as_f64().is_some_and(|p| (0.0..=1.0).contains(&p))
         });
         if all_valid { passed += 1; }
     }
 
-    // Two-hit model: analytical mean >> single-hit mean
     let single = expected.get("single_hit_mean_wait").and_then(|v| v.as_f64());
     let two_hit = expected.get("two_hit_analytical_mean").and_then(|v| v.as_f64());
     if let (Some(s), Some(t)) = (single, two_hit) {
@@ -139,14 +114,12 @@ fn run_validation(cli: &Cli) -> ModuleResult {
         if t > s * 10.0 { passed += 1; }
     }
 
-    // Empirical vs analytical: empirical should be < analytical (potentiation accelerates)
     let empirical = expected.get("two_hit_empirical_mean").and_then(|v| v.as_f64());
     if let (Some(e), Some(a)) = (empirical, two_hit) {
         checks += 1;
         if e < a { passed += 1; }
     }
 
-    // Paper identity
     if let Some(paper) = expected.get("paper").and_then(|v| v.as_str()) {
         checks += 1;
         if paper.starts_with("Blount") { passed += 1; }

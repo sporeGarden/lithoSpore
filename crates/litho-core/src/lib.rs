@@ -3,15 +3,18 @@
 //! litho-core: shared types for lithoSpore Targeted `GuideStone` modules.
 //!
 //! Provides the validation harness, tolerance framework, provenance chain,
-//! liveSpore tracking, and data manifest types used by all 7 LTEE modules.
+//! liveSpore tracking, capability-based discovery, shared statistics, and
+//! data manifest types used by all LTEE modules.
 
+pub mod discovery;
+pub mod harness;
 pub mod manifest;
 pub mod provenance;
+pub mod spore;
+pub mod stats;
 pub mod tolerance;
 pub mod validation;
-pub mod spore;
 
-/// Re-export key types for ergonomic use by module crates.
 pub use manifest::DataManifest;
 pub use provenance::ProvenanceEntry;
 pub use tolerance::{Tolerance, ToleranceSet};

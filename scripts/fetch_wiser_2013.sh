@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
 # fetch_wiser_2013.sh — Download Wiser et al. 2013 fitness data from Dryad
 # Dataset: doi:10.5061/dryad.0hc2m (CC0)
 # Paper: Wiser MJ, Ribeck N, Lenski RE (2013) Long-Term Dynamics of Adaptation

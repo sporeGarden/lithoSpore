@@ -11,3 +11,14 @@ artifact/CHECKSUMS
 *.pyc
 __pycache__/
 .DS_Store
+*.swp
+*.swo
+*~
+*.bak
+*.orig
+*.log
+*.profraw
+.env
+.venv/
+.idea/
+.vscode/

@@ -6,10 +6,10 @@
 //! Checks power-law dynamics, diminishing returns, GOE/Poisson spacing
 //! statistics, and population variance.
 //!
-//! Tier 1: dispatches to Python baseline.
 //! Tier 2: pure Rust validation against expected values.
 
 use clap::Parser;
+use litho_core::harness;
 use litho_core::{ModuleResult, ValidationStatus};
 use std::path::Path;
 use std::time::Instant;
@@ -33,57 +33,19 @@ struct Cli {
 fn main() {
     let cli = Cli::parse();
     let result = run_validation(&cli);
-
-    if cli.json {
-        match serde_json::to_string_pretty(&result) {
-            Ok(json) => println!("{json}"),
-            Err(e) => {
-                eprintln!("Error serializing result: {e}");
-                std::process::exit(2);
-            }
-        }
-    } else {
-        println!(
-            "Module 7 (anderson): {} — {}/{} checks ({}ms)",
-            match result.status {
-                ValidationStatus::Pass => "PASS",
-                ValidationStatus::Fail => "FAIL",
-                ValidationStatus::Skip => "SKIP",
-            },
-            result.checks_passed,
-            result.checks,
-            result.runtime_ms,
-        );
-    }
-
-    if matches!(result.status, ValidationStatus::Fail) {
-        std::process::exit(1);
-    }
-}
-
-fn skip_result(name: &str, tier: u8, start: Instant, msg: &str) -> ModuleResult {
-    ModuleResult {
-        name: name.to_string(),
-        status: ValidationStatus::Skip,
-        tier,
-        checks: 0,
-        checks_passed: 0,
-        runtime_ms: start.elapsed().as_millis() as u64,
-        error: Some(msg.to_string()),
-    }
+    harness::output_and_exit(&result, cli.json);
 }
 
 fn run_validation(cli: &Cli) -> ModuleResult {
     let start = Instant::now();
 
     if !Path::new(&cli.expected).exists() {
-        return skip_result("anderson_qs_predictions", 1, start,
+        return harness::skip("anderson_qs_predictions", 1, start,
             "Expected values not found — run hotSpring B2 first");
     }
 
-    let data_path = Path::new(&cli.data_dir);
-    if !data_path.exists() {
-        return skip_result("anderson_qs_predictions", 1, start,
+    if !Path::new(&cli.data_dir).exists() {
+        return harness::skip("anderson_qs_predictions", 1, start,
             &format!("Data directory not found: {}", cli.data_dir));
     }
 
@@ -91,19 +53,14 @@ fn run_validation(cli: &Cli) -> ModuleResult {
         return run_tier2_rust(cli, start);
     }
 
-    skip_result("anderson_qs_predictions", cli.max_tier, start,
+    harness::skip("anderson_qs_predictions", cli.max_tier, start,
         &format!("Tier {} not implemented yet", cli.max_tier))
 }
 
-fn load_expected(path: &str) -> Option<serde_json::Value> {
-    let content = std::fs::read_to_string(path).ok()?;
-    serde_json::from_str(&content).ok()
-}
-
 fn run_tier2_rust(cli: &Cli, start: Instant) -> ModuleResult {
-    let expected = match load_expected(&cli.expected) {
+    let expected = match harness::load_expected(&cli.expected) {
         Some(v) => v,
-        None => return skip_result("anderson_qs_predictions", 2, start,
+        None => return harness::skip("anderson_qs_predictions", 2, start,
             "Cannot parse expected values JSON"),
     };
 
@@ -116,14 +73,12 @@ fn run_tier2_rust(cli: &Cli, start: Instant) -> ModuleResult {
     let gen_500 = fitness["gen_500"].as_f64().unwrap_or(0.0);
     let gen_5k = fitness["gen_5000"].as_f64().unwrap_or(0.0);
 
-    // Check 1: Power-law — no plateau (fitness at 50k > fitness at 10k)
     total += 1;
     let no_plateau = gen_50k > gen_10k;
     if no_plateau { passed += 1; }
     eprintln!("  [{}] No plateau: w(50k)={gen_50k:.4} > w(10k)={gen_10k:.4}",
         if no_plateau { "PASS" } else { "FAIL" });
 
-    // Check 2: Diminishing returns — per-generation rate decreases over time
     total += 1;
     let first_rate = (gen_5k - gen_500) / (5000.0 - 500.0);
     let last_rate = (gen_50k - gen_10k) / (50000.0 - 10000.0);
@@ -137,7 +92,6 @@ fn run_tier2_rust(cli: &Cli, start: Instant) -> ModuleResult {
     let goe_ref = diagnostics["goe_reference"].as_f64().unwrap_or(0.531);
     let poisson_ref = diagnostics["poisson_reference"].as_f64().unwrap_or(0.3863);
 
-    // Check 3: Level spacing ratio between GOE and Poisson
     total += 1;
     let midpoint = (goe_ref + poisson_ref) / 2.0;
     let in_range = midpoint > poisson_ref && midpoint < goe_ref;
@@ -145,7 +99,6 @@ fn run_tier2_rust(cli: &Cli, start: Instant) -> ModuleResult {
     eprintln!("  [{}] <r> in [Poisson, GOE]: {midpoint:.4} in [{poisson_ref:.4}, {goe_ref:.4}]",
         if in_range { "PASS" } else { "FAIL" });
 
-    // Check 4: Population variance exists (std > 0)
     total += 1;
     let gen_vals = [gen_500, gen_5k, gen_10k, gen_50k];
     let mean_f = gen_vals.iter().sum::<f64>() / gen_vals.len() as f64;
@@ -157,7 +110,6 @@ fn run_tier2_rust(cli: &Cli, start: Instant) -> ModuleResult {
     eprintln!("  [{}] Population variance: std={std_dev:.6} (expected > 0)",
         if has_variance { "PASS" } else { "FAIL" });
 
-    // Check 5: Expected number of populations
     total += 1;
     let checks = expected["validation_checks"].as_array();
     let n_pop_check = checks.and_then(|arr| {

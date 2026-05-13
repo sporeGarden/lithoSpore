@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
 # fetch_barrick_2009.sh — Download Barrick et al. 2009 mutation data from NCBI
 # BioProject: PRJNA29543 (public-domain)
 # Paper: Barrick JE et al. (2009) Genome evolution and adaptation in a

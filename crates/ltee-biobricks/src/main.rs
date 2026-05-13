@@ -1,25 +1,28 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! Module 5: `BioBrick` burden distribution
+//! Module 5: BioBrick metabolic burden
 //!
-//! Reproduces "Measuring the burden of hundreds of `BioBricks`" 2024 (B6).
-//! Springs: neuralSpring (ML prediction), groundSpring (Anderson Wc analogy).
+//! Reproduces burden measurements from 2024 BioBrick fitness assays.
+//! Springs: healthSpring (burden quantification), airSpring (FLS2 immunity).
 //!
 //! Upstream gaps:
-//! - neuralSpring B6: ML prediction of burden from sequence features
-//! - groundSpring B6: Anderson Wc analogy — burden = disorder potential
+//! - healthSpring B5: BioBrick burden quantification pipeline
+//! - airSpring: FLS2 plant immunity cross-validation
 
 use clap::Parser;
-use litho_core::{ModuleResult, ValidationStatus};
+use litho_core::harness;
 
 #[derive(Parser)]
-#[command(name = "ltee-biobricks", about = "BioBrick burden distribution validation")]
+#[command(name = "ltee-biobricks", about = "BioBrick metabolic burden validation")]
 struct Cli {
-    #[arg(long, default_value = "data/biobricks_2024")]
+    #[arg(long, default_value = "artifact/data/biobricks_2024")]
     data_dir: String,
 
     #[arg(long, default_value = "validation/expected/module5_biobricks.json")]
     expected: String,
+
+    #[arg(long, default_value = "2")]
+    max_tier: u8,
 
     #[arg(long)]
     json: bool,
@@ -27,41 +30,10 @@ struct Cli {
 
 fn main() {
     let cli = Cli::parse();
-
-    let result = run_validation(&cli);
-
-    if cli.json {
-        match serde_json::to_string_pretty(&result) {
-            Ok(json) => println!("{json}"),
-            Err(e) => {
-                eprintln!("Error serializing result: {e}");
-                std::process::exit(2);
-            }
-        }
-    } else {
-        println!(
-            "Module 5 (biobricks): {} — {}/{} checks",
-            match result.status {
-                ValidationStatus::Pass => "PASS",
-                ValidationStatus::Fail => "FAIL",
-                ValidationStatus::Skip => "SKIP",
-            },
-            result.checks_passed,
-            result.checks
-        );
-    }
-}
-
-fn run_validation(cli: &Cli) -> ModuleResult {
-    let _ = (&cli.data_dir, &cli.expected);
-
-    ModuleResult {
-        name: "biobrick_burden".to_string(),
-        status: ValidationStatus::Skip,
-        tier: 2,
-        checks: 0,
-        checks_passed: 0,
-        runtime_ms: 0,
-        error: Some("Awaiting upstream spring reproductions (neuralSpring B6, groundSpring B6)".to_string()),
-    }
+    let start = std::time::Instant::now();
+    let result = harness::skip(
+        "biobrick_burden", cli.max_tier, start,
+        "Awaiting upstream spring reproductions (healthSpring B5, airSpring FLS2)",
+    );
+    harness::output_and_exit(&result, cli.json);
 }

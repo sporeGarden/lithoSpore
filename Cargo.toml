@@ -30,10 +30,8 @@ litho-core = { path = "crates/litho-core" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 toml = "0.8"
-blake3 = "1"
+blake3 = { version = "1", default-features = false, features = ["pure", "std"] }
 clap = { version = "4", features = ["derive"] }
 chrono = { version = "0.4", default-features = false, features = ["std", "serde", "now"] }
-thiserror = "2"
-
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }

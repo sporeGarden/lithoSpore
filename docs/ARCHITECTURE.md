@@ -28,7 +28,7 @@ self-contained — that buds from the ecosystem into a portable artifact.
 ## Crate Architecture
 
 ```
-litho-core          ← shared types (validation, tolerance, provenance, liveSpore)
+litho-core          ← shared library (validation, tolerance, provenance, discovery, stats, harness)
   ↑
   ├── ltee-fitness   ← Module 1: power-law fitness (groundSpring + wetSpring)
   ├── ltee-mutations ← Module 2: mutation accumulation (groundSpring + neuralSpring)

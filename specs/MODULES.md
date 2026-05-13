@@ -14,7 +14,9 @@
 
 ## Shared Infrastructure
 
-- `litho-core`: validation types, tolerance framework, provenance chain, liveSpore
+- `litho-core`: validation types, tolerance framework, provenance chain, liveSpore,
+  capability-based primal discovery, shared statistics (`pearson_r`), and validation
+  harness (`skip`, `load_expected`, `dispatch_python`, `output_and_exit`)
 - `ltee-cli`: unified `litho` binary with subcommands (validate/refresh/status/spore)
 
 ## Per-Module Contract

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
 # fetch_good_2017.sh — Fetch Good et al. 2017 clonal interference data
 # BioProject: PRJNA380528 (public-domain)
 # Paper: Good BH et al. (2017) The dynamics of molecular evolution over

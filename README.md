@@ -10,16 +10,39 @@ new predictions using the Anderson disorder framework.
 **License**: AGPL-3.0-or-later (code), CC-BY-SA 4.0 (docs)
 **Standard**: `TARGETED_GUIDESTONE_STANDARD.md` (wateringHole)
 
+## Spore Taxonomy
+
+lithoSpore is a **hypogeal cotyledon** — a self-sufficient spore that
+carries its own food supply. The botanical metaphor: a seed leaf that
+stays underground, nourishing the seedling until it can photosynthesize.
+
+| Class | What | Self-Sufficient? |
+|-------|------|-----------------|
+| ColdSpore | Static artifact, `.biomeos-spore` marker, frozen data | No (needs host) |
+| LiveSpore | + `liveSpore.json` provenance + `./refresh` self-update | Partially |
+| **lithoSpore** (Hypogeal Cotyledon) | + Python runtime + 7 LTEE data bundles + litho-core Rust ecoBins | **Yes** |
+
+See `wateringHole/LITHOSPORE_USB_DEPLOYMENT.md` for the full standard.
+
 ## What This Is
 
-lithoSpore builds a portable validation artifact — a ~3GB USB drive that:
+lithoSpore builds a portable validation artifact — a ~16GB USB that:
 
-- Runs `./ltee validate` on any Linux machine (no install, no internet, no dependencies)
+- Runs `./validate` on any Linux machine (no install, no internet, no dependencies)
 - Runs Python notebooks on any machine with Python 3.10+
 - Carries all data on the drive (BLAKE3-hashed, licensed, with source URIs for refresh)
 - Produces structured JSON with PASS/FAIL per module and named tolerances
-- Tracks its own deployment history via `liveSpore.json`
-- Can be extended via `./ltee refresh` when internet is available
+- Tracks its own deployment history via `liveSpore.json` (append-only, publishable)
+- Can be extended via `./refresh` when internet is available
+- Records operating mode in provenance (`standalone`, `env`, `uds`, `turn`)
+
+## Three Operating Modes
+
+| Mode | Network | Discovery | Tier |
+|------|---------|-----------|------|
+| **Standalone** | None | No primals — Python-only against bundled data | 1 |
+| **LAN** | Local network | env vars / UDS socket — Rust + primal IPC | 2 |
+| **Geo-delocalized** | Remote gate via cellMembrane | Songbird TURN relay — Tier 2 via relay | 2 |
 
 ## Three-Tier Architecture
 
@@ -126,14 +149,15 @@ spore tracking, capability-based discovery, shared stats + harness), 33 unit tes
 CI wired, zero clippy warnings, `#![forbid(unsafe_code)]` workspace-wide,
 pure Rust BLAKE3 (ecoBin compliant), `liveSpore.json` operational.
 
-**Architecture** (May 13 audit sweep):
+**Architecture** (May 14 geo-delocalization absorption):
 - `unsafe_code = "forbid"` enforced at workspace lint level — all 9 crates inherit
 - Shared harness (`litho_core::harness`) eliminates ~200 LOC of duplicated skip/load/dispatch
 - Shared stats (`litho_core::stats`) deduplicates `pearson_r` with safe length checks
 - Capability-based discovery (`litho_core::discovery`) — primal resolution via
-  `$PRIMAL_HOST` + env → UDS discovery socket → graceful skip. No hardcoded primal names.
-- Clippy pedantic clean — `cast_precision_loss`, `float_cmp`, `manual_let_else` allowed
-  (inherent to scientific computing); all other pedantic lints enforced
+  env → UDS → Songbird TURN → standalone. No hardcoded primal names.
+  `DiscoveryPath` + `turn_relay` recorded in `liveSpore.json` for provenance.
+- `probe_operating_mode()` detects standalone/LAN/geo-delocalized before validation
+- Clippy pedantic clean — scientific casts allowed; all other pedantic lints enforced
 - `cmd_refresh` real `data.toml`-driven fetch pipeline (5 fetch scripts: B1–B4, B7)
 
 See `docs/UPSTREAM_GAPS.md` for remaining module gap (module 5 only).

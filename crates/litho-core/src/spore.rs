@@ -1,8 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! liveSpore: deployment tracking — records every validation run.
+//!
+//! Each `./validate` run appends a `LiveSporeEntry` to `liveSpore.json`.
+//! The journal is append-only and publishable: no PII (hostname is
+//! BLAKE3-hashed), and the `discovery_path` + `turn_relay` fields record
+//! the operating mode for geo-delocalized provenance.
 
 use serde::{Deserialize, Serialize};
+use super::discovery::DiscoveryPath;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LiveSporeEntry {
@@ -14,10 +20,15 @@ pub struct LiveSporeEntry {
     pub modules_passed: u32,
     pub modules_total: u32,
     pub runtime_ms: u64,
+    pub discovery_path: DiscoveryPath,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub turn_relay: Option<String>,
 }
 
 impl LiveSporeEntry {
     /// Create a new entry from the current system and a validation report.
+    /// `discovery_path` and `turn_relay` are determined by probing the
+    /// environment before validation begins.
     #[must_use]
     pub fn from_report(report: &super::ValidationReport) -> Self {
         let hostname = hostname_hash();
@@ -28,6 +39,7 @@ impl LiveSporeEntry {
             .count();
 
         let total_runtime: u64 = report.modules.iter().map(|m| m.runtime_ms).sum();
+        let (path, relay) = super::discovery::probe_operating_mode();
 
         Self {
             timestamp: chrono::Utc::now().to_rfc3339(),
@@ -38,6 +50,8 @@ impl LiveSporeEntry {
             modules_passed: u32::try_from(passed).unwrap_or(u32::MAX),
             modules_total: u32::try_from(report.modules.len()).unwrap_or(u32::MAX),
             runtime_ms: total_runtime,
+            discovery_path: path,
+            turn_relay: relay,
         }
     }
 }

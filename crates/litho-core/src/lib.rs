@@ -19,4 +19,5 @@ pub use manifest::DataManifest;
 pub use provenance::ProvenanceEntry;
 pub use tolerance::{Tolerance, ToleranceSet};
 pub use validation::{ModuleResult, ValidationReport, ValidationStatus};
+pub use discovery::DiscoveryPath;
 pub use spore::LiveSporeEntry;

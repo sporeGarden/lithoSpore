@@ -1,8 +1,9 @@
 # CATHEDRAL Upstream Gap Registry
 
-**Last Updated**: May 13, 2026 (6/7 modules LIVE Tier 2 — Pillar 4 GATE EXCEEDED)
+**Last Updated**: May 14, 2026 (6/7 modules LIVE Tier 2 — Pillar 4 GATE EXCEEDED)
 **Phase**: Interstadial → Stadial
 **Scope**: lithoSpore + Foundation (L5 knowledge layer)
+**Geo-delocalization**: Absorbed — discovery chain extended to TURN, liveSpore.json provenance updated
 
 ---
 
@@ -59,6 +60,20 @@ with upstream data (B1–B4, B7).
 | FN-DEAD | `fetch_from_manifest` 54 LOC dead code | Removed from `deploy/fetch_sources.sh` |
 | FN-WK | Workload TOMLs missing SPDX headers | Added `AGPL-3.0-or-later` to all 20 workload TOMLs |
 | FN-CI | Shellcheck in CI was `|| true` (advisory) | Made blocking — removed `|| true` |
+
+### Geo-Delocalization Absorption (May 14, 2026)
+
+| ID | Gap | Resolution |
+|----|-----|-----------|
+| GEO-DISC | Discovery chain lacked TURN relay path | Extended: env → UDS → `$SONGBIRD_TURN_SERVER` → standalone. `DiscoveryPath` enum + `discover_full()` |
+| GEO-MODE | No operating mode detection | Added `probe_operating_mode()` — checks env/UDS/TURN signals before validation |
+| GEO-PROV | `liveSpore.json` lacked discovery provenance | Added `discovery_path` + `turn_relay` fields to `LiveSporeEntry` |
+| GEO-DOC | Spore taxonomy and operating modes undocumented | README + ARCHITECTURE.md updated with taxonomy table + mode table + discovery chain diagram |
+
+Upstream-blocked (not actionable by CATHEDRAL):
+- Songbird TURN client library (needed for actual TURN-relayed IPC)
+- BearDog FIDO2/CTAP2 for SoloKey witness in `liveSpore.json`
+- sporePrint pipeline wiring (`notify-sporeprint.yml` → Zola)
 
 ## Remaining — Foundation
 

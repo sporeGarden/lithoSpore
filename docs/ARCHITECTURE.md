@@ -48,6 +48,21 @@ Each module crate produces a standalone binary that:
 The `ltee-cli` crate provides the unified `litho` binary that dispatches
 to all modules and produces a combined `ValidationReport`.
 
+## Discovery Chain
+
+litho-core's `discovery.rs` implements the capability-based primal
+discovery chain. The chain determines the operating mode:
+
+```
+$CAPABILITY_PORT env var → UDS discovery.sock → $SONGBIRD_TURN_SERVER → None
+         ↓                       ↓                       ↓                ↓
+    DiscoveryPath::Env     DiscoveryPath::Uds    DiscoveryPath::Turn   ::Standalone
+     (LAN mode)             (LAN mode)         (Geo-delocalized)    (Standalone)
+```
+
+`probe_operating_mode()` is called before validation and the result is
+recorded in `liveSpore.json` as `discovery_path` + optional `turn_relay`.
+
 ## Data Flow
 
 ```
@@ -65,7 +80,9 @@ artifact/validation/expected/
     ↓ (within tolerance)
 ValidationReport JSON
     ↓
-liveSpore.json (append)
+liveSpore.json (append — discovery_path + turn_relay + hostname_hash)
+    ↓
+sporePrint pipeline (primals.eco)
 ```
 
 ## Cross-Platform

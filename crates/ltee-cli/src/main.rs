@@ -83,9 +83,9 @@ fn cmd_validate(root: &str, json: bool, max_tier: u8) {
     for (name, binary, data_dir, expected) in live_modules {
         let data_path = root_path.join(data_dir);
         let expected_path = root_path.join(expected);
-        let binary_path = root_path.join(format!("target/release/{binary}"));
+        let binary_path = resolve_binary(root_path, binary);
 
-        if binary_path.exists() && data_path.exists() && expected_path.exists() {
+        if let Some(binary_path) = binary_path.filter(|_| data_path.exists() && expected_path.exists()) {
             let start = std::time::Instant::now();
             let output = std::process::Command::new(&binary_path)
                 .arg("--data-dir").arg(&data_path)
@@ -181,8 +181,32 @@ fn cmd_validate(root: &str, json: bool, max_tier: u8) {
     std::process::exit(report.exit_code());
 }
 
+/// Resolve a module binary, checking USB layout (`bin/`) first, then dev layout
+/// (`target/release/`).
+fn resolve_binary(root: &std::path::Path, name: &str) -> Option<std::path::PathBuf> {
+    let usb = root.join(format!("bin/{name}"));
+    if usb.exists() {
+        return Some(usb);
+    }
+    let dev = root.join(format!("target/release/{name}"));
+    if dev.exists() {
+        return Some(dev);
+    }
+    None
+}
+
+/// Resolve liveSpore.json path — root-level (USB) takes precedence over
+/// `artifact/liveSpore.json` (dev).
+fn resolve_livespore(root: &std::path::Path) -> std::path::PathBuf {
+    let usb = root.join("liveSpore.json");
+    if usb.exists() || root.join(".biomeos-spore").exists() {
+        return usb;
+    }
+    root.join("artifact/liveSpore.json")
+}
+
 fn write_livespore(root: &str, report: &litho_core::ValidationReport) {
-    let spore_path = std::path::Path::new(root).join("artifact/liveSpore.json");
+    let spore_path = resolve_livespore(std::path::Path::new(root));
 
     let mut entries: Vec<litho_core::LiveSporeEntry> = spore_path
         .exists()
@@ -402,7 +426,7 @@ fn cmd_status(root: &str) {
 }
 
 fn cmd_spore(root: &str) {
-    let spore_path = format!("{root}/artifact/liveSpore.json");
+    let spore_path = resolve_livespore(std::path::Path::new(root));
     match std::fs::read_to_string(&spore_path) {
         Ok(contents) => {
             let entries: Vec<litho_core::LiveSporeEntry> =
@@ -415,6 +439,6 @@ fn cmd_spore(root: &str) {
                 );
             }
         }
-        Err(_) => println!("No liveSpore.json found at {spore_path} — no validation runs recorded yet"),
+        Err(_) => println!("No liveSpore.json found at {} — no validation runs recorded yet", spore_path.display()),
     }
 }

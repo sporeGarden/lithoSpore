@@ -1,6 +1,6 @@
 # CATHEDRAL Upstream Gap Registry
 
-**Last Updated**: May 14, 2026 (6/7 modules LIVE Tier 2 — Pillar 4 GATE EXCEEDED)
+**Last Updated**: May 14, 2026 (6/7 modules PASS Tier 2, VM-validated — Pillar 4 GATE EXCEEDED)
 **Phase**: Interstadial → Stadial
 **Scope**: lithoSpore + Foundation (L5 knowledge layer)
 **Geo-delocalization**: Absorbed — discovery chain extended to TURN, liveSpore.json provenance updated
@@ -78,6 +78,16 @@ with upstream data (B1–B4, B7).
 | USB-ROOT | Missing USB root entry points | `artifact/usb-root/validate`, `refresh`, `spore.sh`, `.biomeos-spore` marker |
 | USB-TOWER | No biomeOS spore composition | `artifact/usb-root/biomeOS/tower.toml` + `graphs/lithoSpore_validation.toml` |
 | USB-FLAT | `build-artifact.sh` only produced `bin/{arch}/static/` layout | Added `--flat DIR` mode for USB flat `bin/` layout |
+
+### USB Pipeline Hardening (May 14, 2026)
+
+| ID | Gap | Resolution |
+|----|-----|-----------|
+| USB-BIN | `litho` CLI only checked `target/release/` for module binaries | Added `resolve_binary()` — checks `bin/` (USB) first, then `target/release/` (dev) |
+| USB-SPORE | `liveSpore.json` written to `artifact/liveSpore.json` only | Added `resolve_livespore()` — detects USB layout via `.biomeos-spore` marker, writes to root |
+| USB-EXPECTED | `assemble-usb.sh` did not stage `validation/expected/` | Added step 8: copies expected-value JSONs to USB |
+| USB-DATA | Modules 3+4 data not fetched | Ran `fetch_good_2017.sh` + `fetch_blount_2012.sh` with `$ECOPRIMALS_ROOT` — 6/6 data bundles staged |
+| USB-VM | No VM validation of USB artifact | Built VM via agentReagents `lithoSpore-validation.yaml`, SSH'd USB, 6/7 PASS (51/51 checks) |
 
 Upstream-blocked (not actionable by CATHEDRAL):
 - Songbird TURN client library (needed for actual TURN-relayed IPC)

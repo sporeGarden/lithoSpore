@@ -83,6 +83,8 @@ if $DRY_RUN; then
     echo "  │   ├── scope.toml"
     echo "  │   ├── data.toml"
     echo "  │   └── tolerances.toml"
+    echo "  ├── validation/"
+    echo "  │   └── expected/  (module expected-value JSONs)"
     echo "  ├── foundation/"
     echo "  │   └── targets/  (validation target TOMLs)"
     echo "  └── notebooks/"
@@ -98,7 +100,7 @@ log "Arch:    $ARCH"
 
 # --- 1. Create directory tree ---
 step "1. Creating directory tree"
-mkdir -p "$TARGET"/{bin,artifact/data,foundation/targets,notebooks,biomeOS/graphs}
+mkdir -p "$TARGET"/{bin,artifact/data,validation/expected,foundation/targets,notebooks,biomeOS/graphs}
 if ! $SKIP_PYTHON; then
     mkdir -p "$TARGET/python"
 fi
@@ -239,8 +241,18 @@ if [ -d "$ROOT/artifact/notebooks/html" ]; then
 fi
 log "Notebooks staged"
 
-# --- 8. Stage Foundation targets ---
-step "8. Staging Foundation targets"
+# --- 8. Stage expected values ---
+step "8. Staging expected values"
+if [ -d "$ROOT/validation/expected" ]; then
+    cp "$ROOT"/validation/expected/*.json "$TARGET/validation/expected/" 2>/dev/null || true
+    EXPECTED_COUNT=$(find "$TARGET/validation/expected" -name "*.json" 2>/dev/null | wc -l)
+    log "$EXPECTED_COUNT expected-value JSONs staged"
+else
+    log "  No validation/expected/ directory found — skipping"
+fi
+
+# --- 9. Stage Foundation targets ---
+step "9. Staging Foundation targets"
 if [ -d "$ROOT/data/targets" ]; then
     cp "$ROOT"/data/targets/*.toml "$TARGET/foundation/targets/" 2>/dev/null || true
     TARGETS_COUNT=$(find "$TARGET/foundation/targets" -name "*.toml" 2>/dev/null | wc -l)
@@ -249,8 +261,8 @@ else
     log "  No data/targets/ directory found — skipping"
 fi
 
-# --- 9. Generate data_manifest.toml ---
-step "9. Generating data_manifest.toml"
+# --- 10. Generate data_manifest.toml ---
+step "10. Generating data_manifest.toml"
 if command -v b3sum >/dev/null 2>&1; then
     MANIFEST="$TARGET/data_manifest.toml"
     {

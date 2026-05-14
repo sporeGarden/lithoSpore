@@ -144,16 +144,17 @@ any Linux machine and run `./validate`. See `artifact/usb-root/` for
 the root file templates and `wateringHole/LITHOSPORE_USB_DEPLOYMENT.md`
 for the full spec.
 
-## Current Status — 6/7 Modules LIVE (May 13, 2026)
+## Current Status — 6/7 Modules PASS (May 14, 2026)
 
-**Pillar 4 EXIT GATE: EXCEEDED** — 6 modules wired at Tier 2, gate required 2+.
+**Pillar 4 EXIT GATE: EXCEEDED** — 6 modules PASS at Tier 2, gate required 2+.
+**VM-validated**: USB pipeline tested on a fresh libvirt VM via agentReagents — 51/51 checks pass.
 
 | Module | Status | Checks | Source |
 |--------|--------|--------|--------|
 | 1. ltee-fitness | **PASS** Tier 2 | 8/8 | groundSpring B2 Wiser 2013 |
 | 2. ltee-mutations | **PASS** Tier 2 | 7/7 | groundSpring B1 Barrick 2009 |
-| 3. ltee-alleles | **LIVE** Tier 2 | — | groundSpring B3 Good 2017 (ingested) |
-| 4. ltee-citrate | **LIVE** Tier 2 | — | groundSpring B4 Blount 2008/2012 (ingested) |
+| 3. ltee-alleles | **PASS** Tier 2 | 17/17 | groundSpring B3 Good 2017 |
+| 4. ltee-citrate | **PASS** Tier 2 | 6/6 | groundSpring B4 Blount 2008/2012 |
 | 5. ltee-biobricks | SKIP | — | DOI pending (Nat Comms) |
 | 6. ltee-breseq | **PASS** Tier 2 | 8/8 | wetSpring B7 Tenaillon 2016 |
 | 7. ltee-anderson | **PASS** Tier 2 | 5/5 | hotSpring B2 Anderson disorder |

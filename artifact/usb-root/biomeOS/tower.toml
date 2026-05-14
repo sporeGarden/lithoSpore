@@ -1,0 +1,57 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# tower.toml — biomeOS spore composition for lithoSpore USB.
+#
+# Declares what this spore is, what it needs, and how biomeOS should
+# orchestrate it. The spore is self-sufficient at Tier 1/2; Tier 3
+# requires NUCLEUS primals discovered at runtime.
+
+[spore]
+name = "ltee-guidestone"
+class = "hypogeal-cotyledon"
+version = "0.1.0"
+entry = "validate"
+refresh = "refresh"
+
+[spore.capabilities]
+tier_1 = ["python-validation"]
+tier_2 = ["rust-ecobin-validation"]
+tier_3 = ["primal-ipc", "provenance-trio"]
+
+[spore.data]
+manifest = "data_manifest.toml"
+provenance = "liveSpore.json"
+scope = "artifact/scope.toml"
+tolerances = "artifact/tolerances.toml"
+
+# Tier 3 primal requirements (optional — discovered at runtime)
+[[primal]]
+capability = "workload.execute"
+required = false
+notes = "toadStool — GPU compute dispatch for accelerated validation"
+
+[[primal]]
+capability = "storage.store"
+required = false
+notes = "NestGate — content-addressed artifact registration"
+
+[[primal]]
+capability = "dag.session.create"
+required = false
+notes = "rhizoCrypt — DAG provenance chain"
+
+[[primal]]
+capability = "spine.create"
+required = false
+notes = "loamSpine — certificate chain for immutable provenance"
+
+[[primal]]
+capability = "braid.create"
+required = false
+notes = "sweetGrass — attribution braid integrity"
+
+[validation]
+graph = "biomeOS/graphs/lithoSpore_validation.toml"
+modules = 7
+live_modules = 6
+scaffold_modules = 1

@@ -83,17 +83,18 @@ lithoSpore/
 │   ├── ltee-anderson/            # Module 7: Anderson-QS predictions
 │   └── ltee-cli/                 # Unified CLI: validate/refresh/status/spore
 │
-├── artifact/                     # The deployable artifact (USB layout)
-│   ├── ltee                      # Entry point script
+├── artifact/                     # The deployable artifact
+│   ├── ltee                      # Dev-mode entry point script
+│   ├── usb-root/                 # USB root templates (validate, refresh, spore.sh, .biomeos-spore)
+│   │   └── biomeOS/              # biomeOS tower.toml + validation graph
 │   ├── scope.toml                # Scope graph (birth certificate)
 │   ├── data.toml                 # Data manifest (source URIs + BLAKE3)
 │   ├── tolerances.toml           # Named tolerances with justification
 │   ├── liveSpore.json            # Deployment tracking (append-only)
-│   ├── bin/{arch}/static/        # musl-static ecoBin binaries
+│   ├── bin/{arch}/static/        # musl-static ecoBin binaries (dev layout)
 │   ├── data/                     # Datasets (fetched, hashed)
 │   ├── notebooks/html/           # Pre-rendered HTML notebooks
-│   ├── validation/expected/      # Reference outputs
-│   └── deploy/                   # Tier 3 deploy graphs
+│   └── validation/expected/      # Reference outputs
 │
 ├── data/
 │   ├── sources/                  # Data source manifests (foundation pattern)
@@ -115,12 +116,33 @@ lithoSpore/
 # Build all modules (native)
 cargo build --release
 
-# Build artifact (cross-compile musl-static)
+# Build artifact binaries (cross-compile musl-static)
 ./scripts/build-artifact.sh
 
 # Run validation (6/7 modules LIVE at Tier 2, 1 scaffold SKIP)
 cargo run --bin litho -- validate --json
 ```
+
+## Building the USB (Hypogeal Cotyledon)
+
+```bash
+# Assemble complete USB to ./usb-staging/ (fetches data, builds binaries, embeds Python)
+./scripts/assemble-usb.sh
+
+# Assemble to a mounted USB drive
+./scripts/assemble-usb.sh --target /media/lithoSpore
+
+# Skip steps for iterative development
+./scripts/assemble-usb.sh --skip-python --skip-fetch --skip-build
+
+# Preview what would be assembled
+./scripts/assemble-usb.sh --dry-run
+```
+
+The assembled USB is a self-sufficient hypogeal cotyledon: plug it into
+any Linux machine and run `./validate`. See `artifact/usb-root/` for
+the root file templates and `wateringHole/LITHOSPORE_USB_DEPLOYMENT.md`
+for the full spec.
 
 ## Current Status — 6/7 Modules LIVE (May 13, 2026)
 

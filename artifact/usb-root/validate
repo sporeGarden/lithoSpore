@@ -1,0 +1,95 @@
+#!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# validate — lithoSpore USB entry point
+#
+# Dispatches to Tier 2 (Rust ecoBin) or Tier 1 (embedded Python) based on
+# what is available on this machine. Appends to liveSpore.json after each run.
+#
+# Usage:
+#   ./validate                  Auto-detect best tier
+#   ./validate --tier 1         Force Tier 1 (Python only)
+#   ./validate --tier 2         Force Tier 2 (Rust, fail if absent)
+#   ./validate --json           Structured JSON output (Tier 2 only)
+
+set -e
+
+SPORE_ROOT="$(cd "$(dirname "$0")" && pwd)"
+ARCH="$(uname -m)"
+
+case "$ARCH" in
+    arm64) ARCH="aarch64" ;;
+esac
+
+LITHO="$SPORE_ROOT/bin/litho"
+PYTHON="$SPORE_ROOT/python/bin/python3"
+
+FORCE_TIER=""
+EXTRA_ARGS=""
+for arg in "$@"; do
+    case "$arg" in
+        --tier) FORCE_TIER="next" ;;
+        1|2|3)
+            if [ "$FORCE_TIER" = "next" ]; then
+                FORCE_TIER="$arg"
+            else
+                EXTRA_ARGS="$EXTRA_ARGS $arg"
+            fi
+            ;;
+        *) EXTRA_ARGS="$EXTRA_ARGS $arg" ;;
+    esac
+done
+
+try_tier2() {
+    if [ -f "$LITHO" ] && [ -x "$LITHO" ]; then
+        echo "lithoSpore: $(uname -s) $ARCH — Tier 2 (Rust ecoBin)"
+        exec "$LITHO" validate --artifact-root "$SPORE_ROOT" $EXTRA_ARGS
+    fi
+    return 1
+}
+
+try_tier1() {
+    local py=""
+    if [ -f "$PYTHON" ] && [ -x "$PYTHON" ]; then
+        py="$PYTHON"
+    elif command -v python3 >/dev/null 2>&1; then
+        py="python3"
+    fi
+
+    if [ -n "$py" ]; then
+        echo "lithoSpore: $(uname -s) $ARCH — Tier 1 (Python)"
+        PASS=0
+        FAIL=0
+        for nb in "$SPORE_ROOT"/notebooks/module*/*.py; do
+            [ -f "$nb" ] || continue
+            echo "  Running: $(basename "$nb")"
+            if "$py" "$nb" 2>&1; then
+                PASS=$((PASS + 1))
+            else
+                FAIL=$((FAIL + 1))
+                echo "  WARNING: $(basename "$nb") failed"
+            fi
+        done
+        echo ""
+        echo "Tier 1 complete: $PASS passed, $FAIL failed"
+        if [ "$FAIL" -gt 0 ]; then exit 1; fi
+        exit 2
+    fi
+    return 1
+}
+
+try_html() {
+    echo "lithoSpore: $(uname -s) $ARCH — no Rust binary, no Python"
+    echo "  Pre-rendered HTML notebooks are viewable in any browser:"
+    echo "  $SPORE_ROOT/notebooks/"
+    echo ""
+    echo "  For Tier 2: run on Linux x86_64 or aarch64"
+    echo "  For Tier 1: install Python 3.10+ or use the embedded python/"
+    exit 2
+}
+
+case "$FORCE_TIER" in
+    1) try_tier1 || try_html ;;
+    2) try_tier2 || { echo "ERROR: Rust ecoBin not found at $LITHO"; exit 1; } ;;
+    *) try_tier2 || try_tier1 || try_html ;;
+esac

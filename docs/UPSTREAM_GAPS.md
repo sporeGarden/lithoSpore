@@ -70,10 +70,20 @@ with upstream data (B1–B4, B7).
 | GEO-PROV | `liveSpore.json` lacked discovery provenance | Added `discovery_path` + `turn_relay` fields to `LiveSporeEntry` |
 | GEO-DOC | Spore taxonomy and operating modes undocumented | README + ARCHITECTURE.md updated with taxonomy table + mode table + discovery chain diagram |
 
+### USB Assembly (May 14, 2026)
+
+| ID | Gap | Resolution |
+|----|-----|-----------|
+| USB-ASM | No USB assembly script | `scripts/assemble-usb.sh` — full 9-step orchestrator per `LITHOSPORE_USB_DEPLOYMENT.md` |
+| USB-ROOT | Missing USB root entry points | `artifact/usb-root/validate`, `refresh`, `spore.sh`, `.biomeos-spore` marker |
+| USB-TOWER | No biomeOS spore composition | `artifact/usb-root/biomeOS/tower.toml` + `graphs/lithoSpore_validation.toml` |
+| USB-FLAT | `build-artifact.sh` only produced `bin/{arch}/static/` layout | Added `--flat DIR` mode for USB flat `bin/` layout |
+
 Upstream-blocked (not actionable by CATHEDRAL):
 - Songbird TURN client library (needed for actual TURN-relayed IPC)
 - BearDog FIDO2/CTAP2 for SoloKey witness in `liveSpore.json`
 - sporePrint pipeline wiring (`notify-sporeprint.yml` → Zola)
+- genomeBin primal packaging for Tier 3 on USB
 
 ## Remaining — Foundation
 

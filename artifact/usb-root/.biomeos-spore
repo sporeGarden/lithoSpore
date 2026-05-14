@@ -1,0 +1,13 @@
+{
+  "name": "ltee-guidestone",
+  "class": "hypogeal-cotyledon",
+  "version": "0.1.0",
+  "standard": "TARGETED_GUIDESTONE_STANDARD v1.0",
+  "target": "Barrick Lab — Long-Term Evolution Experiment",
+  "entry": "spore.sh",
+  "validate": "validate",
+  "refresh": "refresh",
+  "provenance": "liveSpore.json",
+  "manifest": "data_manifest.toml",
+  "license": "AGPL-3.0-or-later"
+}

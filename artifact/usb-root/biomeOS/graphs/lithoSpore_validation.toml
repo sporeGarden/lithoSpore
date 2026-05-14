@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# lithoSpore validation flow graph.
+#
+# Describes the validation pipeline as a deploy graph for biomeOS
+# orchestration. Each phase runs sequentially; phases with fallback
+# degrade gracefully when dependencies are absent.
+
+[graph]
+name = "lithoSpore-validation"
+version = "0.1.0"
+description = "LTEE Targeted GuideStone validation pipeline"
+
+# Phase 1: Verify data integrity
+[[phase]]
+name = "data-integrity"
+description = "BLAKE3-verify all bundled datasets against data_manifest.toml"
+command = "bin/litho"
+args = ["status", "--artifact-root", "."]
+required = true
+
+# Phase 2: Run validation (Tier 1 or Tier 2)
+[[phase]]
+name = "validate"
+description = "Run all 7 LTEE modules at best available tier"
+command = "./validate"
+args = ["--json"]
+required = true
+depends_on = ["data-integrity"]
+
+# Phase 3: Provenance registration (Tier 3 only)
+[[phase]]
+name = "provenance"
+description = "Register results in rhizoCrypt DAG + loamSpine ledger + sweetGrass braid"
+requires_capability = ["dag.session.create", "spine.create", "braid.create"]
+fallback = "skip"
+depends_on = ["validate"]
+
+# Phase 4: Artifact registration (Tier 3 only)
+[[phase]]
+name = "artifact-register"
+description = "Register validation artifact in NestGate content store"
+requires_capability = ["storage.store"]
+fallback = "skip"
+depends_on = ["provenance"]

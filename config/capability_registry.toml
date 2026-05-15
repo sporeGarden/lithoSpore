@@ -1,0 +1,127 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Capability Registry — lithoSpore
+#
+# Every JSON-RPC method string used in lithoSpore source code and
+# referenced in graph TOML files must appear here. Mirrors the
+# primalSpring canonical registry pattern.
+#
+# Structure: [domain] with `methods = [...]` and `owner` naming the
+# primal that serves them. lithoSpore itself consumes these methods
+# as a client — it never serves them.
+#
+# CI: cargo test validates that discovery.rs method strings match
+# this registry (Tier 1 structural check).
+
+# ─── Methods lithoSpore calls as a client ─────────────────────────────
+
+[health]
+owner = "all"
+consumed_by = "litho-core::discovery"
+methods = [
+    "health.liveness",
+]
+
+[capabilities]
+owner = "all"
+consumed_by = "litho-core::discovery"
+methods = [
+    "capability.discover",
+    "capability.list",
+]
+
+[discovery]
+owner = "songbird"
+consumed_by = "litho-core::discovery"
+methods = [
+    "discovery.discover",
+    "discovery.find_primals",
+]
+
+[ipc]
+owner = "songbird"
+consumed_by = "litho-core::discovery"
+methods = [
+    "ipc.resolve",
+]
+
+[visualization]
+owner = "petaltongue"
+consumed_by = "ltee-cli::visualize"
+methods = [
+    "visualization.render.dashboard",
+    "visualization.render.stream",
+    "visualization.session.create",
+]
+
+[dag]
+owner = "rhizocrypt"
+consumed_by = "litho-core::provenance"
+methods = [
+    "dag.event.append",
+    "dag.session.complete",
+    "dag.session.create",
+]
+
+[spine]
+owner = "loamspine"
+consumed_by = "litho-core::provenance"
+methods = [
+    "spine.create",
+    "entry.append",
+]
+
+[braid]
+owner = "sweetgrass"
+consumed_by = "litho-core::provenance"
+methods = [
+    "braid.create",
+    "braid.commit",
+]
+
+[storage]
+owner = "nestgate"
+consumed_by = "ltee-cli::verify"
+methods = [
+    "storage.store",
+]
+
+[crypto]
+owner = "beardog"
+consumed_by = "litho-core::provenance"
+methods = [
+    "crypto.hash",
+    "crypto.sign",
+    "crypto.verify",
+]
+
+# ─── Methods referenced in lithoSpore graph TOMLs ────────────────────
+
+[compute]
+owner = "toadstool"
+consumed_by = "graphs/ltee_guidestone.toml"
+methods = [
+    "compute.dispatch",
+    "compute.status",
+]
+
+# ─── Test fixtures ────────────────────────────────────────────────────
+
+[test_fixtures]
+owner = "tests"
+methods = [
+    "test.method",
+    "health.test",
+]
+
+# ─── False positives (dotted strings that are not methods) ────────────
+
+[false_positives]
+owner = "none"
+methods = [
+    "index.html",
+    "data.toml",
+    "scope.toml",
+    "tolerances.toml",
+    "liveSpore.json",
+]

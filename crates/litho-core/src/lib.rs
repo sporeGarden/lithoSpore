@@ -7,6 +7,7 @@
 //! data manifest types used by all LTEE modules.
 
 pub mod discovery;
+pub mod graph_checks;
 pub mod harness;
 pub mod manifest;
 pub mod provenance;

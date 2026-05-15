@@ -26,7 +26,7 @@ tolerances = "artifact/tolerances.toml"
 
 # Tier 3 primal requirements (optional — discovered at runtime)
 [[primal]]
-capability = "workload.execute"
+capability = "compute.dispatch"
 required = false
 notes = "toadStool — GPU compute dispatch for accelerated validation"
 

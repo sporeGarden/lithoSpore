@@ -42,7 +42,7 @@ Tier 3 requires a projectNUCLEUS deployment.
 ├── validate              Run all 7 modules
 ├── verify                BLAKE3 data integrity check
 ├── refresh               Update data from upstream
-├── spore.sh              biomeOS integration hook
+├── spore                 biomeOS integration hook (symlink → bin/litho)
 │
 ├── papers/               Scholarly foundation
 │   ├── registry.toml     Machine-readable bibliography (18 papers)
@@ -99,10 +99,11 @@ bands. Run `bin/litho validate --json` to see target coverage.
 To add new LTEE papers or predictions:
 
 1. Add a paper entry to `papers/registry.toml`
-2. Create a fetch script in `scripts/`
+2. Add a dataset entry to `artifact/data.toml` (source URI + expected hash)
 3. Add expected values to `validation/expected/`
-4. Create a new module crate under `crates/`
+4. Create a new module crate under `crates/` with `lib.rs` exposing `run_validation`
 5. Wire into `LIVE_MODULES` in `crates/ltee-cli/src/validate.rs`
+6. `litho fetch` will automatically handle data retrieval from the data.toml entry
 
 ## Contact
 

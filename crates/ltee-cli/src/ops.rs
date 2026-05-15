@@ -3,81 +3,8 @@
 //! Operational subcommands: refresh, status, spore.
 
 pub fn cmd_refresh(root: &str) {
-    println!("litho refresh: re-fetching datasets from source URIs...");
-    println!("  artifact root: {root}");
-
-    let root_path = std::path::Path::new(root);
-    let data_toml = root_path.join("artifact/data.toml");
-
-    let toml_content = match std::fs::read_to_string(&data_toml) {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("  ERROR: Cannot read {}: {e}", data_toml.display());
-            std::process::exit(1);
-        }
-    };
-
-    let manifest: toml::Value = match toml::from_str(&toml_content) {
-        Ok(v) => v,
-        Err(e) => {
-            eprintln!("  ERROR: Failed to parse data.toml: {e}");
-            std::process::exit(1);
-        }
-    };
-
-    let datasets = if let Some(arr) = manifest.get("dataset").and_then(|v| v.as_array()) { arr } else {
-        println!("  No [[dataset]] entries found in data.toml");
-        return;
-    };
-
-    let mut fetched = 0u32;
-    let mut skipped = 0u32;
-    let mut failed = 0u32;
-
-    for ds in datasets {
-        let id = ds.get("id").and_then(|v| v.as_str()).unwrap_or("unknown");
-        let refresh_cmd = ds.get("refresh_command").and_then(|v| v.as_str()).unwrap_or("");
-
-        if refresh_cmd.is_empty() {
-            println!("  [{id}] no refresh_command — skip");
-            skipped += 1;
-            continue;
-        }
-
-        let script_path = root_path.join(refresh_cmd);
-        if !script_path.exists() {
-            println!("  [{id}] script not found: {refresh_cmd} — skip");
-            skipped += 1;
-            continue;
-        }
-
-        println!("  [{id}] running {refresh_cmd}...");
-        let result = std::process::Command::new("bash")
-            .arg(&script_path)
-            .current_dir(root)
-            .status();
-
-        match result {
-            Ok(s) if s.success() => {
-                println!("  [{id}] OK");
-                fetched += 1;
-            }
-            Ok(s) => {
-                eprintln!("  [{id}] FAILED (exit {})", s.code().unwrap_or(-1));
-                failed += 1;
-            }
-            Err(e) => {
-                eprintln!("  [{id}] FAILED ({e})");
-                failed += 1;
-            }
-        }
-    }
-
-    println!();
-    println!("  Refresh complete: {fetched} fetched, {skipped} skipped, {failed} failed");
-    if failed > 0 {
-        std::process::exit(1);
-    }
+    println!("litho refresh: re-fetching all datasets via litho fetch...");
+    crate::fetch::run(root, None, true);
 }
 
 pub fn cmd_status(root: &str) {
@@ -259,11 +186,7 @@ pub fn cmd_tier(root: &str) {
 
 pub fn cmd_deploy_report(root: &str, pattern: &str) {
     let root_path = std::path::Path::new(root);
-    let timestamp = std::process::Command::new("date")
-        .args(["-u", "+%Y-%m-%dT%H:%M:%SZ"])
-        .output()
-        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
-        .unwrap_or_else(|_| "unknown".to_string());
+    let timestamp = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
 
     // Self-test
     let expected_files = [
@@ -339,26 +262,29 @@ pub fn cmd_deploy_report(root: &str, pattern: &str) {
     println!("manifest_files = {hash_count}");
     println!();
 
-    // Run inline validation via module binaries directly
+    // Run inline validation via in-process module calls
+    let dispatch: &[(&str, fn(&str, &str, u8) -> litho_core::ModuleResult)] = &[
+        ("ltee-fitness", ltee_fitness::run_validation),
+        ("ltee-mutations", ltee_mutations::run_validation),
+        ("ltee-alleles", ltee_alleles::run_validation),
+        ("ltee-citrate", ltee_citrate::run_validation),
+        ("ltee-biobricks", ltee_biobricks::run_validation),
+        ("ltee-breseq", ltee_breseq::run_validation),
+        ("ltee-anderson", ltee_anderson::run_validation),
+    ];
     let mut modules_results = Vec::new();
     for (_name, binary, data_dir, expected) in crate::validate::LIVE_MODULES {
         let data_path = root_path.join(data_dir);
         let expected_path = root_path.join(expected);
-        let binary_path = crate::validate::resolve_binary(root_path, binary);
 
-        if let Some(bp) = binary_path.filter(|_| data_path.exists() && expected_path.exists()) {
-            let out = std::process::Command::new(&bp)
-                .arg("--data-dir").arg(&data_path)
-                .arg("--expected").arg(&expected_path)
-                .arg("--max-tier").arg("2")
-                .arg("--json")
-                .stderr(std::process::Stdio::null())
-                .output();
-
-            if let Ok(o) = out {
-                if let Ok(result) = serde_json::from_slice::<litho_core::ModuleResult>(&o.stdout) {
-                    modules_results.push(result);
-                }
+        if data_path.exists() && expected_path.exists() {
+            if let Some((_, func)) = dispatch.iter().find(|(n, _)| n == binary) {
+                let result = func(
+                    data_path.to_str().unwrap_or(data_dir),
+                    expected_path.to_str().unwrap_or(expected),
+                    2,
+                );
+                modules_results.push(result);
             }
         }
     }

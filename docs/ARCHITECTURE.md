@@ -45,21 +45,26 @@ litho-core          ← shared library
   ├── ltee-biobricks ← Module 5: BioBrick burden (neuralSpring + groundSpring)
   ├── ltee-breseq    ← Module 6: 264 genomes (wetSpring + groundSpring)
   ├── ltee-anderson  ← Module 7: Anderson-QS predictions (hotSpring + groundSpring)
-  └── ltee-cli       ← Unified CLI
-      ├── main.rs       thin wiring (arg parse + dispatch)
-      ├── validate.rs   litho validate subcommand
-      ├── visualize.rs  litho visualize (petalTongue IPC)
-      ├── verify.rs     litho verify (BLAKE3 integrity)
-      └── ops.rs        refresh / status / spore
+  └── ltee-cli       ← Unified CLI (13 subcommands)
+      ├── main.rs         thin wiring (arg parse + argv[0] dispatch)
+      ├── validate.rs     litho validate — in-process module execution
+      ├── verify.rs       litho verify — BLAKE3 integrity
+      ├── fetch.rs        litho fetch — data pipeline (ureq + blake3)
+      ├── assemble.rs     litho assemble — USB artifact assembly
+      ├── visualize.rs    litho visualize — petalTongue IPC
+      ├── chaos.rs        litho chaos-test — 10 fault injection tests
+      ├── deploy_test.rs  litho deploy-test — local deployment cycle
+      └── ops.rs          refresh / status / spore / self-test / deploy-report / tier
 ```
 
-Each module crate produces a standalone binary that:
-- Accepts `--data-dir` and `--expected` flags
-- Outputs structured JSON via `--json`
-- Returns exit code 0 (pass), 1 (fail), or 2 (skip/partial)
+Each module crate exposes `lib.rs::run_validation()` for in-process execution.
+The `ltee-cli` crate provides the unified `litho` binary that calls each
+module's `run_validation()` directly (no subprocesses) and produces a
+combined `ValidationReport`.
 
-The `ltee-cli` crate provides the unified `litho` binary that dispatches
-to all modules and produces a combined `ValidationReport`.
+The `litho` binary also supports argv[0] symlink detection: when invoked as
+`validate`, `verify`, `refresh`, or `spore`, it dispatches to the corresponding
+subcommand without requiring explicit `litho <subcommand>` syntax.
 
 ## Discovery Chain
 
@@ -82,7 +87,7 @@ recorded in `liveSpore.json` as `discovery_path` + optional `turn_relay`.
 Foundation threads (4, 7, 2, 1)
     ↓ (source URIs, accessions)
 data/sources/ltee_barrick.toml
-    ↓ (fetch scripts)
+    ↓ (litho fetch — pure Rust, ureq + blake3)
 artifact/data/{dataset}/
     ↓ (BLAKE3 hashed)
 artifact/data.toml (manifest)
@@ -100,14 +105,14 @@ sporePrint pipeline (primals.eco)
 
 ## Cross-Platform
 
-The `artifact/ltee` entry script detects `uname -m` and `uname -s`:
+The `litho` binary (via argv[0] symlink detection) supports multiple platforms:
 
 | Platform | Tier 1 | Tier 2 | Tier 3 |
 |----------|--------|--------|--------|
-| Linux x86_64 | Python | musl-static | NUCLEUS |
+| Linux x86_64 | Python | musl-static (5.1 MB) | NUCLEUS |
 | Linux aarch64 | Python | musl-static | NUCLEUS |
+| Windows x86_64 | Python | litho.exe (7.9 MB, mingw-w64) | — |
 | macOS | Python | genomeBin | plasmidBin |
-| Windows | Python | WSL2 | WSL2 |
 
 No containers in the artifact. Primals self-container via genomeBin if needed.
 

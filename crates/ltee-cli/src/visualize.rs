@@ -231,14 +231,23 @@ pub(crate) fn discover_petaltongue_socket() -> String {
 
 fn resolve_xdg_runtime() -> String {
     std::env::var("XDG_RUNTIME_DIR").unwrap_or_else(|_| {
-        let uid = std::process::Command::new("id")
-            .arg("-u")
-            .output()
-            .ok()
-            .and_then(|o| String::from_utf8(o.stdout).ok())
-            .map(|s| s.trim().to_string())
-            .unwrap_or_else(|| "1000".to_string());
-        format!("/run/user/{uid}")
+        #[cfg(unix)]
+        {
+            let uid = std::fs::read_to_string("/proc/self/status")
+                .ok()
+                .and_then(|s| {
+                    s.lines()
+                        .find(|l| l.starts_with("Uid:"))
+                        .and_then(|l| l.split_whitespace().nth(1))
+                        .map(String::from)
+                })
+                .unwrap_or_else(|| "1000".to_string());
+            format!("/run/user/{uid}")
+        }
+        #[cfg(not(unix))]
+        {
+            std::env::var("TEMP").unwrap_or_else(|_| std::env::temp_dir().to_string_lossy().to_string())
+        }
     })
 }
 
@@ -270,6 +279,7 @@ mod tests {
     }
 }
 
+#[cfg(unix)]
 fn send_uds(socket_path: &str, payload: &[u8]) -> Result<String, String> {
     use std::io::{Read, Write};
     use std::os::unix::net::UnixStream;
@@ -289,4 +299,9 @@ fn send_uds(socket_path: &str, payload: &[u8]) -> Result<String, String> {
     stream.read_to_string(&mut response).map_err(|e| format!("read: {e}"))?;
 
     Ok(response)
+}
+
+#[cfg(not(unix))]
+fn send_uds(_socket_path: &str, _payload: &[u8]) -> Result<String, String> {
+    Err("UDS transport not available on this platform".to_string())
 }

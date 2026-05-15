@@ -5,6 +5,10 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+[lib]
+name = "ltee_biobricks"
+path = "src/lib.rs"
+
 [[bin]]
 name = "ltee-biobricks"
 path = "src/main.rs"

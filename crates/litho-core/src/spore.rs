@@ -73,19 +73,25 @@ fn discover_hostname() -> String {
         }
     }
 
-    if let Ok(val) = std::fs::read_to_string("/etc/hostname") {
-        let trimmed = val.trim().to_string();
-        if !trimmed.is_empty() {
-            return trimmed;
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(val) = std::env::var("COMPUTERNAME") {
+            let trimmed = val.trim().to_string();
+            if !trimmed.is_empty() {
+                return trimmed;
+            }
         }
     }
 
-    if let Ok(output) = std::process::Command::new("hostname").output()
-        && output.status.success()
+    #[cfg(not(target_os = "windows"))]
     {
-        let name = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        if !name.is_empty() {
-            return name;
+        for path in ["/etc/hostname", "/proc/sys/kernel/hostname"] {
+            if let Ok(val) = std::fs::read_to_string(path) {
+                let trimmed = val.trim().to_string();
+                if !trimmed.is_empty() {
+                    return trimmed;
+                }
+            }
         }
     }
 

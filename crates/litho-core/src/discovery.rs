@@ -156,7 +156,7 @@ fn discover_from_socket(capability: &str) -> Option<PrimalEndpoint> {
         stream.set_write_timeout(Some(Duration::from_secs(2))).ok()?;
 
         let request = format!(
-            "{{\"jsonrpc\":\"2.0\",\"method\":\"capability.resolve\",\"params\":{{\"capability\":\"{capability}\"}},\"id\":1}}\n"
+            "{{\"jsonrpc\":\"2.0\",\"method\":\"ipc.resolve\",\"params\":{{\"capability\":\"{capability}\"}},\"id\":1}}\n"
         );
         stream.write_all(request.as_bytes()).ok()?;
         stream.flush().ok()?;
@@ -170,11 +170,12 @@ fn discover_from_socket(capability: &str) -> Option<PrimalEndpoint> {
 
     #[cfg(not(unix))]
     {
-        let _ = sock_path;
+        let _ = (sock_path, capability);
         None
     }
 }
 
+#[cfg_attr(not(unix), allow(dead_code))]
 fn parse_discovery_response(capability: &str, response: &str) -> Option<PrimalEndpoint> {
     let v: serde_json::Value = serde_json::from_str(response).ok()?;
     let result = v.get("result")?;

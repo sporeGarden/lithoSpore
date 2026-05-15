@@ -5,6 +5,10 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+[lib]
+name = "ltee_alleles"
+path = "src/lib.rs"
+
 [[bin]]
 name = "ltee-alleles"
 path = "src/main.rs"

@@ -5,6 +5,10 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+[lib]
+name = "ltee_mutations"
+path = "src/lib.rs"
+
 [[bin]]
 name = "ltee-mutations"
 path = "src/main.rs"

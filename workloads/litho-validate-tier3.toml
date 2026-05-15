@@ -9,7 +9,7 @@ version = "0.1.0"
 [execution]
 type = "composition"
 graph = "graphs/ltee_guidestone.toml"
-command = "$GARDENS_ROOT/lithoSpore/artifact/ltee validate --json --max-tier 3"
+command = "$GARDENS_ROOT/lithoSpore/artifact/bin/litho validate --json --max-tier 3"
 working_dir = "$GARDENS_ROOT/lithoSpore/artifact"
 
 [resources]

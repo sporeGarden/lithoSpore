@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "standard": "TARGETED_GUIDESTONE_STANDARD v1.0",
   "target": "Barrick Lab — Long-Term Evolution Experiment",
-  "entry": "spore.sh",
+  "entry": "spore",
   "validate": "validate",
   "verify": "verify",
   "refresh": "refresh",

@@ -20,7 +20,7 @@ stays underground, nourishing the seedling until it can photosynthesize.
 |-------|------|-----------------|
 | ColdSpore | Static artifact, `.biomeos-spore` marker, frozen data | No (needs host) |
 | LiveSpore | + `liveSpore.json` provenance + `./refresh` self-update | Partially |
-| **lithoSpore** (Hypogeal Cotyledon) | + Python runtime + 6 LTEE data bundles (+ 1 scaffold) + litho-core Rust ecoBins | **Yes** |
+| **lithoSpore** (Hypogeal Cotyledon) | + Python runtime + 7 LTEE data bundles + litho-core Rust ecoBins | **Yes** |
 
 See `ecoPrimals/infra/wateringHole/LITHOSPORE_USB_DEPLOYMENT.md` for the full deployment standard.
 
@@ -74,41 +74,38 @@ for CI/dev environments. Primals self-container via genomeBin if needed for Tier
 lithoSpore/
 ├── Cargo.toml                    # Workspace: 7 modules + core + CLI
 ├── crates/
-│   ├── litho-core/               # Shared library: validation, tolerance, provenance, discovery, stats, harness
-│   ├── ltee-fitness/             # Module 1: power-law fitness
+│   ├── litho-core/               # Shared library: validation, tolerance, provenance, discovery, stats, harness, viz
+│   ├── ltee-fitness/             # Module 1: power-law fitness (lib.rs + thin main.rs)
 │   ├── ltee-mutations/           # Module 2: mutation accumulation
 │   ├── ltee-alleles/             # Module 3: allele trajectories
 │   ├── ltee-citrate/             # Module 4: citrate innovation
 │   ├── ltee-biobricks/           # Module 5: BioBrick burden
 │   ├── ltee-breseq/              # Module 6: 264-genome comparison
 │   ├── ltee-anderson/            # Module 7: Anderson-QS predictions
-│   └── ltee-cli/                 # Unified CLI: validate/refresh/status/spore
+│   └── ltee-cli/                 # Unified CLI: 13 subcommands (validate, verify, fetch, assemble, ...)
 │
 ├── artifact/                     # The deployable artifact
-│   ├── ltee                      # Dev-mode entry point script
-│   ├── usb-root/                 # USB root templates (validate, refresh, spore.sh, .biomeos-spore)
+│   ├── usb-root/                 # USB root templates (.biomeos-spore, biomeOS/)
 │   │   └── biomeOS/              # biomeOS tower.toml + validation graph
 │   ├── scope.toml                # Scope graph (birth certificate)
 │   ├── data.toml                 # Data manifest (source URIs + BLAKE3)
 │   ├── tolerances.toml           # Named tolerances with justification
-│   ├── liveSpore.json            # Deployment tracking (append-only)
-│   ├── bin/{arch}/static/        # musl-static ecoBin binaries (dev layout)
-│   ├── data/                     # Datasets (fetched, hashed)
-│   ├── notebooks/html/           # Pre-rendered HTML notebooks
-│   └── validation/expected/      # Reference outputs
+│   └── data/                     # Datasets (fetched, hashed)
 │
 ├── data/
 │   ├── sources/                  # Data source manifests (foundation pattern)
 │   └── targets/                  # Validation targets (quantitative claims)
 │
+├── validation/expected/          # Reference outputs (7 modules)
 ├── notebooks/                    # Python Tier 1 baselines (7 modules)
-├── validation/                   # Validation harness (validate.sh) + scenarios
 ├── graphs/                       # Tier 3 deploy graphs
 ├── workloads/                    # projectNUCLEUS workload TOMLs
+├── config/                       # Capability registry
+├── baselines/                    # Barrick Lab tool baseline reproductions
 ├── lineage/                      # Foundation thread linkage
 ├── papers/                       # Paper registry (16 DOIs) + READING_ORDER.md
 ├── figures/                      # Publication-quality SVG figures (7 modules)
-├── scripts/                      # Build, fetch, deploy-test, chaos-test scripts
+├── scripts/                      # Container build script
 ├── specs/                        # Specifications
 └── docs/                         # Architecture + gap analysis
 ```
@@ -119,9 +116,6 @@ lithoSpore/
 # Build all modules (native)
 cargo build --release
 
-# Build artifact binaries (cross-compile musl-static)
-./scripts/build-artifact.sh
-
 # Run validation (7/7 modules at Tier 2)
 cargo run --bin litho -- validate --json
 ```
@@ -130,16 +124,16 @@ cargo run --bin litho -- validate --json
 
 ```bash
 # Assemble complete USB to ./usb-staging/ (fetches data, builds binaries, embeds Python)
-./scripts/assemble-usb.sh
+cargo run --bin litho -- assemble
 
 # Assemble to a mounted USB drive
-./scripts/assemble-usb.sh --target /media/lithoSpore
+cargo run --bin litho -- assemble --target /media/lithoSpore
 
 # Skip steps for iterative development
-./scripts/assemble-usb.sh --skip-python --skip-fetch --skip-build
+cargo run --bin litho -- assemble --skip-python --skip-fetch --skip-build
 
 # Preview what would be assembled
-./scripts/assemble-usb.sh --dry-run
+cargo run --bin litho -- assemble --dry-run
 ```
 
 The assembled USB is a self-sufficient hypogeal cotyledon: plug it into
@@ -184,11 +178,13 @@ spore tracking, capability-based discovery, shared stats + harness, viz), 108 un
   `DiscoveryPath` + `turn_relay` recorded in `liveSpore.json` for provenance.
 - `probe_operating_mode()` detects standalone/LAN/geo-delocalized before validation
 - Clippy pedantic clean — scientific casts allowed; all other pedantic lints enforced
-- `cmd_refresh` real `data.toml`-driven fetch pipeline (7 fetch scripts: all modules)
+- `litho fetch` pure Rust data pipeline (ureq HTTP + BLAKE3 hashing, replaces 7 bash scripts)
+- `litho assemble` pure Rust USB assembly (replaces assemble-usb.sh)
 - `litho deploy-report` structured TOML output for deployment validation
 - `litho self-test` artifact integrity check (23 checks)
-- Subprocess timeouts (120s) prevent hanging modules from blocking validation
+- In-process module execution — all 7 modules call lib::run_validation directly, no subprocesses
 - `litho verify` hardened: exits non-zero on MISSING, ERROR, and corrupt manifests
+- Cross-platform: musl-static Linux (5.1 MB), Windows x86_64 (7.9 MB), argv[0] symlink detection
 
 **petalTongue Integration**: `litho-core::viz` provides `DataBinding` adapters for all
 7 LTEE modules and 7 Barrick Lab baseline tools. `litho visualize` pushes live dashboards
@@ -196,10 +192,10 @@ to petalTongue via IPC. Interactive SceneGraph with click-to-select, pan/zoom, p
 controls, and data-driven animation on stream updates.
 
 **Deployment testing** (3 paths):
-- Local: `./scripts/deploy-test-local.sh` — filesystem isolation, ~1s
+- Local: `litho deploy-test` — filesystem isolation, ~1s
 - Container: `agentReagents/scripts/validate-lithoSpore-container.sh` — Docker, airgap-capable
 - VM: `agentReagents/scripts/validate-lithoSpore.sh` — libvirt, full airgap simulation
-- Chaos: `./scripts/chaos-test.sh` — fault injection (15 tests: drift, corruption, missing files)
+- Chaos: `litho chaos-test` — fault injection (10 tests: drift, corruption, missing files)
 
 See `docs/UPSTREAM_GAPS.md` for upstream integration status.
 

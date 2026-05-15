@@ -39,6 +39,25 @@ pub fn run(root: &str, json_output: bool) {
     }
 }
 
+/// Run verification and return success/failure without calling process::exit.
+pub fn run_check(root: &str) -> bool {
+    let root_path = std::path::Path::new(root);
+    let manifest_path = root_path.join("data_manifest.toml");
+
+    let mut results = VerifyResults::default();
+
+    if manifest_path.exists() {
+        verify_local_integrity(&manifest_path, root_path, &mut results, true);
+    }
+
+    let local_drift = results.local_checks.iter().filter(|c| c.status == "DRIFT").count();
+    let local_missing = results.local_checks.iter().filter(|c| c.status == "MISSING").count();
+    let local_error = results.local_checks.iter().filter(|c| c.status == "ERROR").count();
+    let manifest_empty = results.local_checks.is_empty() && manifest_path.exists();
+
+    local_drift == 0 && local_missing == 0 && local_error == 0 && !manifest_empty
+}
+
 fn verify_local_integrity(
     manifest_path: &std::path::Path,
     root_path: &std::path::Path,

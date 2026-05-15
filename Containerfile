@@ -55,10 +55,10 @@ COPY validation/expected/ validation/expected/
 COPY notebooks/ notebooks/
 
 COPY artifact/usb-root/.biomeos-spore .biomeos-spore
-COPY artifact/usb-root/validate validate
-COPY artifact/usb-root/refresh refresh
-COPY artifact/usb-root/verify verify
-RUN chmod +x validate refresh verify
+RUN ln -s bin/litho validate && \
+    ln -s bin/litho verify && \
+    ln -s bin/litho refresh && \
+    ln -s bin/litho spore
 
 RUN echo '[]' > liveSpore.json
 

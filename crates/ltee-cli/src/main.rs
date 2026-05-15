@@ -4,6 +4,10 @@
 //!
 //! Subcommands: validate, refresh, status, spore, verify, visualize, self-test, tier
 
+mod assemble;
+mod chaos;
+mod deploy_test;
+mod fetch;
 mod ops;
 mod validate;
 mod verify;
@@ -93,6 +97,54 @@ enum Commands {
         artifact_root: String,
     },
 
+    /// Assemble the USB artifact directory (replaces scripts/assemble-usb.sh)
+    Assemble {
+        #[arg(long, default_value = ".")]
+        artifact_root: String,
+
+        /// Target directory for the assembled artifact
+        #[arg(long, default_value = "usb-staging")]
+        target: String,
+
+        #[arg(long)]
+        skip_python: bool,
+
+        #[arg(long)]
+        skip_fetch: bool,
+
+        #[arg(long)]
+        skip_build: bool,
+
+        #[arg(long)]
+        dry_run: bool,
+    },
+
+    /// Fetch datasets from source URIs (replaces scripts/fetch_*.sh)
+    Fetch {
+        #[arg(long, default_value = ".")]
+        artifact_root: String,
+
+        /// Fetch a specific dataset by ID or module name
+        #[arg(long)]
+        dataset: Option<String>,
+
+        /// Fetch all datasets
+        #[arg(long)]
+        all: bool,
+    },
+
+    /// Run fault injection tests against the artifact (replaces scripts/chaos-test.sh)
+    ChaosTest {
+        #[arg(long, default_value = ".")]
+        artifact_root: String,
+    },
+
+    /// Simulate local deployment: assemble, verify, validate (replaces scripts/deploy-test-local.sh)
+    DeployTest {
+        #[arg(long, default_value = ".")]
+        artifact_root: String,
+    },
+
     /// Generate a TOML deployment report combining self-test, validate, verify
     DeployReport {
         #[arg(long, default_value = ".")]
@@ -105,6 +157,42 @@ enum Commands {
 }
 
 fn main() {
+    // argv[0] symlink detection: if invoked as validate/verify/refresh/spore,
+    // dispatch directly without requiring the subcommand name.
+    if let Some(invoked_as) = std::env::args().next().and_then(|a| {
+        std::path::Path::new(&a).file_name().map(|f| f.to_string_lossy().to_string())
+    }) {
+        let root = ".".to_string();
+        match invoked_as.as_str() {
+            "validate" => {
+                validate::run(&root, false, 2);
+                return;
+            }
+            "verify" => {
+                verify::run(&root, false);
+                return;
+            }
+            "refresh" => {
+                ops::cmd_refresh(&root);
+                return;
+            }
+            "spore" | "spore.sh" => {
+                if std::env::var("BIOMEOS_ORCHESTRATOR").is_ok() {
+                    println!("lithoSpore: biomeOS orchestration detected");
+                    println!("  Spore class: hypogeal-cotyledon");
+                    println!("  Graph: biomeOS/graphs/lithoSpore_validation.toml");
+                    return;
+                }
+                ops::cmd_spore(&root);
+                return;
+            }
+            "ltee" => {
+                // Legacy entry point — re-parse remaining args as subcommands
+            }
+            _ => {}
+        }
+    }
+
     let cli = Cli::parse();
 
     match cli.command {
@@ -116,6 +204,11 @@ fn main() {
         Commands::Visualize { artifact_root, format, output } => visualize::run(&artifact_root, &format, &output),
         Commands::SelfTest { artifact_root } => ops::cmd_self_test(&artifact_root),
         Commands::Tier { artifact_root } => ops::cmd_tier(&artifact_root),
+        Commands::Assemble { artifact_root, target, skip_python, skip_fetch, skip_build, dry_run } =>
+            assemble::run(&artifact_root, &target, skip_python, skip_fetch, skip_build, dry_run),
+        Commands::ChaosTest { artifact_root } => chaos::run(&artifact_root),
+        Commands::DeployTest { artifact_root } => deploy_test::run(&artifact_root),
+        Commands::Fetch { artifact_root, dataset, all } => fetch::run(&artifact_root, dataset.as_deref(), all),
         Commands::DeployReport { artifact_root, pattern } => ops::cmd_deploy_report(&artifact_root, &pattern),
     }
 }

@@ -8,7 +8,7 @@ version = "0.1.0"
 
 [execution]
 type = "native"
-command = "$GARDENS_ROOT/lithoSpore/artifact/ltee validate --json"
+command = "$GARDENS_ROOT/lithoSpore/artifact/bin/litho validate --json"
 working_dir = "$GARDENS_ROOT/lithoSpore/artifact"
 
 [resources]

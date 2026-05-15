@@ -1,0 +1,35 @@
+{
+  "source": "CryptKeeper — example GFP expression construct analysis",
+  "construct_name": "pGFP-test",
+  "construct_length_bp": 4200,
+
+  "burden_heatmap": {
+    "regions": ["AmpR_promoter", "AmpR", "ori", "lac_promoter", "GFP", "terminator"],
+    "forward_burden": [12.3, 245.8, 5.1, 890.2, 42.7, 0.0],
+    "reverse_burden": [0.0, 18.4, 3.2, 15.6, 312.5, 8.9]
+  },
+
+  "promoter_distribution": {
+    "values": [0.0, 0.0, 0.0, 0.5, 1.2, 3.2, 5.1, 8.9, 12.3, 15.6, 18.4, 42.7, 245.8, 312.5, 890.2],
+    "mean": 103.7,
+    "std": 237.1
+  },
+
+  "total_burden": {
+    "forward_total": 1196.1,
+    "reverse_total": 358.6,
+    "combined_total": 1554.7
+  },
+
+  "genome_track_features": [
+    {"type": "CDS", "start": 0, "end": 105, "strand": "-", "name": "AmpR_promoter"},
+    {"type": "CDS", "start": 105, "end": 966, "strand": "-", "name": "AmpR"},
+    {"type": "rep_origin", "start": 966, "end": 1554, "strand": "+", "name": "ori"},
+    {"type": "promoter", "start": 1554, "end": 1775, "strand": "+", "name": "lac_promoter"},
+    {"type": "CDS", "start": 1775, "end": 2492, "strand": "+", "name": "GFP"},
+    {"type": "terminator", "start": 2492, "end": 2650, "strand": "+", "name": "rrnB_T1"},
+    {"type": "cryptic_promoter", "start": 1700, "end": 1740, "strand": "+", "strength": 890.2},
+    {"type": "cryptic_promoter", "start": 200, "end": 240, "strand": "+", "strength": 245.8},
+    {"type": "cryptic_promoter", "start": 2100, "end": 2140, "strand": "-", "strength": 312.5}
+  ]
+}

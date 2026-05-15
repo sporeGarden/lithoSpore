@@ -1,0 +1,62 @@
+# pLannotate Visualization Specification
+#
+# Extracted from pLannotate web interface (Streamlit + Bokeh).
+# Source: http://plannotate.barricklab.org
+
+[tool]
+name    = "pLannotate"
+version = "1.2"
+source  = "http://plannotate.barricklab.org"
+
+# ─── Chart 1: Circular Plasmid Map ──────────────────────────────────
+
+[charts.circular_plasmid_map]
+pattern           = "PolarAnnotation"
+petaltongue_type  = "circular_map"
+description       = "Circular plasmid annotation diagram with concentric rings for feature categories"
+coordinate        = "Polar"
+geometry          = "Arc segments on concentric rings"
+feature_categories = [
+    "CDS",
+    "promoter",
+    "terminator",
+    "rep_origin",
+    "primer_bind",
+    "misc_feature",
+]
+typical_plasmid_size = { min_bp = 2000, max_bp = 15000 }
+notes             = "Each feature rendered as an arc segment; inner ring = forward strand, outer ring = reverse strand; color by category"
+
+[charts.circular_plasmid_map.style]
+ring_count      = 2
+ring_gap        = 8
+label_radial    = true
+center_label    = "plasmid name + size"
+color_by        = "feature_category"
+
+# ─── Chart 2: Feature Category Distribution ──────────────────────────
+
+[charts.feature_distribution]
+pattern           = "SpectrumDistribution"
+petaltongue_type  = "bar"
+description       = "Count of annotated features per category"
+x_axis            = "Feature Category"
+y_axis            = "Count"
+categories        = ["CDS", "promoter", "terminator", "rep_origin", "primer_bind", "misc_feature"]
+typical_ranges    = { y_min = 0, y_max = 20 }
+
+[charts.feature_distribution.style]
+bar_width   = 0.5
+orientation = "vertical"
+
+# ─── Chart 3: Annotation Coverage ───────────────────────────────────
+
+[charts.annotation_coverage]
+pattern           = "ThresholdGauge"
+petaltongue_type  = "gauge"
+description       = "Fraction of plasmid sequence covered by known annotations"
+value_range       = { min = 0.0, max = 1.0 }
+unit              = "fraction"
+normal_range      = [0.8, 1.0]
+warning_range     = [0.5, 0.8]
+notes             = "Well-characterized plasmids typically have >90% annotation coverage"

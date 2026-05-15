@@ -50,7 +50,21 @@ jobs:
             --max-tier 2
 
       - name: Litho CLI validate
-        run: ./target/release/litho validate || true
+        run: |
+          # Exit code 2 = SKIP (module 5 scaffold), which is expected.
+          # The CLI exits with the worst status: 0=all pass, 1=any fail, 2=any skip (no fail).
+          set +e
+          ./target/release/litho validate --json
+          EXIT_CODE=$?
+          set -e
+          if [ "$EXIT_CODE" -eq 1 ]; then
+            echo "::error::Validation produced FAIL results"
+            exit 1
+          fi
+          # Exit code 0 (all pass) or 2 (skip only, no fail) are acceptable
+
+      - name: Shellcheck fetch scripts
+        run: shellcheck scripts/fetch_*.sh
 
   python-baselines:
     runs-on: ubuntu-latest
@@ -68,3 +82,15 @@ jobs:
 
       - name: Module 2 — Python Tier 1
         run: python3 notebooks/module2_mutations/mutation_accumulation.py
+
+      - name: Module 3 — Python Tier 1
+        run: python3 notebooks/module3_alleles/allele_trajectories.py
+
+      - name: Module 4 — Python Tier 1
+        run: python3 notebooks/module4_citrate/citrate_innovation.py
+
+      - name: Module 6 — Python Tier 1
+        run: python3 notebooks/module6_breseq/breseq_comparison.py
+
+      - name: Module 7 — Python Tier 1
+        run: python3 notebooks/module7_anderson/anderson_predictions.py

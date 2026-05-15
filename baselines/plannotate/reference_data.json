@@ -1,0 +1,39 @@
+{
+  "source": "pLannotate — example pUC19 annotation",
+  "plasmid_name": "pUC19",
+  "plasmid_size_bp": 2686,
+  "topology": "circular",
+
+  "features": [
+    {"name": "lacZ-alpha", "category": "CDS", "start": 396, "end": 452, "strand": "+", "percent_identity": 100.0},
+    {"name": "AmpR", "category": "CDS", "start": 1629, "end": 2489, "strand": "-", "percent_identity": 100.0},
+    {"name": "AmpR_promoter", "category": "promoter", "start": 2490, "end": 2594, "strand": "-", "percent_identity": 100.0},
+    {"name": "rep_pMB1", "category": "rep_origin", "start": 817, "end": 1405, "strand": "+", "percent_identity": 99.8},
+    {"name": "lac_promoter", "category": "promoter", "start": 175, "end": 395, "strand": "+", "percent_identity": 100.0},
+    {"name": "M13_fwd", "category": "primer_bind", "start": 418, "end": 434, "strand": "+", "percent_identity": 100.0},
+    {"name": "M13_rev", "category": "primer_bind", "start": 148, "end": 168, "strand": "-", "percent_identity": 100.0},
+    {"name": "bla_terminator", "category": "terminator", "start": 2595, "end": 2686, "strand": "-", "percent_identity": 98.5}
+  ],
+
+  "feature_distribution": {
+    "CDS": 2,
+    "promoter": 2,
+    "terminator": 1,
+    "rep_origin": 1,
+    "primer_bind": 2,
+    "misc_feature": 0
+  },
+
+  "annotation_coverage": 0.92,
+
+  "circular_map_data": {
+    "arcs": [
+      {"start_angle": 53.05, "end_angle": 60.55, "ring": 0, "category": "CDS", "label": "lacZ-alpha"},
+      {"start_angle": 218.22, "end_angle": 333.62, "ring": 1, "category": "CDS", "label": "AmpR"},
+      {"start_angle": 333.62, "end_angle": 347.56, "ring": 1, "category": "promoter", "label": "AmpR_promoter"},
+      {"start_angle": 109.49, "end_angle": 188.29, "ring": 0, "category": "rep_origin", "label": "rep_pMB1"},
+      {"start_angle": 23.46, "end_angle": 52.93, "ring": 0, "category": "promoter", "label": "lac_promoter"},
+      {"start_angle": 347.56, "end_angle": 360.0, "ring": 1, "category": "terminator", "label": "bla_terminator"}
+    ]
+  }
+}

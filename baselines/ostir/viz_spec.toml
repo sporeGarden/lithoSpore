@@ -1,0 +1,52 @@
+# OSTIR Visualization Specification
+#
+# Extracted from OSTIR (Open Source Translation Initiation Rates).
+# Source: https://github.com/barricklab/ostir
+
+[tool]
+name    = "OSTIR"
+version = "1.0"
+source  = "https://github.com/barricklab/ostir"
+
+# ─── Chart 1: RBS Strength Predictions ──────────────────────────────
+
+[charts.rbs_strength]
+pattern           = "SpectrumDistribution"
+petaltongue_type  = "bar"
+description       = "Predicted translation initiation rates for a set of RBS sequences"
+x_axis            = "RBS Variant"
+y_axis            = "Translation Initiation Rate (au)"
+typical_ranges    = { y_min = 0, y_max = 100000 }
+notes             = "Rates span several orders of magnitude; log scale often appropriate"
+
+[charts.rbs_strength.style]
+bar_width   = 0.4
+orientation = "vertical"
+y_scale     = "log"
+
+# ─── Chart 2: Initiation Rate Distribution ──────────────────────────
+
+[charts.rate_distribution]
+pattern           = "SpectrumDistribution"
+petaltongue_type  = "distribution"
+description       = "Distribution of predicted initiation rates across a library of sequences"
+x_axis            = "log10(TIR)"
+y_axis            = "Frequency"
+typical_ranges    = { x_min = 0, x_max = 6 }
+notes             = "Typically log-normal; can identify outliers with unusually high/low expression"
+
+[charts.rate_distribution.style]
+bins        = 30
+orientation = "vertical"
+
+# ─── Chart 3: Start Codon Comparison ────────────────────────────────
+
+[charts.start_codon_comparison]
+pattern           = "SpectrumDistribution"
+petaltongue_type  = "bar"
+description       = "Translation initiation rates grouped by start codon type"
+x_axis            = "Start Codon"
+y_axis            = "Mean TIR (au)"
+categories        = ["AUG", "GUG", "UUG", "CUG"]
+typical_ranges    = { y_min = 0, y_max = 50000 }
+notes             = "AUG is the canonical start codon with highest mean rate; others are alternative starts"

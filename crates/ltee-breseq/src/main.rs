@@ -164,3 +164,32 @@ fn run_tier2_rust(cli: &Cli, start: Instant) -> ModuleResult {
         },
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn missing_expected_returns_skip() {
+        let cli = Cli {
+            data_dir: "/nonexistent".into(),
+            expected: "/nonexistent".into(),
+            max_tier: 2,
+            json: false,
+        };
+        let result = run_validation(&cli);
+        assert_eq!(result.status, ValidationStatus::Skip);
+    }
+
+    #[test]
+    fn low_tier_returns_skip() {
+        let cli = Cli {
+            data_dir: "/nonexistent".into(),
+            expected: "/nonexistent".into(),
+            max_tier: 0,
+            json: false,
+        };
+        let result = run_validation(&cli);
+        assert_eq!(result.status, ValidationStatus::Skip);
+    }
+}

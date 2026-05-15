@@ -12,6 +12,8 @@ import json
 import sys
 from pathlib import Path
 
+import numpy as np
+
 EXPECTED = Path(__file__).resolve().parent.parent.parent / "validation" / "expected" / "module7_anderson.json"
 
 
@@ -83,7 +85,73 @@ def main():
     print(f"  [{'PASS' if pop_ok else 'FAIL'}] 12 populations: {n_pop}")
 
     print(f"\nModule 7 (anderson): {'PASS' if passed == total else 'FAIL'} — {passed}/{total} checks")
+
+    figures_dir = Path(__file__).resolve().parent.parent.parent / "figures"
+    generate_figures(expected, figures_dir)
+
     return 0 if passed == total else 1
+
+
+def generate_figures(expected, output_dir):
+    """Generate Anderson fitness + diagnostics figure."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from litho_figures import can_generate, apply_style, save_figure, ensure_output_dir
+
+    if not can_generate():
+        print("  (matplotlib not available — skipping figures)")
+        return
+
+    import matplotlib.pyplot as plt
+    apply_style()
+    out = ensure_output_dir(output_dir)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+    fitness = expected.get("fitness_values", {})
+    gen_map = {"gen_500": 500, "gen_5000": 5000, "gen_10000": 10000, "gen_50000": 50000}
+    gens = []
+    vals = []
+    for key, gen in sorted(gen_map.items(), key=lambda x: x[1]):
+        if key in fitness:
+            gens.append(gen)
+            vals.append(fitness[key])
+
+    ax1.scatter(gens, vals, s=60, zorder=5, color="#4e79a7", label="Observed")
+
+    model = expected.get("model", {})
+    alpha = model.get("alpha", 6.2e-4)
+    beta = model.get("beta", 0.056)
+    if gens:
+        t_fine = np.linspace(100, max(gens), 500)
+        w_fit = (1 + 2 * alpha * t_fine) ** beta
+        ax1.plot(t_fine, w_fit, "-", color="#e15759",
+                 label=f"Power-law (α={alpha:.1e}, β={beta:.3f})")
+
+    ax1.set_xlabel("Generation")
+    ax1.set_ylabel("Relative Fitness")
+    ax1.set_title("Fitness Dynamics — Wiser/Anderson Model")
+    ax1.legend(fontsize=8)
+    ax1.grid(True, alpha=0.3)
+
+    diag = expected.get("anderson_diagnostics", {})
+    goe = diag.get("goe_reference", 0.531)
+    poisson = diag.get("poisson_reference", 0.3863)
+    midpoint = (goe + poisson) / 2.0
+
+    ax2.barh(["Poisson", "Midpoint ⟨r⟩", "GOE"],
+             [poisson, midpoint, goe],
+             color=["#76b7b2", "#f28e2b", "#e15759"])
+    ax2.set_xlabel("Level Spacing Ratio ⟨r⟩")
+    ax2.set_title("Anderson Disorder Diagnostics")
+    ax2.axvline(x=poisson, ls=":", color="#76b7b2", alpha=0.5)
+    ax2.axvline(x=goe, ls=":", color="#e15759", alpha=0.5)
+    for i, v in enumerate([poisson, midpoint, goe]):
+        ax2.text(v + 0.005, i, f"{v:.4f}", va="center", fontsize=9)
+    ax2.grid(True, alpha=0.3, axis="x")
+
+    fig.suptitle("Module 7: Anderson-QS Predictions — hotSpring B2", fontsize=13)
+    fig.tight_layout()
+    save_figure(fig, out, "m7_anderson_predictions")
 
 
 if __name__ == "__main__":

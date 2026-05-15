@@ -3,7 +3,7 @@
 ## Targeted GuideStone Pattern
 
 lithoSpore implements the Targeted GuideStone standard defined in
-`infra/wateringHole/TARGETED_GUIDESTONE_STANDARD.md`. A Targeted GuideStone
+`ecoPrimals/infra/wateringHole/TARGETED_GUIDESTONE_STANDARD.md`. A Targeted GuideStone
 is a **frozen composition snapshot** — binaries + data + validation, all
 self-contained — that buds from the ecosystem into a portable artifact.
 

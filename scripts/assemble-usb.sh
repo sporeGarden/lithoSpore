@@ -87,7 +87,10 @@ if $DRY_RUN; then
     echo "  │   └── expected/  (module expected-value JSONs)"
     echo "  ├── foundation/"
     echo "  │   └── targets/  (validation target TOMLs)"
+    echo "  ├── figures/"
+    echo "  │   └── m[1-7]_*.svg  (publication-quality figures)"
     echo "  └── notebooks/"
+    echo "      ├── litho_figures.py"
     echo "      ├── module*/*.py"
     echo "      └── *.html  (pre-rendered)"
     exit 0
@@ -100,7 +103,7 @@ log "Arch:    $ARCH"
 
 # --- 1. Create directory tree ---
 step "1. Creating directory tree"
-mkdir -p "$TARGET"/{bin,artifact/data,validation/expected,foundation/targets,notebooks,biomeOS/graphs}
+mkdir -p "$TARGET"/{bin,artifact/data,validation/expected,foundation/targets,notebooks,figures,biomeOS/graphs}
 if ! $SKIP_PYTHON; then
     mkdir -p "$TARGET/python"
 fi
@@ -111,8 +114,9 @@ step "2. Staging root files"
 cp "$ROOT/artifact/usb-root/.biomeos-spore" "$TARGET/"
 cp "$ROOT/artifact/usb-root/validate"       "$TARGET/"
 cp "$ROOT/artifact/usb-root/refresh"        "$TARGET/"
+cp "$ROOT/artifact/usb-root/verify"         "$TARGET/"
 cp "$ROOT/artifact/usb-root/spore.sh"       "$TARGET/"
-chmod +x "$TARGET/validate" "$TARGET/refresh" "$TARGET/spore.sh"
+chmod +x "$TARGET/validate" "$TARGET/refresh" "$TARGET/verify" "$TARGET/spore.sh"
 
 touch "$TARGET/.family.seed"
 
@@ -205,8 +209,8 @@ else
         rm -f "/tmp/python-standalone.tar.gz"
         log "Python runtime embedded"
 
-        log "Installing numpy + scipy into embedded Python..."
-        "$TARGET/python/bin/python3" -m pip install --quiet numpy scipy 2>/dev/null || \
+        log "Installing numpy + scipy + matplotlib into embedded Python..."
+        "$TARGET/python/bin/python3" -m pip install --quiet numpy scipy matplotlib 2>/dev/null || \
             log "  WARNING: pip install failed — Tier 1 may have limited functionality"
     else
         log "WARNING: python-build-standalone download failed"
@@ -239,7 +243,38 @@ fi
 if [ -d "$ROOT/artifact/notebooks/html" ]; then
     cp "$ROOT"/artifact/notebooks/html/*.html "$TARGET/notebooks/" 2>/dev/null || true
 fi
+
+if [ -f "$ROOT/notebooks/litho_figures.py" ]; then
+    cp "$ROOT/notebooks/litho_figures.py" "$TARGET/notebooks/"
+    log "  litho_figures.py helper staged"
+fi
 log "Notebooks staged"
+
+# --- 7b. Generate and stage figures ---
+step "7b. Generating scientific figures"
+mkdir -p "$TARGET/figures"
+if ! $SKIP_PYTHON; then
+    PYBIN="$TARGET/python/bin/python3"
+    [ -x "$PYBIN" ] || PYBIN="$(command -v python3 2>/dev/null || true)"
+
+    if [ -n "$PYBIN" ] && [ -x "$PYBIN" ]; then
+        for mod_py in "$ROOT"/notebooks/module*/*.py; do
+            [ -f "$mod_py" ] || continue
+            mod_name="$(basename "$(dirname "$mod_py")")"
+            log "  Generating figures for $mod_name..."
+            PYTHONPATH="$ROOT/notebooks" "$PYBIN" "$mod_py" >/dev/null 2>&1 || \
+                log "    WARNING: figure generation failed for $mod_name"
+        done
+    fi
+fi
+
+if [ -d "$ROOT/figures" ]; then
+    cp "$ROOT"/figures/*.svg "$TARGET/figures/" 2>/dev/null || true
+    FIG_COUNT=$(find "$TARGET/figures" -name "*.svg" 2>/dev/null | wc -l)
+    log "$FIG_COUNT SVG figures staged"
+else
+    log "  No figures generated — skipping"
+fi
 
 # --- 8. Stage expected values ---
 step "8. Staging expected values"
@@ -278,8 +313,8 @@ if command -v b3sum >/dev/null 2>&1; then
         echo ""
     } > "$MANIFEST"
 
-    if [ -d "$TARGET/artifact/data" ]; then
-        cd "$TARGET"
+    cd "$TARGET"
+    if [ -d "artifact/data" ]; then
         find artifact/data -type f | sort | while read -r f; do
             hash=$(b3sum --no-names "$f")
             echo "[[file]]"
@@ -287,8 +322,17 @@ if command -v b3sum >/dev/null 2>&1; then
             echo "blake3 = \"$hash\""
             echo ""
         done >> "$MANIFEST"
-        cd "$ROOT"
     fi
+    if [ -d "figures" ]; then
+        find figures -type f -name "*.svg" | sort | while read -r f; do
+            hash=$(b3sum --no-names "$f")
+            echo "[[file]]"
+            echo "path = \"$f\""
+            echo "blake3 = \"$hash\""
+            echo ""
+        done >> "$MANIFEST"
+    fi
+    cd "$ROOT"
 
     HASH_COUNT=$(grep -c '^\[\[file\]\]' "$MANIFEST" 2>/dev/null || echo 0)
     log "data_manifest.toml generated ($HASH_COUNT files hashed)"
@@ -304,6 +348,7 @@ USB_SIZE=$(du -sh "$TARGET" | cut -f1)
 BIN_COUNT=$(find "$TARGET/bin" -type f 2>/dev/null | wc -l)
 DATA_COUNT=$(find "$TARGET/artifact/data" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l)
 NB_COUNT=$(find "$TARGET/notebooks" -name "*.py" 2>/dev/null | wc -l)
+FIG_TOTAL=$(find "$TARGET/figures" -name "*.svg" 2>/dev/null | wc -l)
 HAS_PYTHON=$( [ -f "$TARGET/python/bin/python3" ] && echo "yes" || echo "no" )
 
 echo ""
@@ -312,6 +357,7 @@ echo "  Size:       $USB_SIZE"
 echo "  Binaries:   $BIN_COUNT ecoBin modules"
 echo "  Data:       $DATA_COUNT datasets"
 echo "  Notebooks:  $NB_COUNT Python baselines"
+echo "  Figures:    $FIG_TOTAL SVG scientific figures"
 echo "  Python:     $HAS_PYTHON (embedded)"
 echo "  Provenance: liveSpore.json ($(cat "$TARGET/liveSpore.json" | python3 -c 'import sys,json; print(len(json.load(sys.stdin)))' 2>/dev/null || echo 0) entries)"
 echo "  Marker:     .biomeos-spore ($(cat "$TARGET/.biomeos-spore" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d["class"])' 2>/dev/null || echo present))"

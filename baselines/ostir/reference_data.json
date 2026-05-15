@@ -1,0 +1,30 @@
+{
+  "source": "OSTIR — example E. coli RBS library predictions",
+  "organism": "Escherichia coli K-12",
+
+  "rbs_strength_predictions": [
+    {"name": "BBa_B0034", "sequence": "AAAGAGGAGAAA", "start_codon": "AUG", "tir": 48217.3},
+    {"name": "BBa_B0032", "sequence": "TCACACAGGAAAG", "start_codon": "AUG", "tir": 12543.8},
+    {"name": "BBa_B0030", "sequence": "ATTAAAGAGGAGAAA", "start_codon": "AUG", "tir": 72891.2},
+    {"name": "BBa_B0031", "sequence": "TCACACAGGAAACC", "start_codon": "AUG", "tir": 8234.1},
+    {"name": "BBa_B0033", "sequence": "TTTCACACAGGAAACCTAC", "start_codon": "AUG", "tir": 3891.7},
+    {"name": "BBa_B0035", "sequence": "ATTAAAGAGGAGAAATAC", "start_codon": "AUG", "tir": 65432.9},
+    {"name": "weak_rbs_1", "sequence": "TCCCTATCAGTGA", "start_codon": "AUG", "tir": 127.5},
+    {"name": "weak_rbs_2", "sequence": "AACGATCGTTGGC", "start_codon": "GUG", "tir": 42.8}
+  ],
+
+  "rate_distribution": {
+    "values": [42.8, 127.5, 3891.7, 8234.1, 12543.8, 48217.3, 65432.9, 72891.2],
+    "mean": 26422.7,
+    "std": 29318.4,
+    "log10_mean": 3.89,
+    "log10_std": 0.93
+  },
+
+  "start_codon_comparison": {
+    "AUG": {"mean_tir": 35040.6, "count": 7},
+    "GUG": {"mean_tir": 42.8, "count": 1},
+    "UUG": {"mean_tir": 0.0, "count": 0},
+    "CUG": {"mean_tir": 0.0, "count": 0}
+  }
+}

@@ -1,0 +1,63 @@
+# CryptKeeper Visualization Specification
+#
+# Extracted from CryptKeeper cryptic gene expression predictor.
+# Source: https://github.com/barricklab/cryptkeeper
+
+[tool]
+name    = "CryptKeeper"
+version = "1.0"
+source  = "https://github.com/barricklab/cryptkeeper"
+
+# ─── Chart 1: Expression Burden Heatmap ──────────────────────────────
+
+[charts.burden_heatmap]
+pattern           = "BurdenMap"
+petaltongue_type  = "heatmap"
+description       = "Per-gene predicted cryptic expression burden across the construct"
+x_axis            = "Gene / Sequence Region"
+y_axis            = "Promoter Direction"
+y_labels          = ["Forward", "Reverse"]
+value_label       = "Predicted Expression (au)"
+typical_ranges    = { value_min = 0, value_max = 1000 }
+notes             = "High values indicate regions with strong predicted cryptic promoters"
+
+[charts.burden_heatmap.style]
+color_map   = "YlOrRd"
+zero_color  = "#f7f7f7"
+
+# ─── Chart 2: Promoter Strength Distribution ────────────────────────
+
+[charts.promoter_distribution]
+pattern           = "SpectrumDistribution"
+petaltongue_type  = "distribution"
+description       = "Distribution of predicted cryptic promoter strengths"
+x_axis            = "Predicted Promoter Strength (au)"
+y_axis            = "Frequency"
+typical_ranges    = { x_min = 0, x_max = 500 }
+notes             = "Skewed right; most positions have zero or near-zero cryptic expression"
+
+[charts.promoter_distribution.style]
+bins        = 40
+orientation = "vertical"
+
+# ─── Chart 3: Total Burden Gauge ─────────────────────────────────────
+
+[charts.total_burden]
+pattern           = "ThresholdGauge"
+petaltongue_type  = "gauge"
+description       = "Total predicted cryptic expression burden for the construct"
+value_range       = { min = 0, max = 5000 }
+unit              = "au"
+normal_range      = [0, 500]
+warning_range     = [500, 2000]
+notes             = "Constructs with burden > 2000 au are predicted to cause significant fitness cost"
+
+# ─── Chart 4: Genome Track ──────────────────────────────────────────
+
+[charts.burden_track]
+pattern           = "LinearAnnotation"
+petaltongue_type  = "genome_track"
+description       = "Linear annotation track showing predicted cryptic promoters along the construct"
+x_axis            = "Position (bp)"
+tracks            = ["Forward Promoters", "Reverse Promoters", "CDS", "Terminator"]
+notes             = "Color intensity encodes predicted strength of each cryptic promoter"

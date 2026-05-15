@@ -71,4 +71,23 @@ justification = "unit test"
         assert_eq!(set.tolerance.len(), 1);
         assert_eq!(set.tolerance[0].name, "test_tol");
     }
+
+    #[test]
+    fn load_artifact_tolerances_toml() {
+        let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let toml_path = manifest_dir.join("../../artifact/tolerances.toml");
+        if toml_path.exists() {
+            let set = ToleranceSet::load(&toml_path)
+                .expect("artifact/tolerances.toml should parse");
+            assert!(set.tolerance.len() >= 10, "expected >=10 tolerances, got {}", set.tolerance.len());
+            assert!(set.get("power_law_exponent").is_some());
+            assert!(set.get("mutation_rate_per_gen").is_some());
+            assert!(set.get("anderson_disorder_parameter").is_some());
+            for t in &set.tolerance {
+                assert!(!t.name.is_empty(), "tolerance name should not be empty");
+                assert!(!t.justification.is_empty(), "justification should not be empty for {}", t.name);
+                assert!(t.value > 0.0, "tolerance value should be positive for {}", t.name);
+            }
+        }
+    }
 }

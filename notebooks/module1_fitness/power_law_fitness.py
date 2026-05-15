@@ -253,7 +253,49 @@ def main():
     }
     print(json.dumps(result_json, indent=2))
 
+    figures_dir = Path(__file__).resolve().parent.parent.parent / "figures"
+    generate_figures(gens, mean_fitness, results, figures_dir)
+
     return 0 if checks_passed == checks_total else 1
+
+
+def generate_figures(gens, mean_fitness, model_results, output_dir):
+    """Generate publication-quality fitness trajectory figure."""
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from litho_figures import can_generate, apply_style, save_figure, ensure_output_dir
+
+    if not can_generate():
+        print("  (matplotlib not available — skipping figures)")
+        return
+
+    import matplotlib.pyplot as plt
+    apply_style()
+    out = ensure_output_dir(output_dir)
+
+    fig, ax = plt.subplots(figsize=(9, 5.5))
+    ax.scatter(gens, mean_fitness, s=50, zorder=5, label="Observed (12-pop mean)")
+
+    t_fine = np.linspace(1, max(gens), 500)
+    if "power_law" in model_results:
+        p = model_results["power_law"]["params"]
+        ax.plot(t_fine, power_law(t_fine, *p), "-",
+                label=f"Power-law (R²={model_results['power_law']['r_squared']:.4f})")
+    if "hyperbolic" in model_results:
+        p = model_results["hyperbolic"]["params"]
+        ax.plot(t_fine, hyperbolic(t_fine, *p), "--",
+                label=f"Hyperbolic (R²={model_results['hyperbolic']['r_squared']:.4f})")
+    if "logarithmic" in model_results:
+        p = model_results["logarithmic"]["params"]
+        ax.plot(t_fine, logarithmic(t_fine, *p), ":",
+                label=f"Logarithmic (R²={model_results['logarithmic']['r_squared']:.4f})")
+
+    ax.set_xlabel("Generation")
+    ax.set_ylabel("Mean Relative Fitness")
+    ax.set_title("Module 1: LTEE Fitness Dynamics — Wiser et al. 2013")
+    ax.legend(loc="upper left", framealpha=0.9)
+    ax.grid(True, alpha=0.3)
+    save_figure(fig, out, "m1_fitness_trajectory")
 
 
 if __name__ == "__main__":

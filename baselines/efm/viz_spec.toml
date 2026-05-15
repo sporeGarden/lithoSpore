@@ -1,0 +1,74 @@
+# EFM Calculator Visualization Specification
+#
+# Extracted from the Evolutionary Failure Mode Calculator web interface.
+# Source: http://barricklab.org/django/efm
+
+[tool]
+name    = "EFM Calculator"
+version = "1.0.1"
+source  = "http://barricklab.org/django/efm"
+
+# ─── Chart 1: Hypermutable Site Counts ───────────────────────────────
+
+[charts.site_counts]
+pattern           = "SpectrumDistribution"
+petaltongue_type  = "bar"
+description       = "Count of predicted hypermutable sites by mutation mechanism"
+x_axis            = "Mutation Mechanism"
+y_axis            = "Count"
+categories        = [
+    "IS insertion",
+    "Small indel (repeat)",
+    "Small indel (non-repeat)",
+    "Base substitution",
+    "Recombination",
+]
+typical_ranges    = { y_min = 0, y_max = 200 }
+notes             = "IS element insertions are typically the dominant failure mode in E. coli"
+
+[charts.site_counts.style]
+bar_width   = 0.5
+orientation = "vertical"
+
+# ─── Chart 2: Mutation Rate Distribution ────────────────────────────
+
+[charts.rate_distribution]
+pattern           = "SpectrumDistribution"
+petaltongue_type  = "bar"
+description       = "Predicted mutation rate per site binned by rate class"
+x_axis            = "Rate Class (mutations/bp/generation)"
+y_axis            = "Number of Sites"
+categories        = ["<1e-10", "1e-10 to 1e-9", "1e-9 to 1e-8", "1e-8 to 1e-7", ">1e-7"]
+typical_ranges    = { y_min = 0, y_max = 500 }
+notes             = "Sites with rate > 1e-7 are considered highly hypermutable"
+
+[charts.rate_distribution.style]
+bar_width   = 0.6
+orientation = "vertical"
+
+# ─── Chart 3: Annotated Region Coverage ─────────────────────────────
+
+[charts.region_coverage]
+pattern           = "ThresholdGauge"
+petaltongue_type  = "gauge"
+description       = "Fraction of annotated regions containing at least one hypermutable site"
+value_range       = { min = 0.0, max = 1.0 }
+unit              = "fraction"
+normal_range      = [0.0, 0.3]
+warning_range     = [0.3, 0.7]
+notes             = "Lower is better — indicates fewer regions vulnerable to evolutionary failure"
+
+# ─── Chart 4: Genome Track ──────────────────────────────────────────
+
+[charts.genome_track]
+pattern           = "LinearAnnotation"
+petaltongue_type  = "genome_track"
+description       = "SCRIBL-style linear genome view with hypermutable sites annotated"
+x_axis            = "Position (bp)"
+tracks            = ["CDS", "IS Target Sites", "Repeat Indels", "Base Substitutions"]
+notes             = "SCRIBL JavaScript library renders the interactive genome diagram in the web interface"
+
+[charts.genome_track.style]
+track_height    = 15
+track_spacing   = 3
+color_by_rate   = true

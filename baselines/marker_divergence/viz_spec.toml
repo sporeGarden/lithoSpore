@@ -1,0 +1,63 @@
+# Marker Divergence Visualization Specification
+#
+# Extracted from Marker Divergence analysis pipeline.
+# Source: https://barricklab.org/twiki/bin/view/Lab/ToolsMarkerDivergence
+
+[tool]
+name    = "Marker Divergence"
+version = "1.0"
+source  = "https://barricklab.org/twiki/bin/view/Lab/ToolsMarkerDivergence"
+
+# ─── Chart 1: Marker Ratio Divergence Curves ────────────────────────
+
+[charts.divergence_curves]
+pattern           = "DivergenceCurve"
+petaltongue_type  = "timeseries"
+description       = "Marker ratio over transfers, diverging from 0.5 as beneficial mutations sweep"
+x_axis            = "Transfer"
+y_axis            = "Marker Ratio (log)"
+x_unit            = "transfers"
+y_unit            = "log(ratio)"
+typical_ranges    = { x_min = 0, x_max = 500, y_min = -3, y_max = 3 }
+expected_shape    = "Sigmoidal divergence from 0.5; parameterized by (alpha, tau)"
+notes             = "Multiple replicates plotted together; each fit independently to extract alpha/tau"
+
+[charts.divergence_curves.style]
+line_width      = 1.5
+point_size      = 3
+multi_series    = true
+legend_position = "top-right"
+
+# ─── Chart 2: Alpha-Tau Parameter Scatter ────────────────────────────
+
+[charts.parameter_scatter]
+pattern           = "SignificanceScatter"
+petaltongue_type  = "scatter"
+description       = "Fitted (alpha, tau) parameters from experimental and simulated curves"
+x_axis            = "alpha"
+y_axis            = "tau"
+typical_ranges    = { x_min = 0, x_max = 5, y_min = 0, y_max = 300 }
+notes             = "Experimental values compared against grid of simulated (mu, s) combinations"
+
+[charts.parameter_scatter.style]
+point_size      = 5
+color_by        = "source"
+legend_position = "top-right"
+
+# ─── Chart 3: Confidence Contour ────────────────────────────────────
+
+[charts.confidence_contour]
+pattern           = "ParameterLandscape"
+petaltongue_type  = "heatmap"
+description       = ">95% confidence contour in (mu, s) parameter space"
+x_axis            = "log10(mu) — beneficial mutation rate"
+y_axis            = "s — selection coefficient"
+x_unit            = "log10(mutations/bp/generation)"
+y_unit            = "selection coefficient"
+typical_ranges    = { x_min = -9, x_max = -5, y_min = 0.01, y_max = 0.3 }
+notes             = "Black square = maximum likelihood; blue region = 95% confidence contour; uses 2D KS test"
+
+[charts.confidence_contour.style]
+color_map     = "binary"
+contour_color = "#0000ff"
+ml_marker     = "square"

@@ -1,6 +1,6 @@
 # CATHEDRAL Upstream Gap Registry
 
-**Last Updated**: May 14, 2026 (6/7 modules PASS Tier 2, VM-validated — Pillar 4 GATE EXCEEDED)
+**Last Updated**: May 15, 2026 (6/7 modules PASS Tier 2, VM-validated — Pillar 4 GATE EXCEEDED)
 **Phase**: Interstadial → Stadial
 **Scope**: lithoSpore + Foundation (L5 knowledge layer)
 **Geo-delocalization**: Absorbed — discovery chain extended to TURN, liveSpore.json provenance updated
@@ -88,6 +88,17 @@ with upstream data (B1–B4, B7).
 | USB-EXPECTED | `assemble-usb.sh` did not stage `validation/expected/` | Added step 8: copies expected-value JSONs to USB |
 | USB-DATA | Modules 3+4 data not fetched | Ran `fetch_good_2017.sh` + `fetch_blount_2012.sh` with `$ECOPRIMALS_ROOT` — 6/6 data bundles staged |
 | USB-VM | No VM validation of USB artifact | Built VM via agentReagents `lithoSpore-validation.yaml`, SSH'd USB, 6/7 PASS (51/51 checks) |
+
+### Discovery Capability Gaps (documented, upstream-blocked)
+
+| Gap | Status | Impact | Details |
+|-----|--------|--------|---------|
+| UDS RPC transport | Stub (returns `None`) | LAN mode Tier 2 IPC uses TCP only | `rpc_call()` with `Transport::Uds` degrades to skip. Needs `UnixStream` RPC client. |
+| Songbird TURN client | Stub (env-var only) | Geo-delocalized mode uses env var address only | `discover_from_turn()` resolves endpoint from `$SONGBIRD_TURN_SERVER` + `$SONGBIRD_TURN_DISCOVERY_PORT` but actual TURN relay requires upstream Songbird client library. |
+| TURN-relayed RPC | Not implemented | No actual relay IPC | RPC calls through TURN endpoints use standard TCP, which only works if relay forwards raw TCP. |
+
+These are documented in `litho_core::discovery::rpc_call()` doc comments. All callers degrade
+gracefully to `None` / `Skip` — no panics, no silent failures.
 
 Upstream-blocked (not actionable by CATHEDRAL):
 - Songbird TURN client library (needed for actual TURN-relayed IPC)
@@ -187,11 +198,44 @@ Remaining 4 papers QUEUED.
 
 ---
 
+## Bash-to-Rust Migration Path
+
+Long-term, the ecosystem aims to eliminate shell scripts in favor of pure Rust
+tooling. This is the priority order for migration:
+
+| Priority | Script | Repo | LOC | Complexity | Blocks |
+|----------|--------|------|-----|------------|--------|
+| 1 | `assemble-usb.sh` | lithoSpore | ~245 | Medium (file ops + BLAKE3) | USB deployment reliability |
+| 2 | `build-artifact.sh` | lithoSpore | ~80 | Low (cargo + cp) | CI reproducibility |
+| 3 | `fetch_*.sh` (5 scripts) | lithoSpore | ~400 total | Medium (HTTP + BLAKE3 + sibling deps) | Data pipeline |
+| 4 | `fetch_sources.sh` | Foundation | ~460 | High (NCBI/UniProt APIs) | Data integrity |
+| 5 | `foundation_validate.sh` | Foundation | ~300 | High (RPC orchestration) | E2E validation |
+| 6 | `backfill_hashes.sh` | Foundation | ~100 | Low (find + b3sum) | Hash backfill |
+| 7 | `scripts/*.sh` (6) | benchScale | ~200 | Medium (lab orchestration) | Dev workflow |
+| 8 | `scripts/*.sh` (33+) | agentReagents | ~1000+ | High (image provisioning) | Phase B evolution |
+
+The Rust equivalents would use:
+- `clap` for CLI, `reqwest` for HTTP, `blake3` for hashing
+- `std::fs` + `walkdir` for file operations
+- `tokio::process::Command` for subprocess dispatch (where external tools needed)
+- `toml` for manifest read/write
+
+Migration should happen incrementally — one script at a time, with the shell
+version kept as fallback until the Rust version passes the same tests.
+
 ## Changelog
 
+- **2026-05-15**: Root doc cleanup, broken wateringHole path fixes, handback directory
+  created. Test count corrected (33→66), container positioning clarified.
+- **2026-05-15**: petalTongue Interactive SceneGraph Evolution — 6 phases
+  (semantic data_id, click-to-select, ViewCamera, IPC bridge, data-driven
+  animation, parameter controls). Full handback written.
+- **2026-05-14**: petalTongue scientific visualization — litho-core::viz module
+  with DataBinding adapters for all 7 LTEE modules and 7 Barrick Lab baseline
+  tools. Render-path convergence validation pipeline established.
 - **2026-05-13**: Deep-debt audit sweep — extracted `litho_core::{harness, stats, discovery}`,
   ecoBin BLAKE3 compliance, SPDX headers, Foundation CI fix, schema alignment.
-  CATHEDRAL handoff written to `wateringHole/handoffs/`.
+  CATHEDRAL handoff written to `validation/handbacks/`.
 - **2026-05-13**: Modules 3+4 promoted from scaffold: groundSpring B3 (Good 2017 clonal
   interference) and B4 (Blount 2008/2012 citrate innovation) ingested. 6/7 modules wired.
 - **2026-05-13**: Gap summary updated: 4/7 modules PASS Tier 2 (28/28 checks).

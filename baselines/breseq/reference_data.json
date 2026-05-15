@@ -1,0 +1,63 @@
+{
+  "source": "breseq v0.35.7 — LTEE Ara+1 50K clone A (REL11392)",
+  "url": "https://barricklab.org/twiki/pub/Lab/ToolsBacterialGenomeResequencing/IntroWorkshop/REL11392_Ara+1_50K_clone_A/",
+  "reference_genome": "REL606",
+  "genome_length": 4629812,
+
+  "evidence_type_distribution": {
+    "RA": 56,
+    "JC": 30,
+    "MC": 8
+  },
+
+  "mutation_spectrum": {
+    "GC_to_AT": 0.68,
+    "AT_to_GC": 0.08,
+    "GC_to_TA": 0.10,
+    "AT_to_TA": 0.05,
+    "GC_to_CG": 0.04,
+    "AT_to_CG": 0.05
+  },
+
+  "mutation_accumulation_curve": {
+    "generations": [0, 2000, 5000, 10000, 20000, 30000, 40000, 50000],
+    "expected_mutations_nonmutator": [0.0, 1.78, 4.45, 8.9, 17.8, 26.7, 35.6, 44.5]
+  },
+
+  "genome_track_features": [
+    {"type": "SNP", "position": 2450, "gene": "thrA", "annotation": "L705L (CTG→CTT)"},
+    {"type": "SNP", "position": 45662, "gene": "caiT", "annotation": "V155I (GTC→ATC)"},
+    {"type": "SNP", "position": 70867, "gene": "araA", "annotation": "D92G (GAC→GGC)"},
+    {"type": "IS_insertion", "position": 183262, "gene": "dgt", "element": "IS150", "dup_bp": 3},
+    {"type": "SNP", "position": 226159, "gene": "gmhB", "annotation": "P163T (CCT→ACT)"},
+    {"type": "IS_insertion", "position": 336055, "gene": "lacZ", "element": "IS150", "dup_bp": 3},
+    {"type": "large_deletion", "start": 547700, "end": 555825, "size_bp": 8125, "mechanism": "IS1-mediated", "genes_affected": 9},
+    {"type": "SNP", "position": 735660, "gene": "gltA/sdhC", "annotation": "intergenic"},
+    {"type": "SNP", "position": 875094, "gene": "deoR", "annotation": "H65D (CAT→GAT)"},
+    {"type": "IS_insertion", "position": 929574, "gene": "hcp", "element": "IS150", "dup_bp": 3},
+    {"type": "large_deletion", "start": 1609175, "end": 1616729, "size_bp": 7554, "mechanism": "IS3-mediated", "genes_affected": 14},
+    {"type": "SNP", "position": 1733865, "gene": "pykF", "annotation": "A301S (GCC→TCC)"},
+    {"type": "large_deletion", "start": 1974040, "end": 1982313, "size_bp": 8273, "mechanism": "IS1-mediated", "genes_affected": 10},
+    {"type": "large_deletion", "start": 2034358, "end": 2053849, "size_bp": 19491, "genes_affected": 20},
+    {"type": "IS_insertion", "position": 2196656, "gene": "cirA", "element": "IS150", "dup_bp": 3},
+    {"type": "IS_insertion", "position": 2522900, "gene": "hyfB", "element": "IS150", "dup_bp": 3},
+    {"type": "large_deletion", "start": 2999597, "end": 3048488, "size_bp": 48892, "genes_affected": 42},
+    {"type": "SNP", "position": 3312775, "gene": "argR", "annotation": "R59H (CGC→CAC)"},
+    {"type": "SNP", "position": 3328272, "gene": "mreB", "annotation": "V236A (GTT→GCT)"},
+    {"type": "large_deletion", "start": 3482398, "end": 3482422, "size_bp": 25, "gene": "malT"},
+    {"type": "large_deletion", "start": 3894997, "end": 3901134, "size_bp": 6138, "mechanism": "IS150-mediated", "genes_affected": 7},
+    {"type": "large_deletion", "start": 4275717, "end": 4333227, "size_bp": 57510, "genes_affected": 52},
+    {"type": "SNP", "position": 4201980, "gene": "iclR", "annotation": "P194S (CCT→TCT)"},
+    {"type": "SNP", "position": 4628460, "gene": "arcA", "annotation": "T3P (ACC→CCC)"}
+  ],
+
+  "summary_statistics": {
+    "total_predicted_mutations": 94,
+    "snps": 56,
+    "insertions": 3,
+    "deletions": 4,
+    "is_insertions": 24,
+    "large_deletions": 7,
+    "total_genes_affected": 200
+  }
+}

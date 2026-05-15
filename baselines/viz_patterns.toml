@@ -1,0 +1,245 @@
+# Visualization Pattern Taxonomy — Primal Substrate
+#
+# Abstract mathematical patterns extracted from all 7 Barrick Lab tools.
+# Each pattern maps to petalTongue primitives and can be applied as a
+# "math adapter" to systems beyond microbial evolution.
+#
+# Fields:
+#   petaltongue_channel  — existing DataBinding channel type, or "gap"
+#   geometry             — petalTongue GeometryType used in GrammarExpr
+#   coordinate           — CoordinateSystem (Cartesian, Polar, etc.)
+#   tools                — which Barrick Lab tools use this pattern
+#   math_description     — the abstract mathematical structure
+
+[patterns.accumulation_curve]
+name                = "AccumulationCurve"
+petaltongue_channel = "timeseries"
+geometry            = "Line"
+coordinate          = "Cartesian"
+tools               = ["breseq", "marker_divergence"]
+math_description    = "Monotonically increasing function f(t) with extractable rate df/dt; typically linear or sublinear in biological accumulation processes"
+examples            = [
+    "breseq: non-mutator mutation accumulation over 50k generations",
+    "marker_divergence: marker ratio divergence over serial transfers",
+]
+
+[patterns.spectrum_distribution]
+name                = "SpectrumDistribution"
+petaltongue_channel = "bar"
+geometry            = "Bar"
+coordinate          = "Cartesian"
+tools               = ["breseq", "ostir", "efm", "rna_mi"]
+math_description    = "Categorical distribution P(category) where categories partition a finite event space; often normalized to sum to 1"
+examples            = [
+    "breseq: 6-class point mutation spectrum (GC→AT, AT→GC, etc.)",
+    "ostir: RBS strength distribution across tested sequences",
+    "efm: mutation type distribution at hypermutable sites",
+    "rna_mi: per-column Shannon entropy",
+]
+
+[patterns.linear_annotation]
+name                = "LinearAnnotation"
+petaltongue_channel = "genome_track"
+geometry            = "Tile"
+coordinate          = "Cartesian"
+tools               = ["breseq", "efm", "cryptkeeper"]
+math_description    = "Segmented interval set S = {(start_i, end_i, label_i, value_i)} on a 1D coordinate axis, with optional stacked tracks (categories)"
+implementation      = "Dedicated draw_genome_track() in chart_renderer/domain_charts: stacked horizontal bars per track category, genomic bp/kbp/Mbp axis ticks, arrow-shaped stranded features, overlap collision. DataBinding::GenomeTrack with sequence_length, tracks, and segment JSON."
+examples            = [
+    "breseq: genome overview with gene annotations and IS element positions",
+    "efm: hypermutable site annotation via SCRIBL genome view",
+    "cryptkeeper: per-gene expression burden along the chromosome",
+]
+
+[patterns.polar_annotation]
+name                = "PolarAnnotation"
+petaltongue_channel = "circular_map"
+geometry            = "Arc"
+coordinate          = "Polar"
+tools               = ["plannotate", "breseq"]
+math_description    = "Segmented arc set on a polar coordinate ring; identical math to LinearAnnotation but mapped to angular coordinates theta = 2*pi*position/genome_length"
+implementation      = "Polar multi-arc geometry compiler: when coordinate == Polar, each data row becomes an arc polygon via inner/outer radius sampling (matching pLannotate calc_glyphs). Concentric rings: r = base_radius + ring_index * ring_spacing. Dedicated draw_circular_map() in chart_renderer with backbone circle, category-colored arcs, center label."
+examples            = [
+    "plannotate: circular plasmid map with color-coded feature annotations",
+    "breseq: optional circular genome overview diagram",
+]
+
+[patterns.evidence_table]
+name                = "EvidenceTable"
+petaltongue_channel = "heatmap"
+geometry            = "Tile"
+coordinate          = "Cartesian"
+tools               = ["breseq"]
+math_description    = "Structured grid M[row, col] with typed cells; each row is an observation, columns are categorical attributes, cells may carry evidence links"
+examples            = [
+    "breseq: predicted mutation table with evidence type (RA/JC/MC), position, annotation, gene",
+]
+
+[patterns.parameter_landscape]
+name                = "ParameterLandscape"
+petaltongue_channel = "heatmap"
+geometry            = "Tile"
+coordinate          = "Cartesian"
+tools               = ["marker_divergence"]
+math_description    = "2D scalar field f(x, y) over a parameter space, with iso-contours at significance thresholds; x and y are model parameters (e.g., mutation rate mu, selection coefficient s)"
+examples            = [
+    "marker_divergence: alpha/tau confidence contour in (mu, s) space",
+]
+
+[patterns.mutual_information_matrix]
+name                = "MutualInformationMatrix"
+petaltongue_channel = "heatmap"
+geometry            = "Tile"
+coordinate          = "Cartesian"
+tools               = ["rna_mi"]
+math_description    = "Symmetric matrix MI[i,j] = sum_xy P(x,y) log(P(x,y) / P(x)P(y)) corrected for phylogenetic bias; rows and columns are alignment positions"
+examples            = [
+    "rna_mi: phylogeny-corrected MI significance between RNA alignment columns",
+]
+
+[patterns.burden_map]
+name                = "BurdenMap"
+petaltongue_channel = "heatmap"
+geometry            = "Tile"
+coordinate          = "Cartesian"
+tools               = ["cryptkeeper", "efm"]
+math_description    = "1D -> scalar mapping from genomic position to quantitative burden/rate value; rendered as a colored track or heatmap row"
+examples            = [
+    "cryptkeeper: per-position cryptic expression burden across the E. coli genome",
+    "efm: per-position hypermutation rate prediction",
+]
+
+[patterns.threshold_gauge]
+name                = "ThresholdGauge"
+petaltongue_channel = "gauge"
+geometry            = "Arc"
+coordinate          = "Polar"
+tools               = ["efm", "ostir", "cryptkeeper"]
+math_description    = "Scalar value v in [min, max] with warning/normal/critical threshold ranges; visual encoding as arc or linear gauge"
+examples            = [
+    "efm: fraction of annotated regions containing hypermutable sites",
+    "ostir: translation initiation rate relative to reference RBS",
+    "cryptkeeper: total predicted cryptic expression burden for a construct",
+]
+
+[patterns.divergence_curve]
+name                = "DivergenceCurve"
+petaltongue_channel = "timeseries"
+geometry            = "Line"
+coordinate          = "Cartesian"
+tools               = ["marker_divergence"]
+math_description    = "Time-varying ratio r(t) = f_A(t) / (f_A(t) + f_B(t)) diverging from 0.5, parameterized by empirical (alpha, tau) with underlying (mu, s)"
+examples            = [
+    "marker_divergence: marker ratio divergence curves fit with alpha/tau model",
+]
+
+[patterns.significance_scatter]
+name                = "SignificanceScatter"
+petaltongue_channel = "scatter"
+geometry            = "Point"
+coordinate          = "Cartesian"
+tools               = ["rna_mi", "marker_divergence"]
+math_description    = "Set of (x, y, significance) triples where significance encodes a statistical test result; typically volcano-plot or parameter-fit style"
+implementation      = "Standard scatter renderer with point_labels for hover tooltips. ML point rendered as distinct marker; confidence contour vertices included as additional scatter points."
+examples            = [
+    "rna_mi: column pair MI significance scatter",
+    "marker_divergence: (alpha, tau) parameter fits from simulated curves",
+]
+
+# ── New Patterns (Phase 6 — Scientific Elevation) ──────────────────────
+
+[patterns.step_coverage]
+name                = "StepCoverage"
+petaltongue_channel = "timeseries"
+geometry            = "Line"
+coordinate          = "Cartesian"
+tools               = ["breseq"]
+math_description    = "Step-function coverage plot: coverage(position) with unique/redundant/strand-split traces. Step interpolation (type='s') rather than linear. Negative binomial fit for deletion threshold overlay."
+implementation      = "Data-driven axes (Axes::from_data) auto-scale to genomic coordinate ranges (0..4.6M bp). TimeSeries DataBinding with step-interpolated x_values/y_values. Multiple series overlaid via separate bindings with shared x-axis."
+examples            = [
+    "breseq: unique vs redundant strand coverage step-line in plot_coverage.r style (blue/cyan/red/orange palette)",
+]
+
+[patterns.energy_waterfall]
+name                = "EnergyWaterfall"
+petaltongue_channel = "bar"
+geometry            = "Bar"
+coordinate          = "Cartesian"
+tools               = ["ostir"]
+math_description    = "Decomposed additive/subtractive bar chart: dG_total = sum(dG_i) where each term contributes positively or negatively to the total free energy. Waterfall structure shows cumulative contribution."
+implementation      = "Standard bar chart via DataBinding::Bar with categories = dG term names and values = kcal/mol contributions. dG decomposition extracted per RBS when dg_decomposition data is present in reference_data."
+examples            = [
+    "ostir: 6-term dG decomposition (mRNA-rRNA, spacing, start_codon, mRNA_unfold, standby, total)",
+]
+
+[patterns.burden_track]
+name                = "BurdenTrack"
+petaltongue_channel = "genome_track"
+geometry            = "Tile"
+coordinate          = "Cartesian"
+tools               = ["cryptkeeper"]
+math_description    = "Multi-track genome view where ORF rectangles encode two independent variables: height = TIR (translation initiation rate), fill color = burden (orf_length * expression_score). Forward/reverse strands on separate tracks."
+implementation      = "DataBinding::GenomeTrack with tracks = ['ORF/Feature', 'Cryptic Promoter']. Segments carry strand direction for arrow-shaped rendering. Dedicated draw_genome_track() renders per-track stacked horizontal bars with collision avoidance."
+examples            = [
+    "cryptkeeper: multi-track Bokeh figure with ORFs (height=TIR, color=viridis burden), promoter arrows, terminator marks",
+]
+
+[patterns.rate_colored_annotation]
+name                = "RateColoredAnnotation"
+petaltongue_channel = "genome_track"
+geometry            = "Tile"
+coordinate          = "Cartesian"
+tools               = ["efm"]
+math_description    = "Linear genome track with continuous rate-to-color mapping: color(feature) = palette(-log10(rate)/6). Crimson (high rate) to yellow (low rate) interpolation for mutation rate visualization."
+implementation      = "DataBinding::GenomeTrack with tracks = ['Feature', 'IS Target', 'Repeat Indel', 'Base Sub Hotspot']. Rate values stored as segment metadata. draw_genome_track() renders per-track with category palette colors."
+examples            = [
+    "efm: SCRIBL canvas layout with RMD/SSR glyphs colored by -log10(rate), crimson-yellow palette",
+]
+
+[patterns.confidence_contour]
+name                = "ConfidenceContour"
+petaltongue_channel = "scatter"
+geometry            = "Point"
+coordinate          = "Cartesian"
+tools               = ["marker_divergence"]
+math_description    = "2D parameter landscape with maximum likelihood point + significance boundary polygon. ML point = (log10(mu), s), contour = 95% confidence envelope from 2D Kolmogorov-Smirnov test (Fasano-Franceschini 1987)."
+implementation      = "DataBinding::Scatter with ML point as first element and contour vertices as additional points. point_labels distinguishes 'Maximum Likelihood' from '95% contour N'. Scatter renderer with hover tooltips."
+examples            = [
+    "marker_divergence: (mu, s) contour plot — black square = ML, blue polygon = 95% confidence",
+]
+
+[patterns.covariance_matrix]
+name                = "CovarianceMatrix"
+petaltongue_channel = "heatmap"
+geometry            = "Tile"
+coordinate          = "Cartesian"
+tools               = ["rna_mi"]
+math_description    = "Symmetric matrix M[i,j] = M[j,i] with masked diagonal (self-information = 0). Significance overlay: cells above p-value threshold highlighted. Base-pair scatter along the anti-diagonal identifies Watson-Crick pairs."
+implementation      = "DataBinding::Heatmap with x_labels = y_labels (symmetric). draw_heatmap() now renders x-axis column labels, colorbar (min/max/palette), and hover tooltips with row×col values. Diagonal cells naturally zero in MI matrix."
+examples            = [
+    "rna_mi: phylogeny-corrected MI matrix (SAM-II) with significance overlay from 100+ simulated alignments",
+]
+
+[patterns.population_trajectory]
+name                = "PopulationTrajectory"
+petaltongue_channel = "timeseries"
+geometry            = "Line"
+coordinate          = "Cartesian"
+tools               = ["marker_divergence"]
+math_description    = "Multiple replicate time series r_k(t) diverging from 0.5 toward fixation (1.0). Closed symbols = included in fit, open symbols = excluded by Lilliefors normality test. Parameterized by (alpha, tau) via nonlinear least squares."
+implementation      = "Multiple DataBinding::TimeSeries (one per replicate series). Data-driven axes auto-scale to transfer range. Marker Divergence adapter generates per-experiment timeseries with descriptive labels."
+examples            = [
+    "marker_divergence: 3 replicate divergence curves (exp_1, exp_2, exp_3) over 99 transfers",
+]
+
+[patterns.data_driven_axis]
+name                = "DataDrivenAxis"
+petaltongue_channel = "all"
+geometry            = "all"
+coordinate          = "Cartesian"
+tools               = ["breseq", "plannotate", "ostir", "cryptkeeper", "efm", "marker_divergence", "rna_mi"]
+math_description    = "Meta-pattern: axis auto-fit from data point ranges with 5% padding, nice tick step selection (1/2/5 × 10^n), compact label formatting (bp/kbp/Mbp for genomic, k/M for large values). Replaces fixed Axes::default() (-10..10)."
+implementation      = "Axes::from_data(points) constructor in petal-tongue-scene/math/axes.rs. nice_tick_step() picks human-readable intervals. format_tick() generates compact labels. Anchors y at 0 for non-negative data. Snaps bounds to tick multiples."
+examples            = [
+    "All baseline visualizations: genomic coordinates (0..4.6M bp), TIR values (0..72k), angular positions (0..360), entropy (0..2 bits)",
+]

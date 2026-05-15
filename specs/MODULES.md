@@ -15,9 +15,10 @@
 ## Shared Infrastructure
 
 - `litho-core`: validation types, tolerance framework, provenance chain, liveSpore,
-  capability-based primal discovery, shared statistics (`pearson_r`), and validation
-  harness (`skip`, `load_expected`, `dispatch_python`, `output_and_exit`)
-- `ltee-cli`: unified `litho` binary with subcommands (validate/refresh/status/spore)
+  capability-based primal discovery, shared statistics (`pearson_r`), validation
+  harness (`skip`, `load_expected`, `dispatch_python`, `output_and_exit`), and
+  visualization adapters (`viz` — DataBinding for all 7 modules + 7 Barrick baselines)
+- `ltee-cli`: unified `litho` binary with subcommands (validate/refresh/status/spore/visualize)
 
 ## Per-Module Contract
 
@@ -25,11 +26,18 @@ Every module binary MUST:
 1. Accept `--data-dir`, `--expected`, and `--json` flags
 2. Return `ModuleResult` JSON when `--json` is set
 3. Exit 0 (pass), 1 (fail), or 2 (skip)
-4. Use named tolerances from `tolerances.toml`
+4. Use scientifically justified tolerances — either embedded in expected-values
+   JSON (modules 6, 7) or as named constants matching `artifact/tolerances.toml`
 5. Reference source data by dataset ID from `data.toml`
 6. Be statically linked (musl) with zero runtime dependencies
 
+`artifact/tolerances.toml` is the centralized reference for all tolerance values
+and their scientific justifications. Module binaries may read tolerances from
+expected-values JSON or define them as compile-time constants; either way, the
+values MUST match the TOML reference and include justification in comments.
+
 ## Validation Targets
 
-See `data/targets/ltee_validation_targets.toml` for the 14 quantitative claims
-that the artifact must verify (T01–T14).
+Quantitative claims are defined per-module in the expected-values JSON files
+under `validation/expected/`. Each file documents the paper targets, tolerance
+bands, and upstream spring provenance for that module's checks.

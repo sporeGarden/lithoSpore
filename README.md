@@ -8,7 +8,7 @@ new predictions using the Anderson disorder framework.
 **Subsystem of**: projectNUCLEUS
 **Target**: Barrick Lab, UT Austin (LTEE continuation)
 **License**: AGPL-3.0-or-later (code), CC-BY-SA 4.0 (docs)
-**Standard**: `TARGETED_GUIDESTONE_STANDARD.md` (wateringHole)
+**Standard**: `TARGETED_GUIDESTONE_STANDARD.md` (ecoPrimals/infra/wateringHole)
 
 ## Spore Taxonomy
 
@@ -20,9 +20,9 @@ stays underground, nourishing the seedling until it can photosynthesize.
 |-------|------|-----------------|
 | ColdSpore | Static artifact, `.biomeos-spore` marker, frozen data | No (needs host) |
 | LiveSpore | + `liveSpore.json` provenance + `./refresh` self-update | Partially |
-| **lithoSpore** (Hypogeal Cotyledon) | + Python runtime + 7 LTEE data bundles + litho-core Rust ecoBins | **Yes** |
+| **lithoSpore** (Hypogeal Cotyledon) | + Python runtime + 6 LTEE data bundles (+ 1 scaffold) + litho-core Rust ecoBins | **Yes** |
 
-See `wateringHole/LITHOSPORE_USB_DEPLOYMENT.md` for the full standard.
+See `ecoPrimals/infra/wateringHole/LITHOSPORE_USB_DEPLOYMENT.md` for the full deployment standard.
 
 ## What This Is
 
@@ -52,8 +52,9 @@ lithoSpore builds a portable validation artifact — a ~16GB USB that:
 | **2 (Rust)** | musl-static ecoBin binaries — full validation at native speed | Linux x86_64 or aarch64 |
 | **3 (Primal)** | NUCLEUS composition with provenance trio | NUCLEUS running + plasmidBin |
 
-No containers. ecoBin/genomeBin handles platform detection. Primals self-container
-via genomeBin if needed for Tier 3.
+The deployed artifact requires no containers — ecoBin/genomeBin handles platform
+detection via musl-static binaries. An optional OCI image (`Containerfile`) exists
+for CI/dev environments. Primals self-container via genomeBin if needed for Tier 3.
 
 ## Seven Science Modules
 
@@ -141,12 +142,12 @@ cargo run --bin litho -- validate --json
 
 The assembled USB is a self-sufficient hypogeal cotyledon: plug it into
 any Linux machine and run `./validate`. See `artifact/usb-root/` for
-the root file templates and `wateringHole/LITHOSPORE_USB_DEPLOYMENT.md`
-for the full spec.
+the root file templates.
 
-## Current Status — 6/7 Modules PASS (May 14, 2026)
+## Current Status — 6 LIVE + 1 Scaffold (May 15, 2026)
 
 **Pillar 4 EXIT GATE: EXCEEDED** — 6 modules PASS at Tier 2, gate required 2+.
+Module 5 (biobricks) is a scaffold awaiting upstream data publication.
 **VM-validated**: USB pipeline tested on a fresh libvirt VM via agentReagents — 51/51 checks pass.
 
 | Module | Status | Checks | Source |
@@ -155,7 +156,7 @@ for the full spec.
 | 2. ltee-mutations | **PASS** Tier 2 | 7/7 | groundSpring B1 Barrick 2009 |
 | 3. ltee-alleles | **PASS** Tier 2 | 17/17 | groundSpring B3 Good 2017 |
 | 4. ltee-citrate | **PASS** Tier 2 | 6/6 | groundSpring B4 Blount 2008/2012 |
-| 5. ltee-biobricks | SKIP | — | DOI pending (Nat Comms) |
+| 5. ltee-biobricks | SCAFFOLD | — | Upstream-blocked: Burden 2024 data + springs pending |
 | 6. ltee-breseq | **PASS** Tier 2 | 8/8 | wetSpring B7 Tenaillon 2016 |
 | 7. ltee-anderson | **PASS** Tier 2 | 5/5 | hotSpring B2 Anderson disorder |
 
@@ -167,8 +168,8 @@ for the full spec.
 - **Module 6**: breseq 264-genome comparison, mutation accumulation analysis, parallel evolution significance
 - **Module 7**: Anderson disorder mapping, GOE/Poisson eigenvalue statistics
 
-**Infrastructure**: `litho-core` crate with 6 modules (validation, provenance, tolerance,
-spore tracking, capability-based discovery, shared stats + harness), 33 unit tests,
+**Infrastructure**: `litho-core` crate with 7 modules (validation, provenance, tolerance,
+spore tracking, capability-based discovery, shared stats + harness, viz), 66 unit tests,
 CI wired, zero clippy warnings, `#![forbid(unsafe_code)]` workspace-wide,
 pure Rust BLAKE3 (ecoBin compliant), `liveSpore.json` operational.
 
@@ -182,6 +183,11 @@ pure Rust BLAKE3 (ecoBin compliant), `liveSpore.json` operational.
 - `probe_operating_mode()` detects standalone/LAN/geo-delocalized before validation
 - Clippy pedantic clean — scientific casts allowed; all other pedantic lints enforced
 - `cmd_refresh` real `data.toml`-driven fetch pipeline (5 fetch scripts: B1–B4, B7)
+
+**petalTongue Integration**: `litho-core::viz` provides `DataBinding` adapters for all
+7 LTEE modules and 7 Barrick Lab baseline tools. `litho visualize` pushes live dashboards
+to petalTongue via IPC. Interactive SceneGraph with click-to-select, pan/zoom, parameter
+controls, and data-driven animation on stream updates.
 
 See `docs/UPSTREAM_GAPS.md` for remaining module gap (module 5 only).
 

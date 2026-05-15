@@ -14,6 +14,7 @@ pub mod spore;
 pub mod stats;
 pub mod tolerance;
 pub mod validation;
+pub mod viz;
 
 pub use manifest::DataManifest;
 pub use provenance::ProvenanceEntry;

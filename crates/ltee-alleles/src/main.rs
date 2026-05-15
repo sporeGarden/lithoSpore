@@ -119,3 +119,51 @@ fn run_validation(cli: &Cli) -> ModuleResult {
         error: if passed < checks { Some(format!("{} check(s) failed", checks - passed)) } else { None },
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn missing_expected_returns_skip() {
+        let cli = Cli {
+            data_dir: "/nonexistent".into(),
+            expected: "/nonexistent".into(),
+            max_tier: 2,
+            json: false,
+        };
+        let result = run_validation(&cli);
+        assert_eq!(result.status, ValidationStatus::Skip);
+    }
+
+    #[test]
+    fn valid_expected_json_produces_checks() {
+        let dir = std::env::temp_dir().join("litho_test_alleles");
+        let _ = std::fs::create_dir_all(&dir);
+        let expected = dir.join("expected.json");
+        std::fs::write(&expected, r#"{
+            "paper": "Good2017",
+            "results_by_size": {
+                "small": {
+                    "fixation_probability": 0.5,
+                    "interference_ratio": 2.3,
+                    "mean_final_fitness": 1.2,
+                    "adaptation_rate": 0.001
+                }
+            }
+        }"#).unwrap();
+        let data = dir.join("data");
+        let _ = std::fs::create_dir_all(&data);
+
+        let cli = Cli {
+            data_dir: data.to_str().unwrap().into(),
+            expected: expected.to_str().unwrap().into(),
+            max_tier: 2,
+            json: false,
+        };
+        let result = run_validation(&cli);
+        assert!(result.checks >= 5, "should have at least 5 checks, got {}", result.checks);
+        assert_eq!(result.status, ValidationStatus::Pass);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}

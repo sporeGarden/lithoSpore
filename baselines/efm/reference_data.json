@@ -1,0 +1,43 @@
+{
+  "source": "EFM Calculator — example BioBrick BBa_I13521 (GFP generator)",
+  "sequence_name": "BBa_I13521",
+  "sequence_length_bp": 1252,
+  "organism": "E. coli",
+
+  "site_counts": {
+    "IS_insertion": 8,
+    "small_indel_repeat": 12,
+    "small_indel_non_repeat": 3,
+    "base_substitution": 45,
+    "recombination": 2
+  },
+
+  "rate_distribution": {
+    "below_1e10": 180,
+    "1e10_to_1e9": 320,
+    "1e9_to_1e8": 85,
+    "1e8_to_1e7": 42,
+    "above_1e7": 8
+  },
+
+  "region_coverage": {
+    "total_annotated_regions": 5,
+    "regions_with_hypermutable_sites": 3,
+    "fraction": 0.6
+  },
+
+  "genome_track_features": [
+    {"type": "CDS", "start": 0, "end": 720, "strand": "+", "name": "GFP"},
+    {"type": "CDS", "start": 720, "end": 838, "strand": "+", "name": "LuxR_binding"},
+    {"type": "terminator", "start": 838, "end": 920, "strand": "+", "name": "B0015"},
+    {"type": "IS_target", "start": 145, "end": 154, "rate": 3.2e-7, "element": "IS1"},
+    {"type": "IS_target", "start": 382, "end": 391, "rate": 1.8e-7, "element": "IS10"},
+    {"type": "IS_target", "start": 601, "end": 610, "rate": 2.5e-7, "element": "IS1"},
+    {"type": "repeat_indel", "start": 212, "end": 224, "rate": 8.4e-8, "repeat_unit": "GCTGCT"},
+    {"type": "repeat_indel", "start": 455, "end": 470, "rate": 5.1e-8, "repeat_unit": "AAAA"},
+    {"type": "base_sub_hotspot", "start": 89, "end": 90, "rate": 1.2e-7}
+  ],
+
+  "total_evolutionary_failure_rate": 4.7e-6,
+  "half_life_generations": 147402
+}

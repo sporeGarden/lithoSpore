@@ -141,3 +141,51 @@ fn run_validation(cli: &Cli) -> ModuleResult {
         error: if passed < checks { Some(format!("{} check(s) failed", checks - passed)) } else { None },
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn missing_files_returns_skip() {
+        let cli = Cli {
+            data_dir: "/nonexistent".into(),
+            expected: "/nonexistent".into(),
+            max_tier: 2,
+            json: false,
+        };
+        let result = run_validation(&cli);
+        assert_eq!(result.status, ValidationStatus::Skip);
+    }
+
+    #[test]
+    fn valid_citrate_json_validates() {
+        let dir = std::env::temp_dir().join("litho_test_citrate");
+        let _ = std::fs::create_dir_all(&dir);
+        let expected = dir.join("expected.json");
+        std::fs::write(&expected, r#"{
+            "paper": "Blount2012",
+            "cit_plus_fraction": 0.16667,
+            "potentiation_fraction": 0.8,
+            "mean_potentiation_gen": 35000.0,
+            "mean_cit_plus_gen": 45000.0,
+            "replay_probabilities": {"early": 0.0, "middle": 0.1, "late": 0.5},
+            "single_hit_mean_wait": 100.0,
+            "two_hit_analytical_mean": 5000.0,
+            "two_hit_empirical_mean": 3000.0
+        }"#).unwrap();
+        let data = dir.join("data");
+        let _ = std::fs::create_dir_all(&data);
+
+        let cli = Cli {
+            data_dir: data.to_str().unwrap().into(),
+            expected: expected.to_str().unwrap().into(),
+            max_tier: 2,
+            json: false,
+        };
+        let result = run_validation(&cli);
+        assert!(result.checks >= 7, "expected >= 7 checks, got {}", result.checks);
+        assert_eq!(result.status, ValidationStatus::Pass);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}

@@ -1,92 +1,68 @@
 [
   {
-    "timestamp": "2026-05-11T21:30:00+00:00",
-    "hostname_hash": "initial-seed-entry",
-    "arch": "x86_64",
-    "os": "linux",
-    "tier_reached": 2,
-    "modules_passed": 2,
-    "modules_total": 7,
-    "runtime_ms": 0
-  },
-  {
-    "timestamp": "2026-05-12T22:49:38.725189195+00:00",
+    "timestamp": "2026-05-14T20:47:02.421814564+00:00",
     "hostname_hash": "ea7afbf5c3a4aadd86d2c7fca7154df661ec16df98311dc61319dd454ed7f053",
     "arch": "x86_64",
     "os": "linux",
     "tier_reached": 2,
-    "modules_passed": 2,
+    "modules_passed": 7,
     "modules_total": 7,
-    "runtime_ms": 8
+    "runtime_ms": 2,
+    "discovery_path": "standalone"
   },
   {
-    "timestamp": "2026-05-12T22:53:53.167895659+00:00",
+    "timestamp": "2026-05-14T20:47:06.832747416+00:00",
     "hostname_hash": "ea7afbf5c3a4aadd86d2c7fca7154df661ec16df98311dc61319dd454ed7f053",
     "arch": "x86_64",
     "os": "linux",
     "tier_reached": 2,
-    "modules_passed": 2,
+    "modules_passed": 7,
     "modules_total": 7,
-    "runtime_ms": 1
+    "runtime_ms": 2,
+    "discovery_path": "standalone"
   },
   {
-    "timestamp": "2026-05-13T00:10:22.642909937+00:00",
+    "timestamp": "2026-05-14T20:47:11.103001292+00:00",
     "hostname_hash": "ea7afbf5c3a4aadd86d2c7fca7154df661ec16df98311dc61319dd454ed7f053",
     "arch": "x86_64",
     "os": "linux",
     "tier_reached": 2,
-    "modules_passed": 2,
+    "modules_passed": 7,
     "modules_total": 7,
-    "runtime_ms": 2
+    "runtime_ms": 2,
+    "discovery_path": "standalone"
   },
   {
-    "timestamp": "2026-05-13T00:10:46.724219795+00:00",
+    "timestamp": "2026-05-14T20:49:53.695161705+00:00",
     "hostname_hash": "ea7afbf5c3a4aadd86d2c7fca7154df661ec16df98311dc61319dd454ed7f053",
     "arch": "x86_64",
     "os": "linux",
     "tier_reached": 2,
-    "modules_passed": 4,
+    "modules_passed": 7,
     "modules_total": 7,
-    "runtime_ms": 3
+    "runtime_ms": 2,
+    "discovery_path": "standalone"
   },
   {
-    "timestamp": "2026-05-13T00:17:43.004957444+00:00",
+    "timestamp": "2026-05-14T21:26:24.542593546+00:00",
     "hostname_hash": "ea7afbf5c3a4aadd86d2c7fca7154df661ec16df98311dc61319dd454ed7f053",
     "arch": "x86_64",
     "os": "linux",
     "tier_reached": 2,
-    "modules_passed": 4,
+    "modules_passed": 7,
     "modules_total": 7,
-    "runtime_ms": 2
+    "runtime_ms": 1,
+    "discovery_path": "standalone"
   },
   {
-    "timestamp": "2026-05-13T20:22:51.330665560+00:00",
+    "timestamp": "2026-05-14T23:23:22.543298166+00:00",
     "hostname_hash": "ea7afbf5c3a4aadd86d2c7fca7154df661ec16df98311dc61319dd454ed7f053",
     "arch": "x86_64",
     "os": "linux",
     "tier_reached": 2,
-    "modules_passed": 3,
+    "modules_passed": 7,
     "modules_total": 7,
-    "runtime_ms": 5
-  },
-  {
-    "timestamp": "2026-05-13T20:24:40.609047659+00:00",
-    "hostname_hash": "ea7afbf5c3a4aadd86d2c7fca7154df661ec16df98311dc61319dd454ed7f053",
-    "arch": "x86_64",
-    "os": "linux",
-    "tier_reached": 2,
-    "modules_passed": 5,
-    "modules_total": 7,
-    "runtime_ms": 1
-  },
-  {
-    "timestamp": "2026-05-13T23:04:19.426973133+00:00",
-    "hostname_hash": "ea7afbf5c3a4aadd86d2c7fca7154df661ec16df98311dc61319dd454ed7f053",
-    "arch": "x86_64",
-    "os": "linux",
-    "tier_reached": 2,
-    "modules_passed": 6,
-    "modules_total": 7,
-    "runtime_ms": 5
+    "runtime_ms": 2,
+    "discovery_path": "standalone"
   }
 ]

@@ -2,6 +2,11 @@
 #
 # Named tolerances for LTEE guideStone validation.
 # Every tolerance has a scientific justification — no magic numbers.
+#
+# This file is the centralized reference. Module binaries either embed these
+# values as compile-time constants (modules 1–5) or read them from the
+# expected-values JSON (modules 6–7). Any tolerance change here MUST be
+# reflected in the corresponding module source or expected JSON.
 
 # --- Module 1: Power-law fitness ---
 

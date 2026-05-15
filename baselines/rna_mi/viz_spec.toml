@@ -1,0 +1,59 @@
+# RNA Structure MI Visualization Specification
+#
+# Extracted from RNA Structure Mutual Information analysis pipeline.
+# Source: https://barricklab.org/twiki/bin/view/Lab/ToolsRNAStructureMutualInformation
+
+[tool]
+name    = "RNA Structure MI"
+version = "1.0"
+source  = "https://barricklab.org/twiki/bin/view/Lab/ToolsRNAStructureMutualInformation"
+
+# ─── Chart 1: MI Matrix Heatmap ──────────────────────────────────────
+
+[charts.mi_matrix]
+pattern           = "MutualInformationMatrix"
+petaltongue_type  = "heatmap"
+description       = "Symmetric mutual information matrix between alignment columns, phylogeny-corrected"
+x_axis            = "Alignment Column (i)"
+y_axis            = "Alignment Column (j)"
+value_label       = "-log10(p-value)"
+typical_ranges    = { value_min = 0, value_max = 5 }
+notes             = "Upper triangle = raw MI; lower triangle = significance. Diagonal masked. High-significance pairs indicate structural base pairing."
+
+[charts.mi_matrix.style]
+color_map     = "viridis"
+diagonal      = "masked"
+symmetric     = true
+
+# ─── Chart 2: Significant Pair Scatter ───────────────────────────────
+
+[charts.significant_pairs]
+pattern           = "SignificanceScatter"
+petaltongue_type  = "scatter"
+description       = "Column pairs with significant MI, plotted by position"
+x_axis            = "Column i"
+y_axis            = "Column j"
+point_size_by     = "-log10(p-value)"
+typical_ranges    = { x_min = 0, x_max = 120, y_min = 0, y_max = 120 }
+notes             = "Points along diagonal lines indicate base-paired stems; off-diagonal clusters indicate tertiary contacts"
+
+[charts.significant_pairs.style]
+point_size_min  = 3
+point_size_max  = 12
+color_by        = "significance"
+
+# ─── Chart 3: Per-Column Entropy ─────────────────────────────────────
+
+[charts.column_entropy]
+pattern           = "SpectrumDistribution"
+petaltongue_type  = "bar"
+description       = "Shannon entropy per alignment column"
+x_axis            = "Alignment Column"
+y_axis            = "Shannon Entropy (bits)"
+typical_ranges    = { y_min = 0.0, y_max = 2.0 }
+notes             = "Highly conserved columns have low entropy; variable columns have high entropy. Columns with low entropy but high MI are diagnostic of structural constraints."
+
+[charts.column_entropy.style]
+bar_width   = 1.0
+orientation = "vertical"
+gridlines   = "y-only"

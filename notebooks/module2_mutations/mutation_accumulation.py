@@ -214,7 +214,51 @@ def main():
     }
     print(json.dumps(result_json, indent=2))
 
+    figures_dir = Path(__file__).resolve().parent.parent.parent / "figures"
+    generate_figures(gens, mean_traj, all_trajectories, slope, r_val, mu,
+                     pfix, drift_ratio, pop_size, figures_dir)
+
     return 0 if checks_passed == checks_total else 1
+
+
+def generate_figures(gens, mean_traj, all_trajectories, slope, r_val, mu,
+                     pfix_neutral, drift_ratio, pop_size, output_dir):
+    """Generate mutation accumulation curve + parameter panel."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from litho_figures import can_generate, apply_style, save_figure, ensure_output_dir
+
+    if not can_generate():
+        print("  (matplotlib not available — skipping figures)")
+        return
+
+    import matplotlib.pyplot as plt
+    apply_style()
+    out = ensure_output_dir(output_dir)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5),
+                                    gridspec_kw={"width_ratios": [2, 1]})
+
+    for traj in all_trajectories:
+        ax1.plot(gens, traj, alpha=0.15, color="steelblue", linewidth=0.5)
+    ax1.plot(gens, mean_traj, color="darkblue", linewidth=2, label="Mean trajectory")
+    ax1.plot(gens, slope * gens, "--", color="red", alpha=0.7,
+             label=f"Linear fit (slope={slope:.4e})")
+    ax1.set_xlabel("Generation")
+    ax1.set_ylabel("Cumulative Mutations")
+    ax1.set_title("Module 2: Neutral Mutation Accumulation")
+    ax1.legend(loc="upper left")
+    ax1.grid(True, alpha=0.3)
+
+    params = ["P_fix(neutral)", "Clock rate (μ)", "Pearson r", "Drift ratio"]
+    values = [pfix_neutral, mu, r_val, drift_ratio]
+    ax2.barh(params, values, color=["#4e79a7", "#59a14f", "#f28e2b", "#e15759"])
+    ax2.set_xlabel("Value")
+    ax2.set_title("Key Parameters")
+    for i, v in enumerate(values):
+        ax2.text(v, i, f" {v:.4e}" if v < 0.01 else f" {v:.4f}", va="center", fontsize=8)
+
+    fig.tight_layout()
+    save_figure(fig, out, "m2_mutation_accumulation")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,108 @@
+# Barrick Lab Software Baselines — Master Registry
+#
+# Each tool is cataloged with provenance, visualization patterns, and
+# its relevance to lithoSpore validation modules. The viz_types field
+# lists the petalTongue DataBinding channel types (or gap markers) used
+# to reproduce that tool's primary outputs.
+
+[meta]
+source      = "https://barricklab.org/twiki/bin/view/Lab/SoftwareList"
+github_org  = "https://github.com/barricklab"
+purpose     = "Establish ground-truth visualization patterns from the gold-standard microbial evolution toolchain"
+last_update = "2026-05-14"
+
+# ─── Tool Entries ────────────────────────────────────────────────────
+
+[tools.breseq]
+name            = "breseq"
+full_name       = "Bacterial Genome Resequencing"
+description     = "Computational pipeline for finding mutations relative to a reference sequence in short-read DNA re-sequencing data"
+repo            = "https://github.com/barricklab/breseq"
+docs            = "https://github.com/barricklab/breseq/wiki"
+paper_doi       = "10.1007/978-1-4939-0554-6_12"
+paper_ref       = "Deatherage & Barrick 2014, Methods Mol Biol 1151:165-188"
+language        = "C++, R"
+license         = "GPL-2.0"
+version_tested  = "0.35.7"
+viz_types       = ["bar", "timeseries", "genome_track"]
+litho_modules   = ["module6_breseq"]
+relevance       = "Direct validation — breseq is the reference pipeline for Module 6 (Tenaillon 2016, 264 genomes)"
+
+[tools.plannotate]
+name            = "pLannotate"
+full_name       = "Plasmid Annotation"
+description     = "Automated annotation of engineered DNA sequences and plasmids"
+repo            = "https://github.com/barricklab/pLannotate"
+web             = "http://plannotate.barricklab.org"
+paper_doi       = "10.1093/nar/gkab374"
+paper_ref       = "McGuffie & Barrick 2021, Nucleic Acids Res 49(W1):W516-W522"
+language        = "Python (Streamlit, Bokeh)"
+license         = "GPL-3.0"
+viz_types       = ["circular_map", "bar"]
+litho_modules   = ["module5_biobricks"]
+relevance       = "Plasmid annotation patterns relevant to BioBrick backbone characterization"
+
+[tools.ostir]
+name            = "OSTIR"
+full_name       = "Open Source Translation Initiation Rates"
+description     = "Prediction of translation initiation rates in E. coli and other bacteria"
+repo            = "https://github.com/barricklab/ostir"
+paper_doi       = "10.1021/acssynbio.1c00538"
+paper_ref       = "Mao et al. 2024, ACS Synth Biol"
+language        = "Python"
+license         = "GPL-3.0"
+viz_types       = ["bar", "distribution"]
+litho_modules   = ["module5_biobricks"]
+relevance       = "Translation rate predictions for BioBrick RBS characterization and burden modeling"
+
+[tools.cryptkeeper]
+name            = "CryptKeeper"
+full_name       = "Cryptic Gene Expression Predictor"
+description     = "Pipeline to predict burden from cryptic gene expression in E. coli"
+repo            = "https://github.com/barricklab/cryptkeeper"
+paper_doi       = "10.1021/acssynbio.3c00381"
+paper_ref       = "Jack et al. 2024, ACS Synth Biol"
+language        = "Python"
+license         = "MIT"
+viz_types       = ["heatmap", "distribution", "genome_track"]
+litho_modules   = ["module5_biobricks"]
+relevance       = "Expression burden quantification — direct input to BioBrick burden thresholds"
+
+[tools.efm]
+name            = "EFM Calculator"
+full_name       = "Evolutionary Failure Mode Calculator"
+description     = "Predict hypermutable sites in an engineered DNA sequence or microbial genome"
+web             = "http://barricklab.org/django/efm"
+paper_doi       = "10.1021/acssynbio.5b00068"
+paper_ref       = "Jack et al. 2015, ACS Synth Biol 4(12):1396-1405"
+language        = "Python (Django), JavaScript (SCRIBL)"
+license         = "Noncommercial"
+viz_types       = ["bar", "gauge", "genome_track"]
+litho_modules   = ["module4_citrate", "module5_biobricks"]
+relevance       = "Evolutionary stability predictions for engineered sequences — validates citrate potentiation and BioBrick stability"
+
+[tools.marker_divergence]
+name            = "Marker Divergence"
+full_name       = "Marker Divergence Experiments"
+description     = "Analyze neutral marker divergence experiments to measure evolvability"
+docs            = "https://barricklab.org/twiki/bin/view/Lab/ToolsMarkerDivergence"
+paper_doi       = "10.1126/science.1199174"
+paper_ref       = "Woods, Barrick et al. 2011, Science 331:1433-1436"
+language        = "Perl, R, MATLAB"
+license         = "GPL"
+viz_types       = ["timeseries", "scatter", "heatmap"]
+litho_modules   = ["module1_fitness"]
+relevance       = "Evolvability parameterization (mu, s) — direct complement to Module 1 power-law fitness"
+
+[tools.rna_mi]
+name            = "RNA Structure MI"
+full_name       = "RNA Structure Mutual Information"
+description     = "Predict interacting bases in an RNA alignment by estimating phylogeny-corrected significance of mutual information"
+docs            = "https://barricklab.org/twiki/bin/view/Lab/ToolsRNAStructureMutualInformation"
+paper_doi       = "10.1186/gb-2007-8-11-r239"
+paper_ref       = "Barrick & Breaker 2007, Genome Biol 8:R239"
+language        = "Perl, R, C++"
+license         = "GPL"
+viz_types       = ["heatmap", "scatter", "bar"]
+litho_modules   = []
+relevance       = "RNA structural analysis patterns — validates heatmap and matrix visualization primitives"

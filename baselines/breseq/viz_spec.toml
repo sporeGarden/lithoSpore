@@ -1,0 +1,101 @@
+# breseq Visualization Specification
+#
+# Extracted from breseq v0.35.7 HTML output for LTEE Ara+1 50K clone A
+# (REL11392). Source: https://barricklab.org/twiki/pub/Lab/
+#   ToolsBacterialGenomeResequencing/IntroWorkshop/REL11392_Ara+1_50K_clone_A/
+
+[tool]
+name    = "breseq"
+version = "0.35.7"
+source  = "https://barricklab.org/twiki/pub/Lab/ToolsBacterialGenomeResequencing/IntroWorkshop/REL11392_Ara+1_50K_clone_A/"
+
+# ─── Chart 1: Evidence Type Distribution ─────────────────────────────
+
+[charts.evidence_type_distribution]
+pattern           = "SpectrumDistribution"
+petaltongue_type  = "bar"
+description       = "Distribution of mutation evidence types from breseq predictions"
+x_axis            = "Evidence Type"
+y_axis            = "Count"
+categories        = ["RA (Read Alignment)", "JC (New Junction)", "MC (Missing Coverage)"]
+typical_ranges    = { y_min = 0, y_max = 100 }
+color_scheme      = "categorical"
+notes             = "RA = SNPs/indels from read alignment; JC = structural variants from split reads; MC = deletions from coverage gaps"
+
+[charts.evidence_type_distribution.style]
+bar_width   = 0.6
+orientation = "vertical"
+gridlines   = "y-only"
+
+# ─── Chart 2: Mutation Spectrum ──────────────────────────────────────
+
+[charts.mutation_spectrum]
+pattern           = "SpectrumDistribution"
+petaltongue_type  = "bar"
+description       = "6-class point mutation spectrum from SNP predictions"
+x_axis            = "Mutation Class"
+y_axis            = "Fraction"
+categories        = ["GC→AT", "AT→GC", "GC→TA", "AT→TA", "GC→CG", "AT→CG"]
+typical_ranges    = { y_min = 0.0, y_max = 1.0 }
+color_scheme      = "sequential"
+notes             = "GC→AT transitions dominate in E. coli LTEE (typically ~68%); sum of all classes = 1.0"
+
+[charts.mutation_spectrum.style]
+bar_width   = 0.5
+orientation = "vertical"
+gridlines   = "y-only"
+
+# ─── Chart 3: Mutation Accumulation Curve ────────────────────────────
+
+[charts.mutation_accumulation]
+pattern           = "AccumulationCurve"
+petaltongue_type  = "timeseries"
+description       = "Non-mutator point mutation accumulation over generations"
+x_axis            = "Generation"
+y_axis            = "Expected Point Mutations"
+x_unit            = "generations"
+y_unit            = "mutations"
+typical_ranges    = { x_min = 0, x_max = 50000, y_min = 0, y_max = 50 }
+expected_shape    = "near-linear (Pearson r > 0.99)"
+notes             = "Rate extraction: slope ≈ 8.9e-4 mutations/generation for non-mutator lines"
+
+[charts.mutation_accumulation.style]
+line_width  = 2
+point_size  = 4
+gridlines   = "both"
+
+# ─── Chart 4: Genome Overview Track ─────────────────────────────────
+
+[charts.genome_overview]
+pattern           = "LinearAnnotation"
+petaltongue_type  = "genome_track"
+description       = "Linear genome view with mutation positions, IS element insertions, and large deletions annotated as tracks"
+x_axis            = "Genome Position (bp)"
+tracks            = ["SNP", "Insertion", "Deletion", "IS Element", "Large Deletion"]
+genome_length     = 4629812
+reference         = "REL606"
+typical_ranges    = { x_min = 0, x_max = 4629812 }
+notes             = "IS150 insertions are the most common structural mutation in LTEE; large deletions up to 57kb observed"
+
+[charts.genome_overview.style]
+track_height    = 20
+track_spacing   = 4
+position_ticks  = "Mbp"
+color_by_track  = true
+
+# ─── Chart 5: Mutation Table ─────────────────────────────────────────
+
+[charts.mutation_table]
+pattern           = "EvidenceTable"
+petaltongue_type  = "heatmap"
+description       = "Structured mutation prediction table with evidence links"
+columns           = ["evidence", "position", "mutation", "annotation", "gene", "description"]
+typical_row_count = 50
+notes             = "Each row links to evidence HTML pages; evidence column color-coded by type (RA/JC/MC)"
+
+[charts.mutation_table.style]
+header_bg       = "#4a6fa5"
+header_fg       = "#ffffff"
+stripe_even     = "#f5f5f5"
+stripe_odd      = "#ffffff"
+font_family     = "monospace"

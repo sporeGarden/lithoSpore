@@ -2,7 +2,7 @@
 
 //! Unified CLI entry point for lithoSpore.
 //!
-//! Subcommands: validate, refresh, status, spore
+//! Subcommands: validate, refresh, status, spore, verify, visualize
 
 use clap::{Parser, Subcommand};
 
@@ -50,6 +50,31 @@ enum Commands {
         #[arg(long, default_value = ".")]
         artifact_root: String,
     },
+
+    /// Verify data integrity: rehash local files against manifest, and
+    /// optionally probe upstream source URIs for changes when online
+    Verify {
+        #[arg(long, default_value = ".")]
+        artifact_root: String,
+
+        /// Output results as JSON
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Generate scientific visualizations for all modules
+    Visualize {
+        #[arg(long, default_value = ".")]
+        artifact_root: String,
+
+        /// Output format: svg, json, dashboard, baselines (Barrick Lab baseline validation)
+        #[arg(long, default_value = "json")]
+        format: String,
+
+        /// Output directory for generated figures (--format svg)
+        #[arg(long, default_value = "figures")]
+        output: String,
+    },
 }
 
 fn main() {
@@ -64,6 +89,8 @@ fn main() {
         Commands::Refresh { artifact_root } => cmd_refresh(&artifact_root),
         Commands::Status { artifact_root } => cmd_status(&artifact_root),
         Commands::Spore { artifact_root } => cmd_spore(&artifact_root),
+        Commands::Verify { artifact_root, json } => cmd_verify(&artifact_root, json),
+        Commands::Visualize { artifact_root, format, output } => cmd_visualize(&artifact_root, &format, &output),
     }
 }
 
@@ -76,6 +103,7 @@ fn cmd_validate(root: &str, json: bool, max_tier: u8) {
         ("mutation_accumulation", "ltee-mutations", "artifact/data/barrick_2009", "validation/expected/module2_mutations.json"),
         ("allele_trajectories", "ltee-alleles", "artifact/data/good_2017", "validation/expected/module3_alleles.json"),
         ("citrate_innovation", "ltee-citrate", "artifact/data/blount_2012", "validation/expected/module4_citrate.json"),
+        ("biobrick_burden", "ltee-biobricks", "artifact/data/biobricks_2024", "validation/expected/module5_biobricks.json"),
         ("breseq_264_genomes", "ltee-breseq", "artifact/data/tenaillon_2016", "validation/expected/module6_breseq.json"),
         ("anderson_qs_predictions", "ltee-anderson", "artifact/data/anderson_predictions", "validation/expected/module7_anderson.json"),
     ];
@@ -134,22 +162,6 @@ fn cmd_validate(root: &str, json: bool, max_tier: u8) {
         } else {
             report.add_module(dispatch_python_tier1(name, root, &data_path, &expected_path));
         }
-    }
-
-    let scaffold_modules = [
-        "biobrick_burden",
-    ];
-
-    for name in &scaffold_modules {
-        report.add_module(litho_core::ModuleResult {
-            name: (*name).to_string(),
-            status: litho_core::ValidationStatus::Skip,
-            tier: max_tier.min(2),
-            checks: 0,
-            checks_passed: 0,
-            runtime_ms: 0,
-            error: Some("Module scaffold — awaiting upstream spring reproductions".to_string()),
-        });
     }
 
     if json {
@@ -254,6 +266,9 @@ fn dispatch_python_tier1(
         "mutation_accumulation" => "notebooks/module2_mutations/mutation_accumulation.py",
         "allele_trajectories" => "notebooks/module3_alleles/allele_trajectories.py",
         "citrate_innovation" => "notebooks/module4_citrate/citrate_innovation.py",
+        "biobrick_burden" => "notebooks/module5_biobricks/biobrick_burden.py",
+        "breseq_264_genomes" => "notebooks/module6_breseq/breseq_comparison.py",
+        "anderson_qs_predictions" => "notebooks/module7_anderson/anderson_predictions.py",
         _ => return litho_core::ModuleResult {
             name: name.to_string(),
             status: litho_core::ValidationStatus::Skip,
@@ -317,6 +332,293 @@ fn dispatch_python_tier1(
             error: Some(format!("Python dispatch failed: {e}")),
         },
     }
+}
+
+fn cmd_visualize(root: &str, format: &str, output_dir: &str) {
+    let root_path = std::path::Path::new(root);
+
+    let modules: &[(&str, &str)] = &[
+        ("power_law_fitness", "validation/expected/module1_fitness.json"),
+        ("mutation_accumulation", "validation/expected/module2_mutations.json"),
+        ("allele_trajectories", "validation/expected/module3_alleles.json"),
+        ("citrate_innovation", "validation/expected/module4_citrate.json"),
+        ("biobrick_burden", "validation/expected/module5_biobricks.json"),
+        ("breseq_264_genomes", "validation/expected/module6_breseq.json"),
+        ("anderson_qs_predictions", "validation/expected/module7_anderson.json"),
+    ];
+
+    match format {
+        "json" => {
+            let mut all_modules: Vec<(&str, serde_json::Value)> = Vec::new();
+            for (name, expected_path) in modules {
+                let path = root_path.join(expected_path);
+                if !path.exists() {
+                    eprintln!("  SKIP {name}: expected values not found");
+                    continue;
+                }
+                let content = match std::fs::read_to_string(&path) {
+                    Ok(c) => c,
+                    Err(e) => { eprintln!("  SKIP {name}: {e}"); continue; }
+                };
+                let expected: serde_json::Value = match serde_json::from_str(&content) {
+                    Ok(v) => v,
+                    Err(e) => { eprintln!("  SKIP {name}: parse error: {e}"); continue; }
+                };
+                all_modules.push((name, expected));
+            }
+
+            let refs: Vec<(&str, &serde_json::Value)> = all_modules
+                .iter()
+                .map(|(n, v)| (*n, v))
+                .collect();
+
+            let dashboard = litho_core::viz::build_dashboard(&refs);
+            println!("{}", serde_json::to_string_pretty(&dashboard).unwrap_or_default());
+        }
+        "svg" => {
+            eprintln!("litho visualize --format svg: generating static figures via Python baselines");
+
+            let notebooks: &[(&str, &str)] = &[
+                ("module1_fitness", "notebooks/module1_fitness/power_law_fitness.py"),
+                ("module2_mutations", "notebooks/module2_mutations/mutation_accumulation.py"),
+                ("module3_alleles", "notebooks/module3_alleles/allele_trajectories.py"),
+                ("module4_citrate", "notebooks/module4_citrate/citrate_innovation.py"),
+                ("module5_biobricks", "notebooks/module5_biobricks/biobrick_burden.py"),
+                ("module6_breseq", "notebooks/module6_breseq/breseq_comparison.py"),
+                ("module7_anderson", "notebooks/module7_anderson/anderson_predictions.py"),
+            ];
+
+            let out_path = root_path.join(output_dir);
+            std::fs::create_dir_all(&out_path).ok();
+
+            let mut generated = 0u32;
+            for (mod_name, notebook) in notebooks {
+                let nb_path = root_path.join(notebook);
+                if !nb_path.exists() {
+                    eprintln!("  SKIP {mod_name}: notebook not found");
+                    continue;
+                }
+
+                eprintln!("  {mod_name}...");
+                let status = std::process::Command::new("python3")
+                    .arg(&nb_path)
+                    .current_dir(root)
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::null())
+                    .status();
+
+                match status {
+                    Ok(s) if s.success() => generated += 1,
+                    Ok(s) => eprintln!("    WARNING: exit {}", s.code().unwrap_or(-1)),
+                    Err(e) => eprintln!("    WARNING: {e}"),
+                }
+            }
+
+            eprintln!("  {generated} modules processed, figures in {}", out_path.display());
+
+            let svgs: Vec<String> = std::fs::read_dir(&out_path)
+                .into_iter()
+                .flatten()
+                .filter_map(|e| e.ok())
+                .filter(|e| e.path().extension().map(|x| x == "svg").unwrap_or(false))
+                .map(|e| e.path().display().to_string())
+                .collect();
+
+            for svg in &svgs {
+                println!("  {svg}");
+            }
+            eprintln!("  {} SVG figures generated", svgs.len());
+        }
+        "dashboard" => {
+            let socket_path = discover_petaltongue_socket();
+            if socket_path.is_empty() {
+                eprintln!("ERROR: petalTongue socket not found");
+                eprintln!("  Set PETALTONGUE_SOCKET or start petalTongue first");
+                eprintln!("  Falling back to JSON output:");
+                cmd_visualize(root, "json", output_dir);
+                return;
+            }
+
+            eprintln!("litho visualize --format dashboard");
+            eprintln!("  petalTongue socket: {socket_path}");
+
+            let mut all_modules: Vec<(&str, serde_json::Value)> = Vec::new();
+            for (name, expected_path) in modules {
+                let path = root_path.join(expected_path);
+                if let Ok(content) = std::fs::read_to_string(&path) {
+                    if let Ok(expected) = serde_json::from_str(&content) {
+                        all_modules.push((name, expected));
+                    }
+                }
+            }
+
+            let refs: Vec<(&str, &serde_json::Value)> = all_modules
+                .iter()
+                .map(|(n, v)| (*n, v))
+                .collect();
+
+            let dashboard = litho_core::viz::build_dashboard(&refs);
+
+            let rpc_request = serde_json::json!({
+                "jsonrpc": "2.0",
+                "method": "visualization.render",
+                "params": dashboard,
+                "id": 1,
+            });
+
+            let payload = serde_json::to_vec(&rpc_request).unwrap_or_default();
+
+            match send_uds(&socket_path, &payload) {
+                Ok(response) => {
+                    eprintln!("  Dashboard pushed to petalTongue");
+                    if !response.is_empty() {
+                        println!("{response}");
+                    }
+                }
+                Err(e) => {
+                    eprintln!("  WARNING: petalTongue push failed: {e}");
+                    eprintln!("  Falling back to JSON output:");
+                    println!("{}", serde_json::to_string_pretty(&dashboard).unwrap_or_default());
+                }
+            }
+        }
+        "baselines" => {
+            let baselines_dir = root_path.join("baselines");
+            if !baselines_dir.exists() {
+                eprintln!("ERROR: baselines/ directory not found at {}", baselines_dir.display());
+                std::process::exit(1);
+            }
+
+            let baseline_tools: &[&str] = &[
+                "breseq", "plannotate", "ostir", "cryptkeeper",
+                "efm", "marker_divergence", "rna_mi",
+            ];
+
+            let mut all_tools: Vec<(&str, serde_json::Value)> = Vec::new();
+            for tool in baseline_tools {
+                let ref_path = baselines_dir.join(tool).join("reference_data.json");
+                if !ref_path.exists() {
+                    eprintln!("  SKIP {tool}: reference_data.json not found");
+                    continue;
+                }
+                let content = match std::fs::read_to_string(&ref_path) {
+                    Ok(c) => c,
+                    Err(e) => { eprintln!("  SKIP {tool}: {e}"); continue; }
+                };
+                let data: serde_json::Value = match serde_json::from_str(&content) {
+                    Ok(v) => v,
+                    Err(e) => { eprintln!("  SKIP {tool}: parse error: {e}"); continue; }
+                };
+                eprintln!("  Loaded baseline: {tool}");
+                all_tools.push((tool, data));
+            }
+
+            let refs: Vec<(&str, &serde_json::Value)> = all_tools
+                .iter()
+                .map(|(n, v)| (*n, v))
+                .collect();
+
+            let dashboard = litho_core::viz::build_baseline_dashboard(&refs);
+            let bindings_count = dashboard["bindings"].as_array().map(|a| a.len()).unwrap_or(0);
+            eprintln!("  {bindings_count} DataBindings from {} tools", all_tools.len());
+
+            let socket_path = discover_petaltongue_socket();
+            if socket_path.is_empty() {
+                eprintln!("  petalTongue not found — outputting JSON");
+                println!("{}", serde_json::to_string_pretty(&dashboard).unwrap_or_default());
+                return;
+            }
+
+            eprintln!("  Pushing to petalTongue: {socket_path}");
+
+            let rpc_request = serde_json::json!({
+                "jsonrpc": "2.0",
+                "method": "visualization.render",
+                "params": dashboard,
+                "id": 1,
+            });
+
+            let payload = serde_json::to_vec(&rpc_request).unwrap_or_default();
+            match send_uds(&socket_path, &payload) {
+                Ok(response) => {
+                    eprintln!("  Baselines pushed to petalTongue");
+                    if !response.is_empty() {
+                        println!("{response}");
+                    }
+                }
+                Err(e) => {
+                    eprintln!("  WARNING: petalTongue push failed: {e}");
+                    println!("{}", serde_json::to_string_pretty(&dashboard).unwrap_or_default());
+                }
+            }
+        }
+        _ => {
+            eprintln!("ERROR: unknown format '{format}' (use: svg, json, dashboard, baselines)");
+            std::process::exit(1);
+        }
+    }
+}
+
+fn discover_petaltongue_socket() -> String {
+    if let Ok(path) = std::env::var("PETALTONGUE_SOCKET") {
+        if std::path::Path::new(&path).exists() {
+            return path;
+        }
+    }
+
+    let xdg_runtime = std::env::var("XDG_RUNTIME_DIR").unwrap_or_else(|_| {
+        // Portable UID detection via `id -u`
+        let uid = std::process::Command::new("id")
+            .arg("-u")
+            .output()
+            .ok()
+            .and_then(|o| String::from_utf8(o.stdout).ok())
+            .map(|s| s.trim().to_string())
+            .unwrap_or_else(|| "1000".to_string());
+        format!("/run/user/{uid}")
+    });
+
+    let candidates = [
+        // biomeOS canonical path (matches petalTongue socket_path.rs)
+        format!("{xdg_runtime}/biomeos/petaltongue.sock"),
+        // Family-scoped default
+        format!("{xdg_runtime}/biomeos/petaltongue-nat0.sock"),
+        // Fallback
+        "/tmp/biomeos/petaltongue.sock".into(),
+        // Legacy paths (backward compat)
+        format!("{xdg_runtime}/petalTongue/petal-tongue.sock"),
+        format!("{xdg_runtime}/petal-tongue.sock"),
+        "/tmp/petal-tongue.sock".into(),
+    ];
+
+    for candidate in &candidates {
+        if std::path::Path::new(candidate).exists() {
+            return candidate.clone();
+        }
+    }
+
+    String::new()
+}
+
+fn send_uds(socket_path: &str, payload: &[u8]) -> Result<String, String> {
+    use std::io::{Read, Write};
+    use std::os::unix::net::UnixStream;
+
+    let mut stream = UnixStream::connect(socket_path)
+        .map_err(|e| format!("connect: {e}"))?;
+
+    stream.set_write_timeout(Some(std::time::Duration::from_secs(5))).ok();
+    stream.set_read_timeout(Some(std::time::Duration::from_secs(10))).ok();
+
+    stream.write_all(payload).map_err(|e| format!("write: {e}"))?;
+    stream.flush().map_err(|e| format!("flush: {e}"))?;
+
+    stream.shutdown(std::net::Shutdown::Write).ok();
+
+    let mut response = String::new();
+    stream.read_to_string(&mut response).map_err(|e| format!("read: {e}"))?;
+
+    Ok(response)
 }
 
 fn cmd_refresh(root: &str) {
@@ -441,4 +743,251 @@ fn cmd_spore(root: &str) {
         }
         Err(_) => println!("No liveSpore.json found at {} — no validation runs recorded yet", spore_path.display()),
     }
+}
+
+fn cmd_verify(root: &str, json_output: bool) {
+    let root_path = std::path::Path::new(root);
+    let manifest_path = root_path.join("data_manifest.toml");
+    let data_toml_path = root_path.join("artifact/data.toml");
+
+    let mut results = VerifyResults::default();
+
+    // Phase 1: verify local files against data_manifest.toml (BLAKE3)
+    if manifest_path.exists() {
+        let content = std::fs::read_to_string(&manifest_path).unwrap_or_default();
+        let manifest: toml::Value = toml::from_str(&content).unwrap_or(toml::Value::Table(Default::default()));
+
+        if let Some(files) = manifest.get("file").and_then(|v| v.as_array()) {
+            if !json_output { println!("=== Local integrity check (BLAKE3) ==="); }
+
+            for entry in files {
+                let path = entry.get("path").and_then(|v| v.as_str()).unwrap_or("");
+                let expected_hash = entry.get("blake3").and_then(|v| v.as_str()).unwrap_or("");
+
+                if path.is_empty() || expected_hash.is_empty() { continue; }
+
+                let full_path = root_path.join(path);
+                let check = if full_path.exists() {
+                    match hash_file(&full_path) {
+                        Ok(actual) => {
+                            if actual == expected_hash {
+                                FileCheck { path: path.into(), status: "ok".into(), expected: expected_hash.into(), actual, detail: None }
+                            } else {
+                                FileCheck { path: path.into(), status: "DRIFT".into(), expected: expected_hash.into(), actual, detail: Some("local file hash does not match manifest".into()) }
+                            }
+                        }
+                        Err(e) => FileCheck { path: path.into(), status: "ERROR".into(), expected: expected_hash.into(), actual: String::new(), detail: Some(format!("hash error: {e}")) },
+                    }
+                } else {
+                    FileCheck { path: path.into(), status: "MISSING".into(), expected: expected_hash.into(), actual: String::new(), detail: Some("file not found on disk".into()) }
+                };
+
+                if !json_output && check.status != "ok" {
+                    println!("  [{:>7}] {}{}", check.status, check.path, check.detail.as_deref().map(|d| format!(" — {d}")).unwrap_or_default());
+                }
+                results.local_checks.push(check);
+            }
+
+            let ok_count = results.local_checks.iter().filter(|c| c.status == "ok").count();
+            let total = results.local_checks.len();
+            if !json_output { println!("  {ok_count}/{total} files verified\n"); }
+        }
+    } else if !json_output {
+        println!("  No data_manifest.toml found — cannot verify local integrity\n");
+    }
+
+    // Phase 2: check connectivity and probe upstream sources
+    let online = check_connectivity();
+    results.online = online;
+
+    if !json_output {
+        println!("=== Upstream source check ===");
+        println!("  Connectivity: {}", if online { "ONLINE" } else { "OFFLINE (airgapped) — skipping upstream checks" });
+    }
+
+    if online && data_toml_path.exists() {
+        let content = std::fs::read_to_string(&data_toml_path).unwrap_or_default();
+        let data_toml: toml::Value = toml::from_str(&content).unwrap_or(toml::Value::Table(Default::default()));
+
+        if let Some(datasets) = data_toml.get("dataset").and_then(|v| v.as_array()) {
+            for ds in datasets {
+                let id = ds.get("id").and_then(|v| v.as_str()).unwrap_or("unknown");
+                let uri = ds.get("source_uri").and_then(|v| v.as_str()).unwrap_or("");
+
+                if uri.is_empty() {
+                    results.upstream_checks.push(UpstreamCheck {
+                        dataset_id: id.into(),
+                        source_uri: String::new(),
+                        status: "no_uri".into(),
+                        detail: Some("no source URI configured".into()),
+                    });
+                    continue;
+                }
+
+                let probe = probe_upstream(uri);
+                if !json_output {
+                    match &probe.status[..] {
+                        "reachable" => println!("  [{id}] {uri} — reachable"),
+                        "unreachable" => println!("  [{id}] {uri} — UNREACHABLE: {}", probe.detail.as_deref().unwrap_or("?")),
+                        _ => println!("  [{id}] {uri} — {}", probe.status),
+                    }
+                }
+                results.upstream_checks.push(probe);
+            }
+        }
+    }
+
+    // Phase 3: summary
+    let local_ok = results.local_checks.iter().filter(|c| c.status == "ok").count();
+    let local_total = results.local_checks.len();
+    let local_drift = results.local_checks.iter().filter(|c| c.status == "DRIFT").count();
+    let upstream_reachable = results.upstream_checks.iter().filter(|c| c.status == "reachable").count();
+    let upstream_total = results.upstream_checks.iter().filter(|c| !c.source_uri.is_empty()).count();
+
+    results.summary = VerifySummary {
+        local_files_ok: local_ok,
+        local_files_total: local_total,
+        local_drift,
+        upstream_reachable,
+        upstream_total,
+        online,
+    };
+
+    if json_output {
+        println!("{}", serde_json::to_string_pretty(&results).unwrap_or_default());
+    } else {
+        println!();
+        println!("=== Verification Summary ===");
+        println!("  Local:    {local_ok}/{local_total} files intact, {local_drift} drifted");
+        if online {
+            println!("  Upstream: {upstream_reachable}/{upstream_total} sources reachable");
+        } else {
+            println!("  Upstream: skipped (offline)");
+        }
+    }
+
+    if local_drift > 0 {
+        std::process::exit(1);
+    }
+}
+
+fn hash_file(path: &std::path::Path) -> Result<String, std::io::Error> {
+    let mut file = std::fs::File::open(path)?;
+    let mut hasher = blake3::Hasher::new();
+    let mut buf = [0u8; 65536];
+    loop {
+        let n = std::io::Read::read(&mut file, &mut buf)?;
+        if n == 0 { break; }
+        hasher.update(&buf[..n]);
+    }
+    Ok(hasher.finalize().to_hex().to_string())
+}
+
+fn check_connectivity() -> bool {
+    use std::net::{TcpStream, ToSocketAddrs};
+    let addrs = [
+        "datadryad.org:443",
+        "www.ncbi.nlm.nih.gov:443",
+        "github.com:443",
+    ];
+    for addr in &addrs {
+        if let Ok(mut iter) = addr.to_socket_addrs() {
+            if let Some(sock) = iter.next() {
+                if TcpStream::connect_timeout(&sock, std::time::Duration::from_secs(3)).is_ok() {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
+fn probe_upstream(uri: &str) -> UpstreamCheck {
+    use std::net::{TcpStream, ToSocketAddrs};
+
+    let host = uri
+        .strip_prefix("https://").or_else(|| uri.strip_prefix("http://"))
+        .and_then(|s| s.split('/').next())
+        .unwrap_or("");
+
+    if host.is_empty() {
+        return UpstreamCheck {
+            dataset_id: String::new(),
+            source_uri: uri.into(),
+            status: "invalid_uri".into(),
+            detail: Some("cannot parse host from URI".into()),
+        };
+    }
+
+    let addr_str = format!("{host}:443");
+    match addr_str.to_socket_addrs() {
+        Ok(mut iter) => {
+            if let Some(sock) = iter.next() {
+                match TcpStream::connect_timeout(&sock, std::time::Duration::from_secs(5)) {
+                    Ok(_) => UpstreamCheck {
+                        dataset_id: String::new(),
+                        source_uri: uri.into(),
+                        status: "reachable".into(),
+                        detail: None,
+                    },
+                    Err(e) => UpstreamCheck {
+                        dataset_id: String::new(),
+                        source_uri: uri.into(),
+                        status: "unreachable".into(),
+                        detail: Some(format!("TCP connect failed: {e}")),
+                    },
+                }
+            } else {
+                UpstreamCheck {
+                    dataset_id: String::new(),
+                    source_uri: uri.into(),
+                    status: "unreachable".into(),
+                    detail: Some("DNS resolved but no addresses".into()),
+                }
+            }
+        }
+        Err(e) => UpstreamCheck {
+            dataset_id: String::new(),
+            source_uri: uri.into(),
+            status: "unreachable".into(),
+            detail: Some(format!("DNS resolution failed: {e}")),
+        },
+    }
+}
+
+#[derive(Default, serde::Serialize)]
+struct VerifyResults {
+    online: bool,
+    local_checks: Vec<FileCheck>,
+    upstream_checks: Vec<UpstreamCheck>,
+    summary: VerifySummary,
+}
+
+#[derive(serde::Serialize)]
+struct FileCheck {
+    path: String,
+    status: String,
+    expected: String,
+    actual: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    detail: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+struct UpstreamCheck {
+    dataset_id: String,
+    source_uri: String,
+    status: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    detail: Option<String>,
+}
+
+#[derive(Default, serde::Serialize)]
+struct VerifySummary {
+    local_files_ok: usize,
+    local_files_total: usize,
+    local_drift: usize,
+    upstream_reachable: usize,
+    upstream_total: usize,
+    online: bool,
 }

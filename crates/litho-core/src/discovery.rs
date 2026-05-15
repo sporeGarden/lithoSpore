@@ -184,11 +184,23 @@ fn parse_discovery_response(capability: &str, response: &str) -> Option<PrimalEn
 ///
 /// Returns `None` on connection/timeout/parse failure — callers degrade
 /// gracefully rather than panicking.
+///
+/// # Capability gaps
+///
+/// - **UDS transport**: Discovery resolves the socket, but RPC over UDS is
+///   not yet implemented. Returns `None` (degrade to skip). Requires
+///   `std::os::unix::net::UnixStream` RPC client matching the TCP pattern.
+/// - **TURN transport**: The `discover_from_turn` function resolves a TURN
+///   relay endpoint from env vars, but the actual Songbird TURN client
+///   library is an upstream dependency not yet available as a Rust crate.
+///   Until then, TURN discovery creates a `PrimalEndpoint` with the relay
+///   address but RPC calls through it use standard TCP (which only works
+///   if the relay forwards raw TCP — not guaranteed).
 #[must_use]
 pub fn rpc_call(endpoint: &PrimalEndpoint, request: &str) -> Option<serde_json::Value> {
     match endpoint.transport {
         Transport::Tcp => rpc_tcp(endpoint, request),
-        Transport::Uds => None, // UDS RPC not yet wired — degrade to skip
+        Transport::Uds => None,
     }
 }
 

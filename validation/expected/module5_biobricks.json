@@ -1,0 +1,52 @@
+{
+  "experiment": "biobrick_burden_2024",
+  "paper": "Barrick2024",
+  "paper_id": "B6",
+  "litho_module": 5,
+  "doi": "10.1038/s41467-024-50639-9",
+  "source_repo": "barricklab/igem2019",
+  "total_biobricks_tested": 301,
+  "bfp_controls": 5,
+  "total_strains_measured": 306,
+  "significantly_burdensome_count": 59,
+  "significantly_burdensome_fraction": 0.196,
+  "fdr_threshold": 0.05,
+  "correction_method": "benjamini_hochberg",
+  "max_burden_percent": 45.0,
+  "evolutionary_limit_percent": 45.0,
+  "burden_thresholds": {
+    "gt_10_percent": 31,
+    "gt_20_percent": 19,
+    "gt_30_percent": 6
+  },
+  "uncorrected_significant_count": 112,
+  "uncorrected_significant_fraction": 0.372,
+  "plasmid_backbones": {
+    "pSB1C3": 249,
+    "pSB1A2": 40,
+    "both": 9,
+    "other": 3
+  },
+  "backbone_effect_pvalue": 0.069,
+  "host_cell": "E. coli DH10B",
+  "population_genetic_model": {
+    "failure_mutation_rates_tested": ["1e-4", "1e-5", "1e-6", "1e-7", "1e-8"],
+    "max_unclonable_burden_percent": 45.0,
+    "colony_cell_divisions": 23,
+    "test_tube_cell_divisions": 34,
+    "lab_scale_cell_divisions": 40
+  },
+  "tolerances": {
+    "burden_relative_error": 0.05,
+    "count_tolerance": 5,
+    "fraction_absolute_tolerance": 0.03
+  },
+  "checks_expected": 5,
+  "check_descriptions": [
+    "total_parts_count: exactly 301 BioBricks (excluding BFP controls)",
+    "burden_fraction: ~19.6% significantly burdensome (within tolerance)",
+    "max_burden_bound: no part exceeds 45% growth rate burden",
+    "burden_threshold_gt10: ~31 parts with >10% burden (within tolerance)",
+    "backbone_distribution: pSB1C3 >= 230, pSB1A2 >= 35"
+  ]
+}

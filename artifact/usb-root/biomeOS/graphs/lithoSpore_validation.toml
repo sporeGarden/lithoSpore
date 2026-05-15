@@ -11,12 +11,12 @@ name = "lithoSpore-validation"
 version = "0.1.0"
 description = "LTEE Targeted GuideStone validation pipeline"
 
-# Phase 1: Verify data integrity
+# Phase 1: Verify data integrity (BLAKE3 hashes + upstream reachability)
 [[phase]]
 name = "data-integrity"
 description = "BLAKE3-verify all bundled datasets against data_manifest.toml"
 command = "bin/litho"
-args = ["status", "--artifact-root", "."]
+args = ["verify", "--artifact-root", "."]
 required = true
 
 # Phase 2: Run validation (Tier 1 or Tier 2)

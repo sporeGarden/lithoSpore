@@ -25,11 +25,21 @@ pub struct ModuleResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TargetCoverage {
+    pub id: String,
+    pub module: String,
+    pub claim: String,
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ValidationReport {
     pub artifact: String,
     pub version: String,
     pub tier_reached: u8,
     pub modules: Vec<ModuleResult>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub target_coverage: Vec<TargetCoverage>,
 }
 
 impl ValidationReport {
@@ -40,6 +50,7 @@ impl ValidationReport {
             version: version.to_string(),
             tier_reached: 0,
             modules: Vec::new(),
+            target_coverage: Vec::new(),
         }
     }
 

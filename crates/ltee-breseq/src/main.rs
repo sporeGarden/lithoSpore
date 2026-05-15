@@ -3,10 +3,11 @@
 //! Module 6: 264-genome breseq comparison
 //!
 //! Reproduces Tenaillon et al. 2016 (B7) — tempo and mode of genome evolution.
-//! Validates mutation accumulation curves, mutation spectrum, ts/tv ratio,
+//! Validates mutation accumulation curves, mutation spectrum, Ts/Tv ratio,
 //! and clock-like accumulation from 264 sequenced LTEE clones.
 //!
-//! Tier 2: pure Rust validation against wetSpring expected values.
+//! Tier 2: pure Rust validation against fetched/expected values.
+//! Targets: T09 (sensitivity vs breseq), T10 (parallel evolution ≥15 genes).
 
 use clap::Parser;
 use litho_core::harness;
@@ -42,7 +43,7 @@ fn run_validation(cli: &Cli) -> ModuleResult {
 
     if !Path::new(&cli.expected).exists() {
         return harness::skip("breseq_264_genomes", 1, start,
-            "Expected values not found — run wetSpring B7 first");
+            "Expected values not found — run scripts/fetch_tenaillon_2016.sh first");
     }
 
     if !Path::new(&cli.data_dir).exists() {
@@ -70,6 +71,8 @@ fn run_tier2_rust(cli: &Cli, start: Instant) -> ModuleResult {
     let mut passed = 0_u32;
     let mut total = 0_u32;
 
+    // --- Structural checks ---
+
     total += 1;
     let n_pop = targets["n_populations"]["value"].as_u64().unwrap_or(0);
     let pop_ok = n_pop == 12;
@@ -93,6 +96,8 @@ fn run_tier2_rust(cli: &Cli, start: Instant) -> ModuleResult {
     eprintln!("  [{}] Genome length: {genome_len:.0} bp (expected {expected_len:.0} ± {genome_tol:.0})",
         if len_ok { "PASS" } else { "FAIL" });
 
+    // --- Mutation rate (T09 component) ---
+
     total += 1;
     let rate = targets["nonmutator_rate_per_bp_per_gen"]["value"].as_f64().unwrap_or(0.0);
     let rate_tol = targets["nonmutator_rate_per_bp_per_gen"]["tolerance"].as_f64().unwrap_or(1e-11);
@@ -109,6 +114,8 @@ fn run_tier2_rust(cli: &Cli, start: Instant) -> ModuleResult {
     eprintln!("  [{}] Mutations at 50k: {muts_50k:.1} (expected 20.6 ± {muts_tol:.1})",
         if muts_ok { "PASS" } else { "FAIL" });
 
+    // --- Ts/Tv ratio ---
+
     total += 1;
     let ts_tv = targets["ts_tv_ratio"]["value"].as_f64().unwrap_or(0.0);
     let ts_tv_tol = targets["ts_tv_ratio"]["tolerance"].as_f64().unwrap_or(0.3);
@@ -117,6 +124,8 @@ fn run_tier2_rust(cli: &Cli, start: Instant) -> ModuleResult {
     eprintln!("  [{}] Ts/Tv ratio: {ts_tv:.2} (expected 1.7 ± {ts_tv_tol:.1})",
         if ts_tv_ok { "PASS" } else { "FAIL" });
 
+    // --- GC→AT dominance ---
+
     total += 1;
     let gc_at = targets["gc_to_at_fraction"]["value"].as_f64().unwrap_or(0.0);
     let gc_at_tol = targets["gc_to_at_fraction"]["tolerance"].as_f64().unwrap_or(0.05);
@@ -124,6 +133,44 @@ fn run_tier2_rust(cli: &Cli, start: Instant) -> ModuleResult {
     if gc_at_ok { passed += 1; }
     eprintln!("  [{}] GC→AT fraction: {gc_at:.2} (expected 0.68 ± {gc_at_tol:.2})",
         if gc_at_ok { "PASS" } else { "FAIL" });
+
+    // --- Mutation spectrum validation (6-class) ---
+    if let Some(spectrum_val) = targets.get("mutation_spectrum") {
+        if let Some(spectrum) = spectrum_val.get("value").and_then(|v| v.as_object()) {
+            let spec_tol = spectrum_val["tolerance"].as_f64().unwrap_or(0.05);
+
+            let expected_spectrum = [
+                ("GC_to_AT", 0.68),
+                ("AT_to_GC", 0.08),
+                ("GC_to_TA", 0.10),
+                ("GC_to_CG", 0.02),
+                ("AT_to_TA", 0.07),
+                ("AT_to_CG", 0.05),
+            ];
+
+            for (class, expected_frac) in &expected_spectrum {
+                if let Some(observed) = spectrum.get(*class).and_then(serde_json::Value::as_f64) {
+                    total += 1;
+                    let class_ok = (observed - expected_frac).abs() <= spec_tol;
+                    if class_ok { passed += 1; }
+                    eprintln!("  [{}] Spectrum {class}: {observed:.3} (expected {expected_frac:.3} ± {spec_tol:.3})",
+                        if class_ok { "PASS" } else { "FAIL" });
+                }
+            }
+
+            // Spectrum must sum to ~1.0
+            let total_frac: f64 = spectrum.values()
+                .filter_map(serde_json::Value::as_f64)
+                .sum();
+            total += 1;
+            let sum_ok = (total_frac - 1.0).abs() < 0.05;
+            if sum_ok { passed += 1; }
+            eprintln!("  [{}] Spectrum sums to ~1.0: {total_frac:.4}",
+                if sum_ok { "PASS" } else { "FAIL" });
+        }
+    }
+
+    // --- Accumulation curve linearity ---
 
     total += 1;
     let curve = &expected["mutation_accumulation_curve"];
@@ -148,6 +195,20 @@ fn run_tier2_rust(cli: &Cli, start: Instant) -> ModuleResult {
         false
     };
     if linear_ok { passed += 1; }
+
+    // --- Verify rate consistency: computed rate vs published ---
+    if gens.len() >= 2 && muts.len() >= 2 {
+        let last_gen = gens.last().copied().unwrap_or(0.0);
+        let last_muts = muts.last().copied().unwrap_or(0.0);
+        if last_gen > 0.0 && genome_len > 0.0 {
+            total += 1;
+            let computed_rate = last_muts / (last_gen * genome_len);
+            let rate_match = (computed_rate - rate).abs() / rate < 0.1;
+            if rate_match { passed += 1; }
+            eprintln!("  [{}] Computed rate matches published: {computed_rate:.2e} vs {rate:.2e} (< 10% deviation)",
+                if rate_match { "PASS" } else { "FAIL" });
+        }
+    }
 
     let status = if passed == total { ValidationStatus::Pass } else { ValidationStatus::Fail };
     ModuleResult {

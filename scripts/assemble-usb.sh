@@ -89,6 +89,11 @@ if $DRY_RUN; then
     echo "  │   └── targets/  (validation target TOMLs)"
     echo "  ├── figures/"
     echo "  │   └── m[1-7]_*.svg  (publication-quality figures)"
+    echo "  ├── papers/"
+    echo "  │   ├── registry.toml"
+    echo "  │   └── READING_ORDER.md"
+    echo "  ├── GETTING_STARTED.md"
+    echo "  ├── SCIENCE.md"
     echo "  └── notebooks/"
     echo "      ├── litho_figures.py"
     echo "      ├── module*/*.py"
@@ -217,6 +222,19 @@ else
         log "  Tier 1 will use system python3 if available"
     fi
 fi
+
+# --- 6b. Stage papers, docs, and reading guides ---
+step "6b. Staging papers and documentation"
+if [ -d "$ROOT/papers" ]; then
+    mkdir -p "$TARGET/papers"
+    cp "$ROOT"/papers/*.toml "$TARGET/papers/" 2>/dev/null || true
+    cp "$ROOT"/papers/*.md "$TARGET/papers/" 2>/dev/null || true
+    log "Papers registry staged"
+fi
+for doc in GETTING_STARTED.md SCIENCE.md; do
+    [ -f "$ROOT/$doc" ] && cp "$ROOT/$doc" "$TARGET/"
+done
+log "Documentation staged"
 
 # --- 7. Stage notebooks ---
 step "7. Staging notebooks"

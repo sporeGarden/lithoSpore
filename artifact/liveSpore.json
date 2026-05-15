@@ -64,5 +64,16 @@
     "modules_total": 7,
     "runtime_ms": 2,
     "discovery_path": "standalone"
+  },
+  {
+    "timestamp": "2026-05-15T18:58:43.435934425+00:00",
+    "hostname_hash": "ea7afbf5c3a4aadd86d2c7fca7154df661ec16df98311dc61319dd454ed7f053",
+    "arch": "x86_64",
+    "os": "linux",
+    "tier_reached": 2,
+    "modules_passed": 7,
+    "modules_total": 7,
+    "runtime_ms": 10,
+    "discovery_path": "standalone"
   }
 ]

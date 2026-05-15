@@ -2,7 +2,7 @@
 
 //! Unified CLI entry point for lithoSpore.
 //!
-//! Subcommands: validate, refresh, status, spore, verify, visualize
+//! Subcommands: validate, refresh, status, spore, verify, visualize, self-test, tier
 
 mod ops;
 mod validate;
@@ -80,6 +80,28 @@ enum Commands {
         #[arg(long, default_value = "figures")]
         output: String,
     },
+
+    /// Validate artifact integrity: expected JSONs, data dirs, binaries, papers
+    SelfTest {
+        #[arg(long, default_value = ".")]
+        artifact_root: String,
+    },
+
+    /// Report which validation tier is achievable on this machine
+    Tier {
+        #[arg(long, default_value = ".")]
+        artifact_root: String,
+    },
+
+    /// Generate a TOML deployment report combining self-test, validate, verify
+    DeployReport {
+        #[arg(long, default_value = ".")]
+        artifact_root: String,
+
+        /// Deployment pattern label (e.g. container-airgap, vps-spore, usb-local)
+        #[arg(long, default_value = "local")]
+        pattern: String,
+    },
 }
 
 fn main() {
@@ -92,6 +114,9 @@ fn main() {
         Commands::Spore { artifact_root } => ops::cmd_spore(&artifact_root),
         Commands::Verify { artifact_root, json } => verify::run(&artifact_root, json),
         Commands::Visualize { artifact_root, format, output } => visualize::run(&artifact_root, &format, &output),
+        Commands::SelfTest { artifact_root } => ops::cmd_self_test(&artifact_root),
+        Commands::Tier { artifact_root } => ops::cmd_tier(&artifact_root),
+        Commands::DeployReport { artifact_root, pattern } => ops::cmd_deploy_report(&artifact_root, &pattern),
     }
 }
 

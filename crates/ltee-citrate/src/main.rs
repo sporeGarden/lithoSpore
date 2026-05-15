@@ -6,9 +6,9 @@
 //! the evolution of a novel metabolic capability.
 //! Springs: groundSpring (Cit+ potentiation), wetSpring (replay experiments).
 //!
-//! Upstream gaps:
-//! - groundSpring B4: citrate utilization replay statistics
-//! - wetSpring B4: multi-step innovation probability
+//! Tier 2: ingests fetched citrate timeline data, computes potentiation window,
+//! replay probabilities, and validates the two-hit model.
+//! Target: T07 (potentiating mutations ~2000 gens before Cit+).
 
 use clap::Parser;
 use litho_core::harness;
@@ -43,86 +43,145 @@ fn run_validation(cli: &Cli) -> ModuleResult {
     let data_path = std::path::Path::new(&cli.data_dir);
 
     if !expected_path.exists() || !data_path.exists() {
-        return ModuleResult {
-            name: "citrate_innovation".to_string(),
-            status: ValidationStatus::Skip,
-            tier: 2,
-            checks: 0,
-            checks_passed: 0,
-            runtime_ms: start.elapsed().as_millis() as u64,
-            error: Some(format!(
+        return harness::skip(
+            "citrate_innovation", 2, start,
+            &format!(
                 "Data or expected values not found — run scripts/fetch_blount_2012.sh first (expected={}, data={})",
                 expected_path.display(), data_path.display()
-            )),
-        };
+            ),
+        );
     }
 
-    let expected: serde_json::Value = match std::fs::read_to_string(expected_path)
-        .map_err(|e| e.to_string())
-        .and_then(|s| serde_json::from_str(&s).map_err(|e| e.to_string()))
-    {
-        Ok(v) => v,
-        Err(e) => {
-            return ModuleResult {
-                name: "citrate_innovation".to_string(),
-                status: ValidationStatus::Fail,
-                tier: 2,
-                checks: 0,
-                checks_passed: 0,
-                runtime_ms: start.elapsed().as_millis() as u64,
-                error: Some(format!("Failed to read expected values: {e}")),
-            };
-        }
+    let expected = match harness::load_expected(&cli.expected) {
+        Some(v) => v,
+        None => return harness::skip(
+            "citrate_innovation", 2, start, "Cannot parse expected values JSON",
+        ),
     };
+
+    // Also try fetched data bundle for richer validation
+    let data_json_path = data_path.join("expected_values.json");
+    let data_bundle = data_json_path
+        .to_str()
+        .and_then(harness::load_expected);
+    let source = data_bundle.as_ref().unwrap_or(&expected);
 
     let mut checks = 0u32;
     let mut passed = 0u32;
 
-    if let Some(frac) = expected.get("cit_plus_fraction").and_then(serde_json::Value::as_f64) {
+    // --- Check 1: Cit+ fraction (1/12 populations = 1/6 of the 6 Ara- lines) ---
+    if let Some(frac) = source.get("cit_plus_fraction").and_then(serde_json::Value::as_f64) {
         checks += 1;
         let expected_frac = 1.0 / 6.0;
-        if (frac - expected_frac).abs() < 0.01 { passed += 1; }
+        let frac_ok = (frac - expected_frac).abs() < 0.01;
+        if frac_ok { passed += 1; }
+        eprintln!("  [{}] Cit+ fraction: {frac:.4} (expected {expected_frac:.4} ± 0.01)",
+            if frac_ok { "PASS" } else { "FAIL" });
     }
 
-    if let Some(pot) = expected.get("potentiation_fraction").and_then(serde_json::Value::as_f64) {
+    // --- Check 2: Potentiation fraction ---
+    if let Some(pot) = source.get("potentiation_fraction").and_then(serde_json::Value::as_f64) {
         checks += 1;
-        if pot > 0.0 && pot <= 1.0 { passed += 1; }
+        let pot_ok = pot > 0.0 && pot <= 1.0;
+        if pot_ok { passed += 1; }
+        eprintln!("  [{}] Potentiation fraction: {pot:.4} (in (0, 1])",
+            if pot_ok { "PASS" } else { "FAIL" });
     }
 
-    if let Some(pot_gen) = expected.get("mean_potentiation_gen").and_then(serde_json::Value::as_f64) {
+    // --- T07: Potentiation window computation ---
+    let pot_gen = source.get("mean_potentiation_gen").and_then(serde_json::Value::as_f64);
+    let cit_gen = source.get("mean_cit_plus_gen").and_then(serde_json::Value::as_f64);
+
+    if let Some(pg) = pot_gen {
         checks += 1;
-        if pot_gen > 30000.0 && pot_gen < 50000.0 { passed += 1; }
+        let pg_ok = pg > 30000.0 && pg < 50000.0;
+        if pg_ok { passed += 1; }
+        eprintln!("  [{}] Mean potentiation generation: {pg:.0} (expected 30000–50000)",
+            if pg_ok { "PASS" } else { "FAIL" });
     }
 
-    if let Some(cit_gen) = expected.get("mean_cit_plus_gen").and_then(serde_json::Value::as_f64) {
+    if let Some(cg) = cit_gen {
         checks += 1;
-        if cit_gen > 40000.0 && cit_gen < 55000.0 { passed += 1; }
+        let cg_ok = cg > 40000.0 && cg < 55000.0;
+        if cg_ok { passed += 1; }
+        eprintln!("  [{}] Mean Cit+ generation: {cg:.0} (expected 40000–55000)",
+            if cg_ok { "PASS" } else { "FAIL" });
     }
 
-    if let Some(replay) = expected.get("replay_probabilities").and_then(|v| v.as_object()) {
+    // T07: Compute potentiation window (the key Blount 2008 claim)
+    if let (Some(pg), Some(cg)) = (pot_gen, cit_gen) {
+        checks += 1;
+        let window = cg - pg;
+        let window_ok = window > 0.0 && window < 10000.0;
+        if window_ok { passed += 1; }
+        eprintln!("  [{}] Potentiation window: {window:.0} generations (Cit+ gen - potentiation gen, expected < 10000)",
+            if window_ok { "PASS" } else { "FAIL" });
+
+        // Verify potentiation precedes innovation
+        checks += 1;
+        let order_ok = pg < cg;
+        if order_ok { passed += 1; }
+        eprintln!("  [{}] Potentiation precedes innovation: {pg:.0} < {cg:.0}",
+            if order_ok { "PASS" } else { "FAIL" });
+    }
+
+    // --- Replay probabilities (should be 0 at early timepoints) ---
+    if let Some(replay) = source.get("replay_probabilities").and_then(|v| v.as_object()) {
         checks += 1;
         let all_valid = replay.values().all(|v| {
             v.as_f64().is_some_and(|p| (0.0..=1.0).contains(&p))
         });
         if all_valid { passed += 1; }
+        eprintln!("  [{}] Replay probabilities all in [0, 1]: {all_valid}",
+            if all_valid { "PASS" } else { "FAIL" });
+
+        // Early replays should have zero probability (historical contingency)
+        checks += 1;
+        let early_zero = replay.iter()
+            .filter(|(k, _)| k.parse::<f64>().unwrap_or(f64::MAX) < 20000.0)
+            .all(|(_, v)| v.as_f64().unwrap_or(1.0) == 0.0);
+        if early_zero { passed += 1; }
+        eprintln!("  [{}] Early replays (< 20k gen) have zero probability: {early_zero}",
+            if early_zero { "PASS" } else { "FAIL" });
     }
 
-    let single = expected.get("single_hit_mean_wait").and_then(serde_json::Value::as_f64);
-    let two_hit = expected.get("two_hit_analytical_mean").and_then(serde_json::Value::as_f64);
-    if let (Some(s), Some(t)) = (single, two_hit) {
-        checks += 1;
-        if t > s * 10.0 { passed += 1; }
+    // --- Two-hit model ---
+    if let Some(two_hit) = source.get("two_hit_model") {
+        if let Some(window_gens) = two_hit.get("potentiation_window_gens").and_then(serde_json::Value::as_f64) {
+            checks += 1;
+            let window_ok = window_gens > 1000.0 && window_gens < 10000.0;
+            if window_ok { passed += 1; }
+            eprintln!("  [{}] Two-hit model window: {window_gens:.0} gens (expected 1000–10000)",
+                if window_ok { "PASS" } else { "FAIL" });
+        }
     }
 
-    let empirical = expected.get("two_hit_empirical_mean").and_then(serde_json::Value::as_f64);
-    if let (Some(e), Some(a)) = (empirical, two_hit) {
+    // Single/two-hit wait times (legacy fields)
+    let single = source.get("single_hit_mean_wait").and_then(serde_json::Value::as_f64);
+    let two_hit_val = source.get("two_hit_analytical_mean").and_then(serde_json::Value::as_f64);
+    if let (Some(s), Some(t)) = (single, two_hit_val) {
         checks += 1;
-        if e < a { passed += 1; }
+        let order_ok = t > s * 10.0;
+        if order_ok { passed += 1; }
+        eprintln!("  [{}] Two-hit wait >> single-hit: {t:.0} > 10×{s:.0}",
+            if order_ok { "PASS" } else { "FAIL" });
     }
 
-    if let Some(paper) = expected.get("paper").and_then(|v| v.as_str()) {
+    let empirical = source.get("two_hit_empirical_mean").and_then(serde_json::Value::as_f64);
+    if let (Some(e), Some(a)) = (empirical, two_hit_val) {
         checks += 1;
-        if paper.starts_with("Blount") { passed += 1; }
+        let e_ok = e < a;
+        if e_ok { passed += 1; }
+        eprintln!("  [{}] Empirical < analytical two-hit: {e:.0} < {a:.0}",
+            if e_ok { "PASS" } else { "FAIL" });
+    }
+
+    // Paper citation
+    if let Some(paper) = source.get("paper").and_then(|v| v.as_str()) {
+        checks += 1;
+        let paper_ok = paper.starts_with("Blount");
+        if paper_ok { passed += 1; }
+        eprintln!("  [{}] Paper citation: {paper}", if paper_ok { "PASS" } else { "FAIL" });
     }
 
     ModuleResult {
@@ -160,19 +219,17 @@ mod tests {
 
     #[test]
     fn valid_citrate_json_validates() {
-        let dir = std::env::temp_dir().join("litho_test_citrate");
+        let dir = std::env::temp_dir().join("litho_test_citrate_v2");
         let _ = std::fs::create_dir_all(&dir);
         let expected = dir.join("expected.json");
         std::fs::write(&expected, r#"{
-            "paper": "Blount2012",
+            "paper": "Blount2008",
             "cit_plus_fraction": 0.16667,
-            "potentiation_fraction": 0.8,
-            "mean_potentiation_gen": 35000.0,
-            "mean_cit_plus_gen": 45000.0,
-            "replay_probabilities": {"early": 0.0, "middle": 0.1, "late": 0.5},
-            "single_hit_mean_wait": 100.0,
-            "two_hit_analytical_mean": 5000.0,
-            "two_hit_empirical_mean": 3000.0
+            "potentiation_fraction": 0.16667,
+            "mean_potentiation_gen": 41059.0,
+            "mean_cit_plus_gen": 46050.5,
+            "replay_probabilities": {"0": 0.0, "5000": 0.0, "10000": 0.0, "15000": 0.0, "40000": 0.0},
+            "two_hit_model": {"potentiation_window_gens": 4991.5, "source": "Blount 2012"}
         }"#).unwrap();
         let data = dir.join("data");
         let _ = std::fs::create_dir_all(&data);
@@ -184,7 +241,7 @@ mod tests {
             json: false,
         };
         let result = run_validation(&cli);
-        assert!(result.checks >= 7, "expected >= 7 checks, got {}", result.checks);
+        assert!(result.checks >= 10, "expected >= 10 checks, got {}", result.checks);
         assert_eq!(result.status, ValidationStatus::Pass);
         let _ = std::fs::remove_dir_all(&dir);
     }

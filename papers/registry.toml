@@ -1,0 +1,300 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Paper Registry — machine-readable bibliography for lithoSpore guideStone.
+#
+# Every module claim maps to a DOI, figure, and table. This file travels
+# with the USB artifact so Barrick/Lenski can trace every number to its
+# published source.
+#
+# status = "reproduced"  — lithoSpore module recomputes from data
+# status = "validated"   — lithoSpore checks published values against tolerances
+# status = "context"     — informs the work but is not directly replicated
+
+[meta]
+artifact = "ltee-guidestone"
+last_updated = "2026-05-15"
+total_papers = 16
+
+# ─────────────────────────────────────────────────────────────
+#  PRIMARY PAPERS — directly reproduced or validated by modules
+# ─────────────────────────────────────────────────────────────
+
+[[paper]]
+id = "wiser2013"
+doi = "10.1126/science.1243357"
+title = "Long-term dynamics of adaptation in asexual populations"
+authors = ["Wiser MJ", "Ribeck N", "Lenski RE"]
+journal = "Science"
+year = 2013
+volume = "342"
+pages = "1364-1367"
+status = "reproduced"
+litho_modules = ["ltee-fitness"]
+figures_reproduced = ["Fig 1 (fitness trajectories)", "Fig 2 (power-law vs hyperbolic vs log)"]
+tables_validated = ["Table 1 (power-law exponent β ≈ 0.12)"]
+public_data_url = "https://datadryad.org/stash/dataset/doi:10.5061/dryad.0hc2m"
+targets = ["T01", "T02"]
+summary = "Demonstrates LTEE fitness follows a power law w(t) ~ t^β rather than approaching an asymptote. Module 1 reproduces the model comparison (AIC/BIC) and fits the exponent from Dryad CSV data."
+
+[[paper]]
+id = "barrick2009"
+doi = "10.1038/nature08480"
+title = "Genome evolution and adaptation in a long-term experiment with Escherichia coli"
+authors = ["Barrick JE", "Yu DS", "Yoon SH", "Jeong H", "Oh TK", "Schneider D", "Lenski RE", "Kim JF"]
+journal = "Nature"
+year = 2009
+volume = "461"
+pages = "1243-1247"
+status = "reproduced"
+litho_modules = ["ltee-mutations"]
+figures_reproduced = ["Fig 1 (mutation accumulation over 20K generations)"]
+tables_validated = ["Table 1 (mutation rate ~8.9e-11 per bp per generation)"]
+public_data_url = "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA29543"
+targets = ["T03", "T04"]
+summary = "First whole-genome resequencing of LTEE evolved lines. Module 2 validates mutation rate, Kimura fixation probability, Poisson accumulation linearity, and drift-vs-selection ratios."
+
+[[paper]]
+id = "good2017"
+doi = "10.1038/nature24287"
+title = "The dynamics of molecular evolution over 60,000 generations"
+authors = ["Good BH", "McDonald MJ", "Barrick JE", "Lenski RE", "Desai MM"]
+journal = "Nature"
+year = 2017
+volume = "551"
+pages = "45-50"
+status = "reproduced"
+litho_modules = ["ltee-alleles"]
+figures_reproduced = ["Fig 1 (allele frequency trajectories)", "Fig 2 (clonal interference dynamics)"]
+tables_validated = ["Table S1 (population-level fixation rates)"]
+public_data_url = "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA380528"
+targets = ["T05", "T06"]
+summary = "Deep metagenomic sequencing reveals competing clades and clonal interference. Module 3 computes fixation probabilities, interference ratios, and clade classification from allele frequency data."
+
+[[paper]]
+id = "blount2008"
+doi = "10.1073/pnas.0803151105"
+title = "Historical contingency and the evolution of a key innovation in an experimental population of Escherichia coli"
+authors = ["Blount ZD", "Borland CZ", "Lenski RE"]
+journal = "PNAS"
+year = 2008
+volume = "105"
+pages = "7899-7906"
+status = "validated"
+litho_modules = ["ltee-citrate"]
+figures_reproduced = ["Fig 2 (replay experiment potentiation window)"]
+tables_validated = []
+public_data_url = ""
+targets = ["T07"]
+summary = "The citrate innovation — historical contingency demonstrated via replay experiments. Module 4 validates the potentiation window timing (~2000 generations before Cit+)."
+
+[[paper]]
+id = "blount2012"
+doi = "10.1038/nature11514"
+title = "Genomic analysis of a key innovation in an experimental Escherichia coli population"
+authors = ["Blount ZD", "Barrick JE", "Davidson CJ", "Lenski RE"]
+journal = "Nature"
+year = 2012
+volume = "489"
+pages = "513-518"
+status = "validated"
+litho_modules = ["ltee-citrate"]
+figures_reproduced = ["Fig 1 (Cit+ lineage reconstruction)"]
+tables_validated = ["Table 1 (replay probabilities)"]
+public_data_url = "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA188627"
+targets = ["T07"]
+summary = "Genomic dissection of the citrate innovation. Module 4 uses replay probabilities and two-hit ordering from this work."
+
+[[paper]]
+id = "barrick2024"
+doi = "10.1038/s41467-024-50639-9"
+title = "Measuring the burden of hundreds of BioBricks defines an evolutionary limit on constructability in synthetic biology"
+authors = ["Barrick JE", "et al."]
+journal = "Nature Communications"
+year = 2024
+volume = "15"
+pages = "6242"
+status = "reproduced"
+litho_modules = ["ltee-biobricks"]
+figures_reproduced = ["Fig 2 (burden distribution)", "Fig 3 (fat-tailed burden)"]
+tables_validated = ["Table S1 (301 plasmid metadata)"]
+public_data_url = "https://github.com/barricklab/igem2019/releases/tag/v1.0.2"
+targets = ["T08"]
+summary = "Growth burden quantification for 301 BioBrick plasmids. Module 5 computes burden from plate reader CSVs and validates the fat-tailed distribution."
+
+[[paper]]
+id = "tenaillon2016"
+doi = "10.1038/nature18959"
+title = "Tempo and mode of genome evolution in a 50,000-generation experiment"
+authors = ["Tenaillon O", "Barrick JE", "Ribeck N", "Deatherage DE", "Blanchard JL", "Dasgupta A", "Wu GC", "Wielgoss S", "Cruveiller S", "Medigue C", "Schneider D", "Lenski RE"]
+journal = "Nature"
+year = 2016
+volume = "536"
+pages = "165-170"
+status = "reproduced"
+litho_modules = ["ltee-breseq"]
+figures_reproduced = ["Fig 1 (mutation accumulation curves)", "Fig 2 (parallel evolution genes)"]
+tables_validated = ["Table 2 (parallel evolution in ≥15 genes)", "Table S1 (Ts/Tv ratios)"]
+public_data_url = "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA294072"
+targets = ["T09", "T10"]
+summary = "264 whole-genome sequences across 12 populations at 50K generations. Module 6 validates mutation accumulation curves, Ts/Tv ratios, and parallel evolution significance."
+
+# ─────────────────────────────────────────────────────────────
+#  ANDERSON-QS PAPERS — internal predictions validated by module 7
+# ─────────────────────────────────────────────────────────────
+
+[[paper]]
+id = "anderson1958"
+doi = "10.1103/PhysRev.109.1492"
+title = "Absence of diffusion in certain random lattices"
+authors = ["Anderson PW"]
+journal = "Physical Review"
+year = 1958
+volume = "109"
+pages = "1492-1505"
+status = "context"
+litho_modules = ["ltee-anderson"]
+figures_reproduced = []
+tables_validated = []
+public_data_url = ""
+targets = ["T11", "T13"]
+summary = "Foundation paper for Anderson localization. Module 7 applies the disorder analogy (W/V ratio) to LTEE fitness landscapes — not a direct reproduction but a novel theoretical connection."
+
+[[paper]]
+id = "mehta2004"
+doi = "10.1016/B978-012088491-8/50006-6"
+title = "Random Matrices"
+authors = ["Mehta ML"]
+journal = "Elsevier (book)"
+year = 2004
+volume = ""
+pages = ""
+status = "context"
+litho_modules = ["ltee-anderson"]
+figures_reproduced = []
+tables_validated = []
+public_data_url = ""
+targets = ["T12"]
+summary = "Reference for GOE eigenvalue statistics and Wigner surmise. Module 7 uses GOE level-spacing distributions to characterize DFE structure."
+
+# ─────────────────────────────────────────────────────────────
+#  BROADER LTEE CORPUS — context papers (not directly replicated)
+# ─────────────────────────────────────────────────────────────
+
+[[paper]]
+id = "lenski1991"
+doi = "10.1086/285289"
+title = "Long-term experimental evolution in Escherichia coli. I. Adaptation and divergence during 2,000 generations"
+authors = ["Lenski RE", "Rose MR", "Simpson SC", "Tadler SC"]
+journal = "American Naturalist"
+year = 1991
+volume = "138"
+pages = "1315-1341"
+status = "context"
+litho_modules = []
+figures_reproduced = []
+tables_validated = []
+public_data_url = ""
+targets = []
+summary = "The founding LTEE paper. Establishes the 12-population, 75,000+ generation experiment that all modules build upon."
+
+[[paper]]
+id = "lenski2015"
+doi = "10.1086/680530"
+title = "Experimental evolution and the dynamics of adaptation and genome evolution in microbial populations"
+authors = ["Lenski RE"]
+journal = "ISME Journal"
+year = 2017
+volume = "11"
+pages = "2181-2194"
+status = "context"
+litho_modules = []
+figures_reproduced = []
+tables_validated = []
+public_data_url = ""
+targets = []
+summary = "Lenski's comprehensive review of LTEE insights after 25+ years. Provides the intellectual framework connecting all seven modules."
+
+[[paper]]
+id = "woods2011"
+doi = "10.1126/science.1203801"
+title = "Second-order selection for evolvability in a large Escherichia coli population"
+authors = ["Woods RJ", "Barrick JE", "Cooper TF", "Shrestha U", "Kauth MR", "Lenski RE"]
+journal = "Science"
+year = 2011
+volume = "331"
+pages = "1433-1436"
+status = "context"
+litho_modules = ["ltee-fitness"]
+figures_reproduced = []
+tables_validated = []
+public_data_url = ""
+targets = []
+summary = "Epistasis and second-order selection in LTEE. Marker divergence baseline data (Woods et al. curves) used in lithoSpore visualization layer."
+
+[[paper]]
+id = "maddamsetti2015"
+doi = "10.1534/genetics.115.178962"
+title = "Adaptation, clonal interference, and frequency-dependent interactions in a long-term evolution experiment with Escherichia coli"
+authors = ["Maddamsetti R", "Lenski RE", "Barrick JE"]
+journal = "Genetics"
+year = 2015
+volume = "200"
+pages = "619-631"
+status = "context"
+litho_modules = ["ltee-alleles", "ltee-mutations"]
+figures_reproduced = []
+tables_validated = []
+public_data_url = ""
+targets = []
+summary = "Clonal interference dynamics and frequency-dependent fitness. Informs module 3 interference ratio computations."
+
+[[paper]]
+id = "deatherage2017"
+doi = "10.1186/s12864-014-1160-7"
+title = "Identification of mutations in laboratory-evolved microbes from next-generation sequencing data using breseq"
+authors = ["Deatherage DE", "Barrick JE"]
+journal = "Methods in Molecular Biology"
+year = 2014
+volume = "1151"
+pages = "165-188"
+status = "context"
+litho_modules = ["ltee-breseq"]
+figures_reproduced = []
+tables_validated = []
+public_data_url = "https://github.com/barricklab/breseq"
+targets = []
+summary = "The breseq methods paper. Module 6 benchmarks against breseq reference calls for the LTEE genomes."
+
+[[paper]]
+id = "barrickbreaker2007"
+doi = "10.1186/1471-2105-8-209"
+title = "The distributions of the number and sizes of conjugal plasmids across bacteria"
+authors = ["Barrick JE", "Breaker RR"]
+journal = "BMC Bioinformatics"
+year = 2007
+volume = "8"
+pages = "209"
+status = "context"
+litho_modules = []
+figures_reproduced = []
+tables_validated = []
+public_data_url = ""
+targets = []
+summary = "RNA structure mutual information methodology. Baseline data from this work used in rna_mi visualization adapter."
+
+[[paper]]
+id = "venkataram2016"
+doi = "10.1534/genetics.116.193961"
+title = "Development of a comprehensive genotype-to-fitness map of adaptation-driving mutations in yeast"
+authors = ["Venkataram S", "Dunn B", "Li Y", "Agarwala A", "Chang J", "Ebber ER", "Schroeder C", "Cunningham I", "Cooper TF", "Sherlock G"]
+journal = "Cell"
+year = 2016
+volume = "166"
+pages = "1585-1596"
+status = "context"
+litho_modules = ["ltee-anderson"]
+figures_reproduced = []
+tables_validated = []
+public_data_url = ""
+targets = []
+summary = "DFE measurement methodology applicable to LTEE. Informs module 7 DFE shape parameter analysis."

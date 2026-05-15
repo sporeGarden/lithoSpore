@@ -6,8 +6,11 @@
   "target": "Barrick Lab — Long-Term Evolution Experiment",
   "entry": "spore.sh",
   "validate": "validate",
+  "verify": "verify",
   "refresh": "refresh",
   "provenance": "liveSpore.json",
   "manifest": "data_manifest.toml",
+  "papers": "papers/registry.toml",
+  "getting_started": "GETTING_STARTED.md",
   "license": "AGPL-3.0-or-later"
 }

@@ -106,7 +106,9 @@ lithoSpore/
 ├── graphs/                       # Tier 3 deploy graphs
 ├── workloads/                    # projectNUCLEUS workload TOMLs
 ├── lineage/                      # Foundation thread linkage
-├── scripts/                      # Build, fetch, and utility scripts
+├── papers/                       # Paper registry (16 DOIs) + READING_ORDER.md
+├── figures/                      # Publication-quality SVG figures (7 modules)
+├── scripts/                      # Build, fetch, deploy-test, chaos-test scripts
 ├── specs/                        # Specifications
 └── docs/                         # Architecture + gap analysis
 ```
@@ -120,7 +122,7 @@ cargo build --release
 # Build artifact binaries (cross-compile musl-static)
 ./scripts/build-artifact.sh
 
-# Run validation (6/7 modules LIVE at Tier 2, 1 scaffold SKIP)
+# Run validation (7/7 modules at Tier 2)
 cargo run --bin litho -- validate --json
 ```
 
@@ -144,21 +146,20 @@ The assembled USB is a self-sufficient hypogeal cotyledon: plug it into
 any Linux machine and run `./validate`. See `artifact/usb-root/` for
 the root file templates.
 
-## Current Status — 6 LIVE + 1 Scaffold (May 15, 2026)
+## Current Status — 7/7 PASS (May 15, 2026)
 
-**Pillar 4 EXIT GATE: EXCEEDED** — 6 modules PASS at Tier 2, gate required 2+.
-Module 5 (biobricks) is a scaffold awaiting upstream data publication.
-**VM-validated**: USB pipeline tested on a fresh libvirt VM via agentReagents — 51/51 checks pass.
+**Pillar 4 EXIT GATE: EXCEEDED** — 7 modules PASS at Tier 2, gate required 2+.
+**Deployment-validated**: USB pipeline tested via agentReagents (VM + container + local) — 75/75 checks, 108 unit tests, 16 integration tests, 15 chaos/fault-injection tests.
 
 | Module | Status | Checks | Source |
 |--------|--------|--------|--------|
 | 1. ltee-fitness | **PASS** Tier 2 | 8/8 | groundSpring B2 Wiser 2013 |
 | 2. ltee-mutations | **PASS** Tier 2 | 7/7 | groundSpring B1 Barrick 2009 |
-| 3. ltee-alleles | **PASS** Tier 2 | 17/17 | groundSpring B3 Good 2017 |
-| 4. ltee-citrate | **PASS** Tier 2 | 6/6 | groundSpring B4 Blount 2008/2012 |
-| 5. ltee-biobricks | SCAFFOLD | — | Upstream-blocked: Burden 2024 data + springs pending |
-| 6. ltee-breseq | **PASS** Tier 2 | 8/8 | wetSpring B7 Tenaillon 2016 |
-| 7. ltee-anderson | **PASS** Tier 2 | 5/5 | hotSpring B2 Anderson disorder |
+| 3. ltee-alleles | **PASS** Tier 2 | 20/20 | groundSpring B3 Good 2017 |
+| 4. ltee-citrate | **PASS** Tier 2 | 11/11 | groundSpring B4 Blount 2008/2012 |
+| 5. ltee-biobricks | **PASS** Tier 2 | 6/6 | Burden 2024 BioBrick metabolic burden |
+| 6. ltee-breseq | **PASS** Tier 2 | 16/16 | wetSpring B7 Tenaillon 2016 |
+| 7. ltee-anderson | **PASS** Tier 2 | 7/7 | hotSpring B2 Anderson disorder |
 
 **Tier 2 Rust implementations**:
 - **Module 1**: Nelder-Mead curve fitting (power-law/hyperbolic/logarithmic) + AIC/BIC model selection
@@ -169,9 +170,10 @@ Module 5 (biobricks) is a scaffold awaiting upstream data publication.
 - **Module 7**: Anderson disorder mapping, GOE/Poisson eigenvalue statistics
 
 **Infrastructure**: `litho-core` crate with 7 modules (validation, provenance, tolerance,
-spore tracking, capability-based discovery, shared stats + harness, viz), 66 unit tests,
-CI wired, zero clippy warnings, `#![forbid(unsafe_code)]` workspace-wide,
-pure Rust BLAKE3 (ecoBin compliant), `liveSpore.json` operational.
+spore tracking, capability-based discovery, shared stats + harness, viz), 108 unit tests +
+16 integration tests + 15 chaos/fault-injection tests, CI wired, zero clippy warnings,
+`#![forbid(unsafe_code)]` workspace-wide, pure Rust BLAKE3 (ecoBin compliant),
+`liveSpore.json` operational with corruption resilience and backup.
 
 **Architecture** (May 14 geo-delocalization absorption):
 - `unsafe_code = "forbid"` enforced at workspace lint level — all 9 crates inherit
@@ -182,14 +184,24 @@ pure Rust BLAKE3 (ecoBin compliant), `liveSpore.json` operational.
   `DiscoveryPath` + `turn_relay` recorded in `liveSpore.json` for provenance.
 - `probe_operating_mode()` detects standalone/LAN/geo-delocalized before validation
 - Clippy pedantic clean — scientific casts allowed; all other pedantic lints enforced
-- `cmd_refresh` real `data.toml`-driven fetch pipeline (5 fetch scripts: B1–B4, B7)
+- `cmd_refresh` real `data.toml`-driven fetch pipeline (7 fetch scripts: all modules)
+- `litho deploy-report` structured TOML output for deployment validation
+- `litho self-test` artifact integrity check (23 checks)
+- Subprocess timeouts (120s) prevent hanging modules from blocking validation
+- `litho verify` hardened: exits non-zero on MISSING, ERROR, and corrupt manifests
 
 **petalTongue Integration**: `litho-core::viz` provides `DataBinding` adapters for all
 7 LTEE modules and 7 Barrick Lab baseline tools. `litho visualize` pushes live dashboards
 to petalTongue via IPC. Interactive SceneGraph with click-to-select, pan/zoom, parameter
 controls, and data-driven animation on stream updates.
 
-See `docs/UPSTREAM_GAPS.md` for remaining module gap (module 5 only).
+**Deployment testing** (3 paths):
+- Local: `./scripts/deploy-test-local.sh` — filesystem isolation, ~1s
+- Container: `agentReagents/scripts/validate-lithoSpore-container.sh` — Docker, airgap-capable
+- VM: `agentReagents/scripts/validate-lithoSpore.sh` — libvirt, full airgap simulation
+- Chaos: `./scripts/chaos-test.sh` — fault injection (15 tests: drift, corruption, missing files)
+
+See `docs/UPSTREAM_GAPS.md` for upstream integration status.
 
 ## Upstream Dependencies
 

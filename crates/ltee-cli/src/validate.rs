@@ -3,6 +3,9 @@
 //! `litho validate` — run all 7 LTEE modules and produce structured output.
 
 use crate::resolve_livespore;
+use std::time::Duration;
+
+const MODULE_TIMEOUT: Duration = Duration::from_secs(120);
 
 pub(crate) const LIVE_MODULES: &[(&str, &str, &str, &str)] = &[
     ("power_law_fitness", "ltee-fitness", "artifact/data/wiser_2013", "validation/expected/module1_fitness.json"),
@@ -35,52 +38,43 @@ pub fn run(root: &str, json: bool, max_tier: u8) {
 
         if let Some(binary_path) = binary_path.filter(|_| data_path.exists() && expected_path.exists()) {
             let start = std::time::Instant::now();
-            let output = std::process::Command::new(&binary_path)
-                .arg("--data-dir").arg(&data_path)
-                .arg("--expected").arg(&expected_path)
-                .arg("--max-tier").arg(max_tier.to_string())
-                .arg("--json")
-                .output();
+            let result = run_module_with_timeout(
+                name, &binary_path, &data_path, &expected_path, max_tier, start,
+            );
+            report.add_module(result);
+        } else {
+            report.add_module(dispatch_python_tier1(name, root, &data_path, &expected_path));
+        }
+    }
 
-            match output {
-                Ok(out) => {
-                    if let Ok(result) = serde_json::from_slice::<litho_core::ModuleResult>(&out.stdout) {
-                        report.add_module(result);
-                    } else {
-                        let stdout = String::from_utf8_lossy(&out.stdout);
-                        let passed = stdout.matches("[PASS]").count() as u32;
-                        let failed = stdout.matches("[FAIL]").count() as u32;
-                        report.add_module(litho_core::ModuleResult {
-                            name: (*name).to_string(),
-                            status: if failed == 0 && passed > 0 {
-                                litho_core::ValidationStatus::Pass
-                            } else if failed > 0 {
-                                litho_core::ValidationStatus::Fail
-                            } else {
-                                litho_core::ValidationStatus::Skip
-                            },
-                            tier: max_tier.min(2),
-                            checks: passed + failed,
-                            checks_passed: passed,
-                            runtime_ms: start.elapsed().as_millis() as u64,
-                            error: if failed > 0 { Some(format!("{failed} check(s) failed")) } else { None },
+    // Wire target coverage from validation targets TOML
+    let targets_path = root_path.join("data/targets/ltee_validation_targets.toml");
+    if targets_path.exists() {
+        if let Ok(content) = std::fs::read_to_string(&targets_path) {
+            if let Ok(targets_toml) = content.parse::<toml::Value>() {
+                if let Some(targets_arr) = targets_toml.get("targets").and_then(|v| v.as_array()) {
+                    for target in targets_arr {
+                        let id = target.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                        let module = target.get("module").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                        let claim = target.get("claim").and_then(|v| v.as_str()).unwrap_or("").to_string();
+
+                        let module_result = report.modules.iter().find(|m| {
+                            module_name_matches(&m.name, &module)
+                        });
+
+                        let status = match module_result {
+                            Some(m) if m.status == litho_core::ValidationStatus::Pass => "PASS",
+                            Some(m) if m.status == litho_core::ValidationStatus::Fail => "FAIL",
+                            Some(_) => "SKIP",
+                            None => "NOT_RUN",
+                        };
+
+                        report.target_coverage.push(litho_core::TargetCoverage {
+                            id, module, claim, status: status.to_string(),
                         });
                     }
                 }
-                Err(e) => {
-                    report.add_module(litho_core::ModuleResult {
-                        name: (*name).to_string(),
-                        status: litho_core::ValidationStatus::Skip,
-                        tier: 1,
-                        checks: 0,
-                        checks_passed: 0,
-                        runtime_ms: start.elapsed().as_millis() as u64,
-                        error: Some(format!("Binary dispatch failed: {e}")),
-                    });
-                }
             }
-        } else {
-            report.add_module(dispatch_python_tier1(name, root, &data_path, &expected_path));
         }
     }
 
@@ -107,6 +101,12 @@ pub fn run(root: &str, json: bool, max_tier: u8) {
             };
             println!("  {} — {} ({}/{})", m.name, status, m.checks_passed, m.checks);
         }
+        if !report.target_coverage.is_empty() {
+            println!("\nTarget Coverage (T01–T14):");
+            for tc in &report.target_coverage {
+                println!("  {} — {} [{}]: {}", tc.id, tc.status, tc.module, tc.claim);
+            }
+        }
     }
 
     write_livespore(root, &report);
@@ -129,12 +129,27 @@ pub(crate) fn resolve_binary(root: &std::path::Path, name: &str) -> Option<std::
 fn write_livespore(root: &str, report: &litho_core::ValidationReport) {
     let spore_path = resolve_livespore(std::path::Path::new(root));
 
-    let mut entries: Vec<litho_core::LiveSporeEntry> = spore_path
-        .exists()
-        .then(|| std::fs::read_to_string(&spore_path).ok())
-        .flatten()
-        .and_then(|c| serde_json::from_str(&c).ok())
-        .unwrap_or_default();
+    let mut entries: Vec<litho_core::LiveSporeEntry> = Vec::new();
+
+    if spore_path.exists() {
+        match std::fs::read_to_string(&spore_path) {
+            Ok(content) => {
+                match serde_json::from_str::<Vec<litho_core::LiveSporeEntry>>(&content) {
+                    Ok(parsed) => entries = parsed,
+                    Err(e) => {
+                        // Backup corrupt file rather than silently dropping history
+                        let backup = spore_path.with_extension("json.bak");
+                        if let Err(be) = std::fs::copy(&spore_path, &backup) {
+                            eprintln!("Warning: liveSpore.json is corrupt ({e}) and backup failed ({be})");
+                        } else {
+                            eprintln!("Warning: liveSpore.json is corrupt ({e}), backed up to {}", backup.display());
+                        }
+                    }
+                }
+            }
+            Err(e) => eprintln!("Warning: could not read liveSpore.json: {e}"),
+        }
+    }
 
     entries.push(litho_core::LiveSporeEntry::from_report(report));
 
@@ -234,6 +249,154 @@ fn dispatch_python_tier1(
             runtime_ms: start.elapsed().as_millis() as u64,
             error: Some(format!("Python dispatch failed: {e}")),
         },
+    }
+}
+
+fn run_module_with_timeout(
+    name: &str,
+    binary_path: &std::path::Path,
+    data_path: &std::path::Path,
+    expected_path: &std::path::Path,
+    max_tier: u8,
+    start: std::time::Instant,
+) -> litho_core::ModuleResult {
+    let spawn_result = std::process::Command::new(binary_path)
+        .arg("--data-dir").arg(data_path)
+        .arg("--expected").arg(expected_path)
+        .arg("--max-tier").arg(max_tier.to_string())
+        .arg("--json")
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn();
+
+    let mut child = match spawn_result {
+        Ok(c) => c,
+        Err(e) => {
+            return litho_core::ModuleResult {
+                name: name.to_string(),
+                status: litho_core::ValidationStatus::Skip,
+                tier: 1,
+                checks: 0,
+                checks_passed: 0,
+                runtime_ms: start.elapsed().as_millis() as u64,
+                error: Some(format!("Binary dispatch failed: {e}")),
+            };
+        }
+    };
+
+    let deadline = std::time::Instant::now() + MODULE_TIMEOUT;
+    loop {
+        match child.try_wait() {
+            Ok(Some(_status)) => break,
+            Ok(None) => {
+                if std::time::Instant::now() > deadline {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return litho_core::ModuleResult {
+                        name: name.to_string(),
+                        status: litho_core::ValidationStatus::Fail,
+                        tier: max_tier.min(2),
+                        checks: 0,
+                        checks_passed: 0,
+                        runtime_ms: start.elapsed().as_millis() as u64,
+                        error: Some(format!("TIMEOUT after {}s", MODULE_TIMEOUT.as_secs())),
+                    };
+                }
+                std::thread::sleep(Duration::from_millis(10));
+            }
+            Err(e) => {
+                return litho_core::ModuleResult {
+                    name: name.to_string(),
+                    status: litho_core::ValidationStatus::Fail,
+                    tier: 1,
+                    checks: 0,
+                    checks_passed: 0,
+                    runtime_ms: start.elapsed().as_millis() as u64,
+                    error: Some(format!("Process wait failed: {e}")),
+                };
+            }
+        }
+    }
+
+    let out = match child.wait_with_output() {
+        Ok(o) => o,
+        Err(e) => {
+            return litho_core::ModuleResult {
+                name: name.to_string(),
+                status: litho_core::ValidationStatus::Fail,
+                tier: 1,
+                checks: 0,
+                checks_passed: 0,
+                runtime_ms: start.elapsed().as_millis() as u64,
+                error: Some(format!("Failed to read output: {e}")),
+            };
+        }
+    };
+
+    let exit_ok = out.status.success();
+
+    if let Ok(result) = serde_json::from_slice::<litho_core::ModuleResult>(&out.stdout) {
+        return result;
+    }
+
+    // Fallback: parse [PASS]/[FAIL] markers from stderr (modules print diagnostics there)
+    let stderr_text = String::from_utf8_lossy(&out.stderr);
+    let stdout_text = String::from_utf8_lossy(&out.stdout);
+    let combined = format!("{stderr_text}{stdout_text}");
+    let passed = combined.matches("[PASS]").count() as u32;
+    let failed = combined.matches("[FAIL]").count() as u32;
+
+    if passed + failed > 0 {
+        litho_core::ModuleResult {
+            name: name.to_string(),
+            status: if failed == 0 && exit_ok {
+                litho_core::ValidationStatus::Pass
+            } else {
+                litho_core::ValidationStatus::Fail
+            },
+            tier: max_tier.min(2),
+            checks: passed + failed,
+            checks_passed: passed,
+            runtime_ms: start.elapsed().as_millis() as u64,
+            error: if failed > 0 {
+                Some(format!("{failed} check(s) failed"))
+            } else if !exit_ok {
+                Some(format!("Process exited with {}", out.status))
+            } else {
+                None
+            },
+        }
+    } else {
+        litho_core::ModuleResult {
+            name: name.to_string(),
+            status: if exit_ok {
+                litho_core::ValidationStatus::Skip
+            } else {
+                litho_core::ValidationStatus::Fail
+            },
+            tier: max_tier.min(2),
+            checks: 0,
+            checks_passed: 0,
+            runtime_ms: start.elapsed().as_millis() as u64,
+            error: Some(if exit_ok {
+                "Module produced no parseable output".to_string()
+            } else {
+                format!("Module crashed (exit {}), no parseable output", out.status)
+            }),
+        }
+    }
+}
+
+fn module_name_matches(result_name: &str, target_module: &str) -> bool {
+    match target_module {
+        "ltee-fitness" => result_name == "power_law_fitness",
+        "ltee-mutations" => result_name == "mutation_accumulation",
+        "ltee-alleles" => result_name == "allele_trajectories",
+        "ltee-citrate" => result_name == "citrate_innovation",
+        "ltee-biobricks" => result_name == "biobrick_burden",
+        "ltee-breseq" => result_name == "breseq_264_genomes",
+        "ltee-anderson" => result_name == "anderson_qs_predictions",
+        _ => false,
     }
 }
 

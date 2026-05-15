@@ -30,7 +30,11 @@ pub fn run(root: &str, json_output: bool) {
     print_summary(&results, json_output);
 
     let local_drift = results.local_checks.iter().filter(|c| c.status == "DRIFT").count();
-    if local_drift > 0 {
+    let local_missing = results.local_checks.iter().filter(|c| c.status == "MISSING").count();
+    let local_error = results.local_checks.iter().filter(|c| c.status == "ERROR").count();
+    let manifest_empty = results.local_checks.is_empty() && manifest_path.exists();
+
+    if local_drift > 0 || local_missing > 0 || local_error > 0 || manifest_empty {
         std::process::exit(1);
     }
 }
@@ -41,10 +45,43 @@ fn verify_local_integrity(
     results: &mut VerifyResults,
     json_output: bool,
 ) {
-    let content = std::fs::read_to_string(manifest_path).unwrap_or_default();
-    let manifest: toml::Value = toml::from_str(&content).unwrap_or(toml::Value::Table(Default::default()));
+    let content = match std::fs::read_to_string(manifest_path) {
+        Ok(c) => c,
+        Err(e) => {
+            let msg = format!("Cannot read data_manifest.toml: {e}");
+            if !json_output { eprintln!("  ERROR: {msg}"); }
+            results.local_checks.push(FileCheck {
+                path: "data_manifest.toml".into(), status: "ERROR".into(),
+                expected: String::new(), actual: String::new(), detail: Some(msg),
+            });
+            return;
+        }
+    };
+
+    let manifest: toml::Value = match toml::from_str(&content) {
+        Ok(v) => v,
+        Err(e) => {
+            let msg = format!("Corrupt data_manifest.toml: {e}");
+            if !json_output { eprintln!("  ERROR: {msg}"); }
+            results.local_checks.push(FileCheck {
+                path: "data_manifest.toml".into(), status: "ERROR".into(),
+                expected: String::new(), actual: String::new(), detail: Some(msg),
+            });
+            return;
+        }
+    };
 
     if let Some(files) = manifest.get("file").and_then(|v| v.as_array()) {
+        if files.is_empty() {
+            if !json_output { eprintln!("  WARNING: data_manifest.toml has no [[file]] entries"); }
+            results.local_checks.push(FileCheck {
+                path: "data_manifest.toml".into(), status: "ERROR".into(),
+                expected: String::new(), actual: String::new(),
+                detail: Some("manifest contains no [[file]] entries".into()),
+            });
+            return;
+        }
+
         if !json_output { println!("=== Local integrity check (BLAKE3) ==="); }
 
         for entry in files {
@@ -78,6 +115,13 @@ fn verify_local_integrity(
         let ok_count = results.local_checks.iter().filter(|c| c.status == "ok").count();
         let total = results.local_checks.len();
         if !json_output { println!("  {ok_count}/{total} files verified\n"); }
+    } else {
+        if !json_output { eprintln!("  ERROR: data_manifest.toml has no [[file]] key"); }
+        results.local_checks.push(FileCheck {
+            path: "data_manifest.toml".into(), status: "ERROR".into(),
+            expected: String::new(), actual: String::new(),
+            detail: Some("manifest has no [[file]] key — cannot verify".into()),
+        });
     }
 }
 
@@ -195,10 +239,13 @@ fn check_connectivity() -> bool {
 fn probe_upstream(uri: &str) -> UpstreamCheck {
     use std::net::{TcpStream, ToSocketAddrs};
 
-    let host = uri
-        .strip_prefix("https://").or_else(|| uri.strip_prefix("http://"))
-        .and_then(|s| s.split('/').next())
-        .unwrap_or("");
+    let (host, port) = if let Some(rest) = uri.strip_prefix("https://") {
+        (rest.split('/').next().unwrap_or(""), 443)
+    } else if let Some(rest) = uri.strip_prefix("http://") {
+        (rest.split('/').next().unwrap_or(""), 80)
+    } else {
+        ("", 443)
+    };
 
     if host.is_empty() {
         return UpstreamCheck {
@@ -209,7 +256,7 @@ fn probe_upstream(uri: &str) -> UpstreamCheck {
         };
     }
 
-    let addr_str = format!("{host}:443");
+    let addr_str = format!("{host}:{port}");
     match addr_str.to_socket_addrs() {
         Ok(mut iter) => {
             if let Some(sock) = iter.next() {

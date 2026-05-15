@@ -28,7 +28,15 @@ self-contained — that buds from the ecosystem into a portable artifact.
 ## Crate Architecture
 
 ```
-litho-core          ← shared library (validation, tolerance, provenance, discovery, stats, harness)
+litho-core          ← shared library
+  ├── validation/     tolerance framework, named tolerances
+  ├── provenance/     liveSpore tracking, BLAKE3 anchoring
+  ├── discovery/      capability-based primal resolution (env → UDS → TURN → standalone)
+  ├── stats/          shared statistics (pearson_r, etc.)
+  ├── harness/        module skip/load/dispatch helpers
+  └── viz/            petalTongue DataBinding adapters
+      ├── modules.rs    m1–m7 LTEE module bindings
+      └── baselines.rs  Barrick Lab baseline tool bindings
   ↑
   ├── ltee-fitness   ← Module 1: power-law fitness (groundSpring + wetSpring)
   ├── ltee-mutations ← Module 2: mutation accumulation (groundSpring + neuralSpring)
@@ -37,7 +45,12 @@ litho-core          ← shared library (validation, tolerance, provenance, disco
   ├── ltee-biobricks ← Module 5: BioBrick burden (neuralSpring + groundSpring)
   ├── ltee-breseq    ← Module 6: 264 genomes (wetSpring + groundSpring)
   ├── ltee-anderson  ← Module 7: Anderson-QS predictions (hotSpring + groundSpring)
-  └── ltee-cli       ← Unified CLI: validate / refresh / status / spore
+  └── ltee-cli       ← Unified CLI
+      ├── main.rs       thin wiring (arg parse + dispatch)
+      ├── validate.rs   litho validate subcommand
+      ├── visualize.rs  litho visualize (petalTongue IPC)
+      ├── verify.rs     litho verify (BLAKE3 integrity)
+      └── ops.rs        refresh / status / spore
 ```
 
 Each module crate produces a standalone binary that:

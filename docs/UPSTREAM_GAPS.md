@@ -89,11 +89,21 @@ with upstream data (B1–B4, B7).
 | USB-DATA | Modules 3+4 data not fetched | Ran `fetch_good_2017.sh` + `fetch_blount_2012.sh` with `$ECOPRIMALS_ROOT` — 6/6 data bundles staged |
 | USB-VM | No VM validation of USB artifact | Built VM via agentReagents `lithoSpore-validation.yaml`, SSH'd USB, 6/7 PASS (51/51 checks) |
 
+### Deep Evolution Pass (May 15, 2026)
+
+| ID | Gap | Resolution |
+|----|-----|-----------|
+| LS-VIZ | `viz.rs` monolith (1248 lines) | Refactored into `viz/mod.rs`, `viz/modules.rs`, `viz/baselines.rs` — grouped by data flow |
+| LS-CLI | `main.rs` monolith (994 lines) | Refactored into `validate.rs`, `visualize.rs`, `verify.rs`, `ops.rs` — thin wiring in `main.rs` |
+| LS-UDS | UDS RPC transport was stub (`None`) | Implemented `rpc_uds()` — `UnixStream` JSON-RPC matching TCP pattern |
+| LS-ENVHC | Hardcoded IPs, env keys, socket paths | Evolved to `$PRIMAL_HOST`, `resolve_xdg_runtime`, `has_any_capability_env`, configurable connectivity hosts |
+| LS-TEST | `ltee-cli` had zero tests | Added 13 unit + 8 integration tests with fixture-based harness |
+
 ### Discovery Capability Gaps (documented, upstream-blocked)
 
 | Gap | Status | Impact | Details |
 |-----|--------|--------|---------|
-| UDS RPC transport | Stub (returns `None`) | LAN mode Tier 2 IPC uses TCP only | `rpc_call()` with `Transport::Uds` degrades to skip. Needs `UnixStream` RPC client. |
+| UDS RPC transport | **RESOLVED** | LAN mode Tier 2 IPC now supports UDS | `rpc_uds()` implements `UnixStream` JSON-RPC client matching TCP `rpc_call()` pattern. |
 | Songbird TURN client | Stub (env-var only) | Geo-delocalized mode uses env var address only | `discover_from_turn()` resolves endpoint from `$SONGBIRD_TURN_SERVER` + `$SONGBIRD_TURN_DISCOVERY_PORT` but actual TURN relay requires upstream Songbird client library. |
 | TURN-relayed RPC | Not implemented | No actual relay IPC | RPC calls through TURN endpoints use standard TCP, which only works if relay forwards raw TCP. |
 
@@ -225,6 +235,10 @@ version kept as fallback until the Rust version passes the same tests.
 
 ## Changelog
 
+- **2026-05-15**: Deep Evolution pass — viz.rs refactored (1248→3 files), ltee-cli main.rs
+  refactored (994→4 subcommand modules), UDS RPC implemented, hardcoding evolved to
+  capability-based discovery, 21 new tests added. petalTongue dead_code markers evolved
+  to `#[expect(dead_code, reason = "...")]`.
 - **2026-05-15**: Root doc cleanup, broken wateringHole path fixes, handback directory
   created. Test count corrected (33→66), container positioning clarified.
 - **2026-05-15**: petalTongue Interactive SceneGraph Evolution — 6 phases

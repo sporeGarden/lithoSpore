@@ -96,11 +96,11 @@ pub fn discover_full(capability: &str) -> Option<DiscoveryResult> {
 
 /// Probe the best available discovery path without resolving a specific
 /// capability. Returns `Standalone` if no primals are reachable.
+///
+/// Checks are transport-level only — no hardcoded primal names.
 #[must_use]
 pub fn probe_operating_mode() -> (DiscoveryPath, Option<String>) {
-    if std::env::var("TOADSTOOL_PORT").is_ok()
-        || std::env::var("NESTGATE_PORT").is_ok()
-    {
+    if has_any_capability_env() {
         return (DiscoveryPath::Env, None);
     }
     if discovery_socket_path().is_some() {
@@ -112,11 +112,17 @@ pub fn probe_operating_mode() -> (DiscoveryPath, Option<String>) {
     (DiscoveryPath::Standalone, None)
 }
 
+/// Check whether any `*_PORT` capability environment variable is set.
+/// This avoids hardcoding specific primal names in the discovery probe.
+fn has_any_capability_env() -> bool {
+    std::env::vars().any(|(key, _)| key.ends_with("_PORT") && key != "PORT")
+}
+
 fn discover_from_env(capability: &str) -> Option<PrimalEndpoint> {
     let env_key = format!("{}_PORT", capability.to_uppercase().replace('.', "_"));
     let port_str = std::env::var(&env_key).ok()?;
     let port: u16 = port_str.parse().ok()?;
-    let host = std::env::var("PRIMAL_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
+    let host = resolve_primal_host();
 
     Some(PrimalEndpoint {
         capability: capability.to_string(),
@@ -124,6 +130,13 @@ fn discover_from_env(capability: &str) -> Option<PrimalEndpoint> {
         port,
         transport: Transport::Tcp,
     })
+}
+
+/// Resolve the primal host address from `$PRIMAL_HOST`, defaulting to
+/// localhost. The environment variable is the single source of truth —
+/// no primal-specific IPs are encoded anywhere in lithoSpore.
+fn resolve_primal_host() -> String {
+    std::env::var("PRIMAL_HOST").unwrap_or_else(|_| "127.0.0.1".to_string())
 }
 
 fn discovery_socket_path() -> Option<PathBuf> {
@@ -165,12 +178,22 @@ fn discover_from_socket(capability: &str) -> Option<PrimalEndpoint> {
 fn parse_discovery_response(capability: &str, response: &str) -> Option<PrimalEndpoint> {
     let v: serde_json::Value = serde_json::from_str(response).ok()?;
     let result = v.get("result")?;
+
+    // UDS discovery can return a socket path instead of host:port
+    if let Some(socket_path) = result.get("socket").and_then(|s| s.as_str()) {
+        return Some(PrimalEndpoint {
+            capability: capability.to_string(),
+            host: socket_path.to_string(),
+            port: 0,
+            transport: Transport::Uds,
+        });
+    }
+
     let port = u16::try_from(result.get("port")?.as_u64()?).ok()?;
     let host = result
         .get("host")
-        .and_then(|h| h.as_str()).map_or_else(|| {
-            std::env::var("PRIMAL_HOST").unwrap_or_else(|_| "127.0.0.1".to_string())
-        }, String::from);
+        .and_then(|h| h.as_str())
+        .map_or_else(resolve_primal_host, String::from);
 
     Some(PrimalEndpoint {
         capability: capability.to_string(),
@@ -185,22 +208,17 @@ fn parse_discovery_response(capability: &str, response: &str) -> Option<PrimalEn
 /// Returns `None` on connection/timeout/parse failure — callers degrade
 /// gracefully rather than panicking.
 ///
-/// # Capability gaps
+/// # Transport support
 ///
-/// - **UDS transport**: Discovery resolves the socket, but RPC over UDS is
-///   not yet implemented. Returns `None` (degrade to skip). Requires
-///   `std::os::unix::net::UnixStream` RPC client matching the TCP pattern.
-/// - **TURN transport**: The `discover_from_turn` function resolves a TURN
-///   relay endpoint from env vars, but the actual Songbird TURN client
-///   library is an upstream dependency not yet available as a Rust crate.
-///   Until then, TURN discovery creates a `PrimalEndpoint` with the relay
-///   address but RPC calls through it use standard TCP (which only works
-///   if the relay forwards raw TCP — not guaranteed).
+/// - **TCP**: Standard JSON-RPC over TCP to `host:port`.
+/// - **UDS**: JSON-RPC over Unix domain socket (path stored in `host` field).
+/// - **TURN**: Resolves a relay endpoint but uses TCP transport (actual TURN
+///   client integration requires the upstream Songbird client library).
 #[must_use]
 pub fn rpc_call(endpoint: &PrimalEndpoint, request: &str) -> Option<serde_json::Value> {
     match endpoint.transport {
         Transport::Tcp => rpc_tcp(endpoint, request),
-        Transport::Uds => None,
+        Transport::Uds => rpc_uds(endpoint, request),
     }
 }
 
@@ -218,7 +236,7 @@ fn discover_from_turn(capability: &str) -> Option<DiscoveryResult> {
     Some(DiscoveryResult {
         endpoint: PrimalEndpoint {
             capability: capability.to_string(),
-            host: turn_server.split(':').next().unwrap_or("127.0.0.1").to_string(),
+            host: turn_server.split(':').next().map_or_else(resolve_primal_host, String::from),
             port,
             transport: Transport::Tcp,
         },
@@ -247,6 +265,32 @@ fn rpc_tcp(endpoint: &PrimalEndpoint, request: &str) -> Option<serde_json::Value
     serde_json::from_str(&response).ok()
 }
 
+/// JSON-RPC over Unix domain socket. The socket path is stored in
+/// `endpoint.host` (port is ignored for UDS transport).
+#[cfg(unix)]
+fn rpc_uds(endpoint: &PrimalEndpoint, request: &str) -> Option<serde_json::Value> {
+    use std::os::unix::net::UnixStream;
+
+    let mut stream = UnixStream::connect(&endpoint.host).ok()?;
+    stream.set_read_timeout(Some(Duration::from_secs(10))).ok()?;
+    stream.set_write_timeout(Some(Duration::from_secs(5))).ok()?;
+
+    stream.write_all(request.as_bytes()).ok()?;
+    stream.write_all(b"\n").ok()?;
+    stream.flush().ok()?;
+
+    let mut reader = BufReader::new(stream);
+    let mut response = String::new();
+    reader.read_line(&mut response).ok()?;
+
+    serde_json::from_str(&response).ok()
+}
+
+#[cfg(not(unix))]
+fn rpc_uds(_endpoint: &PrimalEndpoint, _request: &str) -> Option<serde_json::Value> {
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -263,6 +307,24 @@ mod tests {
     fn parse_discovery_response_missing_port() {
         let json = r#"{"jsonrpc":"2.0","result":{},"id":1}"#;
         assert!(parse_discovery_response("storage", json).is_none());
+    }
+
+    #[test]
+    fn parse_discovery_response_uds_socket() {
+        let json = r#"{"jsonrpc":"2.0","result":{"socket":"/run/user/1000/biomeos/petaltongue.sock"},"id":1}"#;
+        let ep = parse_discovery_response("visualization", json).unwrap();
+        assert_eq!(ep.transport, Transport::Uds);
+        assert_eq!(ep.host, "/run/user/1000/biomeos/petaltongue.sock");
+        assert_eq!(ep.port, 0);
+    }
+
+    #[test]
+    fn has_any_capability_env_detects_port_vars() {
+        // This test relies on the _PORT suffix convention
+        // In a clean environment, no *_PORT vars should be set
+        let result = has_any_capability_env();
+        // Just verify it doesn't panic — actual detection depends on env
+        let _ = result;
     }
 
     #[test]

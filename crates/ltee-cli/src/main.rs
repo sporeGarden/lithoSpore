@@ -18,9 +18,9 @@ use clap::{Parser, Subcommand};
 #[derive(Parser)]
 #[command(
     name = "litho",
-    about = "lithoSpore — LTEE Targeted GuideStone",
+    about = "lithoSpore — guideStone verification chassis",
     version,
-    long_about = "Self-contained validation artifact for the Long-Term Evolution Experiment.\nSee https://github.com/sporeGarden/lithoSpore"
+    long_about = "Self-contained, scope-driven validation artifact.\nCurrent instance: LTEE (Long-Term Evolution Experiment).\nSee https://github.com/sporeGarden/lithoSpore"
 )]
 struct Cli {
     #[command(subcommand)]
@@ -29,7 +29,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Run all 7 LTEE modules and produce structured validation output
+    /// Run all science modules (scope-driven) and produce structured validation output
     Validate {
         #[arg(long, default_value = ".")]
         artifact_root: String,

@@ -163,29 +163,21 @@ fn generate_from_expected(
     module: &str,
     expected_dir: &Path,
 ) -> Result<(), String> {
-    let expected_file = match module {
-        "ltee-fitness" => "module1_fitness.json",
-        "ltee-mutations" => "module2_mutations.json",
-        "ltee-alleles" => "module3_alleles.json",
-        "ltee-citrate" => "module4_citrate.json",
-        "ltee-biobricks" => "module5_biobricks.json",
-        "ltee-breseq" => "module6_breseq.json",
-        "ltee-anderson" => "module7_anderson.json",
-        _ => return Err(format!("Unknown module: {module}")),
-    };
+    let expected_path = find_expected_for_module(expected_dir, module)
+        .ok_or_else(|| format!("No expected JSON found for module: {module}"))?;
 
-    let expected_path = expected_dir.join(expected_file);
     if !expected_path.exists() {
-        // Also try sibling spring paths
-        let spring_expected = root.parent()
-            .and_then(|p| p.parent())
-            .map(|eco| eco.join("springs/groundSpring/validation").join(expected_file));
+        if let Some(filename) = expected_path.file_name() {
+            let spring_expected = root.parent()
+                .and_then(|p| p.parent())
+                .map(|eco| eco.join("springs/groundSpring/validation").join(filename));
 
-        if let Some(ref sp) = spring_expected {
-            if sp.exists() {
-                std::fs::copy(sp, target_dir.join("expected_values.json"))
-                    .map_err(|e| format!("copy from spring: {e}"))?;
-                return Ok(());
+            if let Some(ref sp) = spring_expected {
+                if sp.exists() {
+                    std::fs::copy(sp, target_dir.join("expected_values.json"))
+                        .map_err(|e| format!("copy from spring: {e}"))?;
+                    return Ok(());
+                }
             }
         }
 
@@ -209,6 +201,24 @@ fn generate_from_expected(
             Ok(())
         }
     }
+}
+
+/// Find the expected JSON file for a module by scanning the expected directory
+/// for any `.json` file whose name contains the module's key (e.g., "ltee_fitness"
+/// matches "module1_fitness.json"). Domain-agnostic: no hardcoded module list.
+fn find_expected_for_module(expected_dir: &Path, module: &str) -> Option<std::path::PathBuf> {
+    let suffix = module.replace('-', "_");
+    let short = suffix.strip_prefix("ltee_").unwrap_or(&suffix);
+
+    let entries = std::fs::read_dir(expected_dir).ok()?;
+    for entry in entries.flatten() {
+        let name = entry.file_name();
+        let name_str = name.to_string_lossy();
+        if name_str.ends_with(".json") && (name_str.contains(&suffix) || name_str.contains(short)) {
+            return Some(entry.path());
+        }
+    }
+    None
 }
 
 fn generate_fitness_csv(target_dir: &Path, expected: &serde_json::Value) -> Result<(), String> {

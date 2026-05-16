@@ -1,10 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! `litho validate` — run all 7 LTEE modules in-process and produce structured output.
+//! `litho validate` — run science modules in-process and produce structured output.
+//!
+//! The module table is loaded from `scope.toml` + `data.toml` when available,
+//! making the validation pipeline domain-agnostic. The compiled `LTEE_MODULES`
+//! constant serves as the fallback for the LTEE instance (first lithoSpore).
 
 use crate::resolve_livespore;
 
-pub(crate) const LIVE_MODULES: &[(&str, &str, &str, &str)] = &[
+/// LTEE instance module table — compiled fallback when scope.toml is absent.
+/// Also used by other subcommands (visualize, chaos, ops, deploy_test) as the
+/// static module registry for the LTEE instance.
+pub(crate) const LTEE_MODULES: &[(&str, &str, &str, &str)] = &[
     ("power_law_fitness", "ltee-fitness", "artifact/data/wiser_2013", "validation/expected/module1_fitness.json"),
     ("mutation_accumulation", "ltee-mutations", "artifact/data/barrick_2009", "validation/expected/module2_mutations.json"),
     ("allele_trajectories", "ltee-alleles", "artifact/data/good_2017", "validation/expected/module3_alleles.json"),
@@ -14,7 +21,7 @@ pub(crate) const LIVE_MODULES: &[(&str, &str, &str, &str)] = &[
     ("anderson_qs_predictions", "ltee-anderson", "artifact/data/anderson_predictions", "validation/expected/module7_anderson.json"),
 ];
 
-const NOTEBOOKS: &[(&str, &str)] = &[
+const LTEE_NOTEBOOKS: &[(&str, &str)] = &[
     ("power_law_fitness", "notebooks/module1_fitness/power_law_fitness.py"),
     ("mutation_accumulation", "notebooks/module2_mutations/mutation_accumulation.py"),
     ("allele_trajectories", "notebooks/module3_alleles/allele_trajectories.py"),
@@ -23,6 +30,97 @@ const NOTEBOOKS: &[(&str, &str)] = &[
     ("breseq_264_genomes", "notebooks/module6_breseq/breseq_comparison.py"),
     ("anderson_qs_predictions", "notebooks/module7_anderson/anderson_predictions.py"),
 ];
+
+/// A runtime-resolved module entry: logical name, binary crate, data dir, expected JSON.
+struct ModuleEntry {
+    name: String,
+    binary: String,
+    data_dir: String,
+    expected: String,
+}
+
+/// Build the module table from `scope.toml` + `data.toml` if present,
+/// otherwise fall back to the compiled LTEE constant.
+fn load_module_table(root: &std::path::Path) -> Vec<ModuleEntry> {
+    let scope_path = root.join("artifact/scope.toml");
+    let data_path = root.join("artifact/data.toml");
+
+    if let (Ok(scope), Ok(data_content)) = (
+        litho_core::ScopeManifest::load(&scope_path),
+        std::fs::read_to_string(&data_path),
+    ) {
+        if let Ok(data_toml) = data_content.parse::<toml::Value>() {
+            let datasets = data_toml.get("dataset")
+                .and_then(|v| v.as_array());
+
+            let module_bins = scope.module_binaries();
+            let mut entries = Vec::new();
+
+            for bin_name in &module_bins {
+                let ds = datasets.and_then(|arr| {
+                    arr.iter().find(|d| {
+                        d.get("module").and_then(|v| v.as_str()) == Some(bin_name)
+                    })
+                });
+
+                let data_dir = ds
+                    .and_then(|d| d.get("local_path").and_then(|v| v.as_str()))
+                    .unwrap_or("")
+                    .trim_end_matches('/')
+                    .to_string();
+
+                let expected = find_expected_json(root, bin_name);
+
+                let name = bin_name.strip_prefix("ltee-")
+                    .unwrap_or(bin_name)
+                    .replace('-', "_");
+
+                if !data_dir.is_empty() || !expected.is_empty() {
+                    entries.push(ModuleEntry {
+                        name,
+                        binary: bin_name.to_string(),
+                        data_dir,
+                        expected,
+                    });
+                }
+            }
+
+            if !entries.is_empty() {
+                return entries;
+            }
+        }
+    }
+
+    LTEE_MODULES.iter().map(|(name, binary, data_dir, expected)| ModuleEntry {
+        name: name.to_string(),
+        binary: binary.to_string(),
+        data_dir: data_dir.to_string(),
+        expected: expected.to_string(),
+    }).collect()
+}
+
+/// Find the expected JSON file for a module by scanning `validation/expected/`.
+fn find_expected_json(root: &std::path::Path, module_binary: &str) -> String {
+    let expected_dir = root.join("validation/expected");
+    if !expected_dir.is_dir() {
+        return String::new();
+    }
+    let entries = match std::fs::read_dir(&expected_dir) {
+        Ok(e) => e,
+        Err(_) => return String::new(),
+    };
+    let suffix = module_binary.replace('-', "_");
+    for entry in entries.flatten() {
+        let name = entry.file_name();
+        let name_str = name.to_string_lossy();
+        if name_str.ends_with(".json") && name_str.contains(&suffix) {
+            if let Ok(rel) = entry.path().strip_prefix(root) {
+                return rel.to_string_lossy().to_string();
+            }
+        }
+    }
+    String::new()
+}
 
 type ModuleFn = fn(&str, &str, u8) -> litho_core::ModuleResult;
 
@@ -37,23 +135,29 @@ const MODULE_DISPATCH: &[(&str, ModuleFn)] = &[
 ];
 
 pub fn run(root: &str, json: bool, max_tier: u8) {
-    let mut report = litho_core::ValidationReport::new("ltee-guidestone", env!("CARGO_PKG_VERSION"));
     let root_path = std::path::Path::new(root);
 
-    for (_name, binary_name, data_dir, expected) in LIVE_MODULES {
-        let data_path = root_path.join(data_dir);
-        let expected_path = root_path.join(expected);
+    let scope_name = litho_core::ScopeManifest::load(&root_path.join("artifact/scope.toml"))
+        .map(|s| s.guidestone.name.clone())
+        .unwrap_or_else(|_| "ltee-guidestone".to_string());
+
+    let mut report = litho_core::ValidationReport::new(&scope_name, env!("CARGO_PKG_VERSION"));
+    let modules = load_module_table(root_path);
+
+    for entry in &modules {
+        let data_path = root_path.join(&entry.data_dir);
+        let expected_path = root_path.join(&entry.expected);
 
         if data_path.exists() && expected_path.exists() {
             let result = run_module_in_process(
-                binary_name,
-                data_path.to_str().unwrap_or(data_dir),
-                expected_path.to_str().unwrap_or(expected),
+                &entry.binary,
+                data_path.to_str().unwrap_or(&entry.data_dir),
+                expected_path.to_str().unwrap_or(&entry.expected),
                 max_tier,
             );
             report.add_module(result);
         } else {
-            report.add_module(dispatch_python_tier1(_name, root, &data_path, &expected_path));
+            report.add_module(dispatch_python_tier1(&entry.name, root, &data_path, &expected_path));
         }
     }
 
@@ -71,7 +175,7 @@ pub fn run(root: &str, json: bool, max_tier: u8) {
             }
         );
     } else {
-        println!("lithoSpore v{} — LTEE GuideStone", env!("CARGO_PKG_VERSION"));
+        println!("lithoSpore v{} — {scope_name}", env!("CARGO_PKG_VERSION"));
         println!("Tier reached: {}", report.tier_reached);
         println!("Modules: {}", report.modules.len());
         for m in &report.modules {
@@ -216,7 +320,7 @@ fn dispatch_python_tier1(
         };
     }
 
-    let notebook = match NOTEBOOKS.iter().find(|(n, _)| *n == name) {
+    let notebook = match LTEE_NOTEBOOKS.iter().find(|(n, _)| *n == name) {
         Some((_, nb)) => *nb,
         None => return litho_core::ModuleResult {
             name: name.to_string(),
@@ -307,18 +411,18 @@ mod tests {
     }
 
     #[test]
-    fn live_modules_table_is_complete() {
-        assert_eq!(LIVE_MODULES.len(), 7);
-        assert_eq!(NOTEBOOKS.len(), 7);
-        for (name, _, _, _) in LIVE_MODULES {
-            assert!(NOTEBOOKS.iter().any(|(n, _)| n == name), "missing notebook for {name}");
+    fn ltee_modules_table_is_complete() {
+        assert_eq!(LTEE_MODULES.len(), 7);
+        assert_eq!(LTEE_NOTEBOOKS.len(), 7);
+        for (name, _, _, _) in LTEE_MODULES {
+            assert!(LTEE_NOTEBOOKS.iter().any(|(n, _)| n == name), "missing notebook for {name}");
         }
     }
 
     #[test]
-    fn module_dispatch_covers_all() {
+    fn module_dispatch_covers_all_ltee() {
         assert_eq!(MODULE_DISPATCH.len(), 7);
-        for (_, binary, _, _) in LIVE_MODULES {
+        for (_, binary, _, _) in LTEE_MODULES {
             assert!(MODULE_DISPATCH.iter().any(|(n, _)| n == binary),
                 "missing dispatch for {binary}");
         }

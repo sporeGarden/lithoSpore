@@ -234,7 +234,7 @@ fn run_validate(dir: &Path) -> bool {
     let mut report = litho_core::ValidationReport::new("chaos-test", env!("CARGO_PKG_VERSION"));
     let root_path = Path::new(root);
 
-    for (_name, binary, data_dir, expected) in crate::validate::LIVE_MODULES {
+    for (_name, binary, data_dir, expected) in crate::validate::LTEE_MODULES {
         let data_path = root_path.join(data_dir);
         let expected_path = root_path.join(expected);
         if data_path.exists() && expected_path.exists() {

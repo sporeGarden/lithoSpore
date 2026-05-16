@@ -2,7 +2,7 @@
 
 //! `litho visualize` — generate scientific visualizations for all modules.
 
-use crate::validate::LIVE_MODULES;
+use crate::validate::LTEE_MODULES;
 
 const NOTEBOOKS: &[(&str, &str)] = &[
     ("module1_fitness", "notebooks/module1_fitness/power_law_fitness.py"),
@@ -22,7 +22,7 @@ const BASELINE_TOOLS: &[&str] = &[
 pub fn run(root: &str, format: &str, output_dir: &str) {
     let root_path = std::path::Path::new(root);
 
-    let modules: Vec<(&str, &str)> = LIVE_MODULES
+    let modules: Vec<(&str, &str)> = LTEE_MODULES
         .iter()
         .map(|(name, _, _, expected)| (*name, *expected))
         .collect();

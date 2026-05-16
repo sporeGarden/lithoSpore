@@ -273,7 +273,7 @@ pub fn cmd_deploy_report(root: &str, pattern: &str) {
         ("ltee-anderson", ltee_anderson::run_validation),
     ];
     let mut modules_results = Vec::new();
-    for (_name, binary, data_dir, expected) in crate::validate::LIVE_MODULES {
+    for (_name, binary, data_dir, expected) in crate::validate::LTEE_MODULES {
         let data_path = root_path.join(data_dir);
         let expected_path = root_path.join(expected);
 

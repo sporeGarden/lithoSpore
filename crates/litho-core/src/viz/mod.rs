@@ -18,6 +18,48 @@ mod modules;
 
 use serde_json::{json, Value};
 
+// ─── DataBinding builder helpers ─────────────────────────────────────────────
+// These reduce repetitive json!({}) construction across baseline and module
+// adapters. Each returns a single DataBinding JSON value.
+
+pub(crate) fn bar(id: &str, label: &str, categories: Vec<String>, values: Vec<f64>, unit: &str) -> Value {
+    json!({ "channel_type": "bar", "id": id, "label": label, "categories": categories, "values": values, "unit": unit })
+}
+
+pub(crate) fn bar_from_object(id: &str, label: &str, obj: &serde_json::Map<String, Value>, unit: &str) -> Value {
+    let cats: Vec<String> = obj.keys().cloned().collect();
+    let vals: Vec<f64> = obj.values().filter_map(|v| v.as_f64()).collect();
+    bar(id, label, cats, vals, unit)
+}
+
+pub(crate) fn gauge(id: &str, label: &str, value: f64, min: f64, max: f64, unit: &str, normal: [f64; 2], warning: [f64; 2]) -> Value {
+    json!({ "channel_type": "gauge", "id": id, "label": label, "value": value, "min": min, "max": max, "unit": unit, "normal_range": normal, "warning_range": warning })
+}
+
+pub(crate) fn timeseries(id: &str, label: &str, x_label: &str, y_label: &str, unit: &str, x: Vec<f64>, y: Vec<f64>) -> Value {
+    json!({ "channel_type": "timeseries", "id": id, "label": label, "x_label": x_label, "y_label": y_label, "unit": unit, "x_values": x, "y_values": y })
+}
+
+pub(crate) fn scatter(id: &str, label: &str, x: Vec<f64>, y: Vec<f64>, x_label: &str, y_label: &str, point_labels: Vec<String>, unit: &str) -> Value {
+    json!({ "channel_type": "scatter", "id": id, "label": label, "x": x, "y": y, "x_label": x_label, "y_label": y_label, "point_labels": point_labels, "unit": unit })
+}
+
+pub(crate) fn heatmap(id: &str, label: &str, x_labels: Vec<String>, y_labels: Vec<String>, values: Vec<f64>, unit: &str) -> Value {
+    json!({ "channel_type": "heatmap", "id": id, "label": label, "x_labels": x_labels, "y_labels": y_labels, "values": values, "unit": unit })
+}
+
+pub(crate) fn distribution(id: &str, label: &str, values: Vec<f64>, mean: f64, std: f64, unit: &str) -> Value {
+    json!({ "channel_type": "distribution", "id": id, "label": label, "values": values, "mean": mean, "std": std, "unit": unit })
+}
+
+pub(crate) fn genome_track(id: &str, label: &str, seq_len: f64, tracks: Vec<String>, segments: Vec<Value>, unit: &str) -> Value {
+    json!({ "channel_type": "genome_track", "id": id, "label": label, "sequence_length": seq_len, "tracks": tracks, "segments": segments, "unit": unit })
+}
+
+pub(crate) fn track_segment(track: &str, start: f64, end: f64, strand: &str, label: &str) -> Value {
+    json!({ "track": track, "start": start, "end": end, "strand": strand, "label": label })
+}
+
 /// Convert a module's expected JSON into a vec of petalTongue DataBinding objects.
 pub fn module_to_bindings(module_name: &str, expected: &Value) -> Vec<Value> {
     match module_name {

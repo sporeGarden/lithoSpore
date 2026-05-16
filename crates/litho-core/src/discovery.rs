@@ -78,9 +78,9 @@ pub struct DiscoveryResult {
 
 /// Resolve a primal by capability name using the ecosystem discovery chain:
 ///
-/// 1. Environment: `{CAPABILITY_UPPER}_PORT` (e.g. `NESTGATE_PORT=9500`)
+/// 1. Environment: `{CAPABILITY_UPPER}_PORT` (e.g. `STORAGE_PORT=9500`)
 /// 2. Discovery socket: `$XDG_RUNTIME_DIR/ecoPrimals/discovery.sock`
-/// 3. Songbird TURN: `$SONGBIRD_TURN_SERVER` (geo-delocalized mode)
+/// 3. TURN relay: `$RELAY_SERVER` or legacy `$SONGBIRD_TURN_SERVER`
 /// 4. None — caller decides how to degrade gracefully
 #[must_use]
 pub fn discover(capability: &str) -> Option<PrimalEndpoint> {
@@ -115,7 +115,7 @@ pub fn probe_operating_mode() -> (DiscoveryPath, Option<String>) {
     if discovery_socket_path().is_some() {
         return (DiscoveryPath::Uds, None);
     }
-    if let Ok(turn) = std::env::var("SONGBIRD_TURN_SERVER") {
+    if let Ok(turn) = std::env::var("RELAY_SERVER").or_else(|_| std::env::var("SONGBIRD_TURN_SERVER")) {
         return (DiscoveryPath::Turn, Some(turn));
     }
     (DiscoveryPath::Standalone, None)
@@ -232,15 +232,20 @@ pub fn rpc_call(endpoint: &PrimalEndpoint, request: &str) -> Option<serde_json::
     }
 }
 
-/// Attempt discovery through a Songbird TURN relay on the cellMembrane.
+/// Attempt discovery through a TURN relay on the cellMembrane.
 ///
-/// The relay address comes from `$SONGBIRD_TURN_SERVER`. TURN-relayed
-/// discovery is structurally identical to UDS discovery but routes
-/// through the cellMembrane's Channel 2 relay. Actual TURN client
-/// integration requires the Songbird client library (upstream).
+/// Checks capability-generic `$RELAY_SERVER` first, then falls back to
+/// legacy `$SONGBIRD_TURN_SERVER`. TURN-relayed discovery is structurally
+/// identical to UDS discovery but routes through the cellMembrane's
+/// Channel 2 relay. Actual TURN client integration requires the upstream
+/// relay client library.
 fn discover_from_turn(capability: &str) -> Option<DiscoveryResult> {
-    let turn_server = std::env::var("SONGBIRD_TURN_SERVER").ok()?;
-    let turn_port = std::env::var("SONGBIRD_TURN_DISCOVERY_PORT").ok()?;
+    let turn_server = std::env::var("RELAY_SERVER")
+        .or_else(|_| std::env::var("SONGBIRD_TURN_SERVER"))
+        .ok()?;
+    let turn_port = std::env::var("RELAY_DISCOVERY_PORT")
+        .or_else(|_| std::env::var("SONGBIRD_TURN_DISCOVERY_PORT"))
+        .ok()?;
     let port: u16 = turn_port.parse().ok()?;
 
     Some(DiscoveryResult {

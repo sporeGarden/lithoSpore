@@ -53,7 +53,7 @@
   ],
   "provenance": {
     "notebook": "notebooks/module7_anderson/anderson_qs.py",
-    "scenario": "barracuda/src/validation/scenarios/s_ltee_anderson.rs",
+    "scenario": "crates/ltee-anderson/src/lib.rs",
     "date": "2026-05-11",
     "tier_1": "Python (numpy + scipy + matplotlib)",
     "tier_2": "Rust (pure f64, self-contained tridiagonal eigensolver)"

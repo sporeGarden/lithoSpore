@@ -24,11 +24,8 @@ COPY crates/ crates/
 
 RUN cargo build --release --target x86_64-unknown-linux-musl \
     && mkdir -p /out/bin \
-    && for bin in litho ltee-fitness ltee-mutations ltee-alleles ltee-citrate \
-                  ltee-biobricks ltee-breseq ltee-anderson; do \
-         cp "target/x86_64-unknown-linux-musl/release/$bin" /out/bin/ 2>/dev/null || true; \
-       done \
-    && strip /out/bin/* 2>/dev/null || true
+    && cp "target/x86_64-unknown-linux-musl/release/litho" /out/bin/ \
+    && strip /out/bin/litho
 
 # ── Stage 2: Runtime ────────────────────────────────────────────────
 

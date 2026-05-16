@@ -1,7 +1,7 @@
-# CATHEDRAL Upstream Gap Registry
+# lithoSpore Upstream Gap Registry
 
-**Last Updated**: May 16, 2026 (75/75 checks, chassis abstraction landed, Wave 18 signal adoption absorbed)
-**Phase**: Stadial (post-CATHEDRAL split — lithoSpore is now a dedicated workstream)
+**Last Updated**: May 16, 2026 (75/75 checks, deep debt resolved, Wave 18 signal adoption absorbed)
+**Phase**: Stadial (lithoSpore is a dedicated workstream, post-CATHEDRAL split)
 **Scope**: lithoSpore verification chassis (LTEE is the first instance)
 **Geo-delocalization**: Absorbed — discovery chain extended to TURN, liveSpore.json provenance updated
 
@@ -16,8 +16,8 @@
 | 3. ltee-alleles | **Tier 2 PASS (20/20)** | neuralSpring B3 ML additive | **RESOLVED** | Interstadial |
 | 4. ltee-citrate | **Tier 2 PASS (11/11)** | neuralSpring B4 ML additive | **RESOLVED** | Interstadial |
 | 5. ltee-biobricks | **Tier 2 PASS (6/6)** | DOI pending | **RESOLVED** | Interstadial |
-| 6. ltee-breseq | **Tier 2 PASS (8/8)** | — | **RESOLVED** | Interstadial |
-| 7. ltee-anderson | **Tier 2 PASS (5/5)** | — | **RESOLVED** | Interstadial |
+| 6. ltee-breseq | **Tier 2 PASS (16/16)** | — | **RESOLVED** | Interstadial |
+| 7. ltee-anderson | **Tier 2 PASS (7/7)** | — | **RESOLVED** | Interstadial |
 
 **7/7 modules live** — All modules have Rust Tier 2 validation implementations.
 75/75 checks passing. Module 5 (biobricks) promoted from scaffold with
@@ -270,6 +270,15 @@ currently embed (standalone CLI pattern).
 
 ## Changelog
 
+- **2026-05-16**: Deep debt pass: viz/baselines.rs (637→376 LOC) and viz/modules.rs
+  (367→178 LOC) refactored via 9 extracted DataBinding builder helpers. Discovery
+  evolved to capability-generic env vars ($RELAY_SERVER, $VISUALIZATION_SOCKET) with
+  legacy fallback. Rust 2024 reserved keyword fix (`gen` → `generation`). Root docs
+  updated (README.md date/counts, GETTING_STARTED.md unified CLI). Created
+  whitePaper/baseCamp/ and experiments/ per ecosystem conventions. Two upstream
+  handoffs written to infra/wateringHole/. Stale barracuda scenario ref cleaned from
+  module7_anderson.json. UPSTREAM_GAPS.md renamed from CATHEDRAL, module 6/7 check
+  counts corrected (8→16, 5→7).
 - **2026-05-16**: Chassis regression fixed — scope-driven module resolution
   bugs in `validate.rs` (expected-file matching, empty-path guard, multi-dataset
   resolution). 4 integration tests added. Deep debt pass: consolidated 6

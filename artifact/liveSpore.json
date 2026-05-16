@@ -130,5 +130,38 @@
     "modules_total": 7,
     "runtime_ms": 6,
     "discovery_path": "standalone"
+  },
+  {
+    "timestamp": "2026-05-16T16:18:11.963533812+00:00",
+    "hostname_hash": "ea7afbf5c3a4aadd86d2c7fca7154df661ec16df98311dc61319dd454ed7f053",
+    "arch": "x86_64",
+    "os": "linux",
+    "tier_reached": 2,
+    "modules_passed": 7,
+    "modules_total": 7,
+    "runtime_ms": 28,
+    "discovery_path": "standalone"
+  },
+  {
+    "timestamp": "2026-05-16T16:18:12.065340868+00:00",
+    "hostname_hash": "ea7afbf5c3a4aadd86d2c7fca7154df661ec16df98311dc61319dd454ed7f053",
+    "arch": "x86_64",
+    "os": "linux",
+    "tier_reached": 2,
+    "modules_passed": 7,
+    "modules_total": 7,
+    "runtime_ms": 29,
+    "discovery_path": "standalone"
+  },
+  {
+    "timestamp": "2026-05-16T16:18:14.837854401+00:00",
+    "hostname_hash": "ea7afbf5c3a4aadd86d2c7fca7154df661ec16df98311dc61319dd454ed7f053",
+    "arch": "x86_64",
+    "os": "linux",
+    "tier_reached": 2,
+    "modules_passed": 7,
+    "modules_total": 7,
+    "runtime_ms": 28,
+    "discovery_path": "standalone"
   }
 ]

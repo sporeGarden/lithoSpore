@@ -11,8 +11,11 @@ continuous evolution.
 ## Quick Start
 
 ```bash
-# Validate all 7 science modules
+# Validate all 7 science modules (USB)
 ./validate
+
+# Or directly via cargo (development)
+cargo run --bin litho -- validate --json
 
 # Verify data integrity (BLAKE3 checksums)
 ./verify
@@ -21,7 +24,7 @@ continuous evolution.
 ./refresh
 
 # Check what tier is achievable on this machine
-bin/litho tier
+./spore tier
 ```
 
 ## Three Tiers of Validation
@@ -49,14 +52,7 @@ Tier 3 requires a projectNUCLEUS deployment.
 │   └── READING_ORDER.md  Guided reading path through the LTEE literature
 │
 ├── bin/                  Compiled Rust binaries (musl-static)
-│   ├── litho             Unified CLI
-│   ├── ltee-fitness      Module 1: Power-law fitness
-│   ├── ltee-mutations    Module 2: Mutation accumulation
-│   ├── ltee-alleles      Module 3: Allele trajectories
-│   ├── ltee-citrate      Module 4: Citrate innovation
-│   ├── ltee-biobricks    Module 5: BioBrick burden
-│   ├── ltee-breseq       Module 6: 264-genome analysis
-│   └── ltee-anderson     Module 7: Anderson-QS predictions
+│   └── litho             Unified CLI (all 7 modules via in-process dispatch)
 │
 ├── artifact/
 │   ├── data/             Fetched datasets (7 LTEE sources)
@@ -92,7 +88,7 @@ See `papers/READING_ORDER.md` for the full reading guide.
 ## Validation Targets
 
 14 quantitative targets (T01–T14) map published claims to tolerance
-bands. Run `bin/litho validate --json` to see target coverage.
+bands. Run `litho validate --json` to see target coverage.
 
 ## Extending
 
@@ -102,7 +98,7 @@ To add new LTEE papers or predictions:
 2. Add a dataset entry to `artifact/data.toml` (source URI + expected hash)
 3. Add expected values to `validation/expected/`
 4. Create a new module crate under `crates/` with `lib.rs` exposing `run_validation`
-5. Wire into `LIVE_MODULES` in `crates/ltee-cli/src/validate.rs`
+5. Add a module entry to `artifact/scope.toml` and wire into `LTEE_MODULES` in `crates/ltee-cli/src/validate.rs`
 6. `litho fetch` will automatically handle data retrieval from the data.toml entry
 
 ## Contact

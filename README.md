@@ -105,6 +105,8 @@ lithoSpore/
 ├── lineage/                      # Foundation thread linkage
 ├── papers/                       # Paper registry (16 DOIs) + READING_ORDER.md
 ├── figures/                      # Publication-quality SVG figures (7 modules)
+├── whitePaper/baseCamp/          # Python → Rust → Primal pipeline docs
+├── experiments/                  # Experiment index (chronological log)
 ├── scripts/                      # Container build script
 ├── specs/                        # Specifications
 └── docs/                         # Architecture + gap analysis
@@ -140,10 +142,10 @@ The assembled USB is a self-sufficient hypogeal cotyledon: plug it into
 any Linux machine and run `./validate`. See `artifact/usb-root/` for
 the root file templates.
 
-## Current Status — 7/7 PASS (May 15, 2026)
+## Current Status — 7/7 PASS (May 16, 2026)
 
 **Pillar 4 EXIT GATE: EXCEEDED** — 7 modules PASS at Tier 2, gate required 2+.
-**Deployment-validated**: USB pipeline tested via agentReagents (VM + container + local) — 75/75 checks, 108 unit tests, 16 integration tests, 15 chaos/fault-injection tests.
+**Deployment-validated**: USB pipeline tested via agentReagents (VM + container + local) — 75/75 checks, 116 unit/integration tests, 15 chaos/fault-injection tests.
 
 | Module | Status | Checks | Source |
 |--------|--------|--------|--------|
@@ -164,8 +166,8 @@ the root file templates.
 - **Module 7**: Anderson disorder mapping, GOE/Poisson eigenvalue statistics
 
 **Infrastructure**: `litho-core` crate with 7 modules (validation, provenance, tolerance,
-spore tracking, capability-based discovery, shared stats + harness, viz), 108 unit tests +
-16 integration tests + 15 chaos/fault-injection tests, CI wired, zero clippy warnings,
+spore tracking, capability-based discovery, shared stats + harness, viz), 116 unit/integration
+tests + 15 chaos/fault-injection tests, CI wired, zero clippy warnings,
 `#![forbid(unsafe_code)]` workspace-wide, pure Rust BLAKE3 (ecoBin compliant),
 `liveSpore.json` operational with corruption resilience and backup.
 
@@ -174,7 +176,8 @@ spore tracking, capability-based discovery, shared stats + harness, viz), 108 un
 - Shared harness (`litho_core::harness`) eliminates ~200 LOC of duplicated skip/load/dispatch
 - Shared stats (`litho_core::stats`) deduplicates `pearson_r` with safe length checks
 - Capability-based discovery (`litho_core::discovery`) — primal resolution via
-  env → UDS → Songbird TURN → standalone. No hardcoded primal names.
+  env → UDS → TURN relay → standalone. No hardcoded primal names; env vars are
+  capability-generic (`$RELAY_SERVER`, `$VISUALIZATION_SOCKET`) with legacy fallback.
   `DiscoveryPath` + `turn_relay` recorded in `liveSpore.json` for provenance.
 - `probe_operating_mode()` detects standalone/LAN/geo-delocalized before validation
 - Clippy pedantic clean — scientific casts allowed; all other pedantic lints enforced
@@ -186,10 +189,11 @@ spore tracking, capability-based discovery, shared stats + harness, viz), 108 un
 - `litho verify` hardened: exits non-zero on MISSING, ERROR, and corrupt manifests
 - Cross-platform: musl-static Linux (5.1 MB), Windows x86_64 (7.9 MB), argv[0] symlink detection
 
-**petalTongue Integration**: `litho-core::viz` provides `DataBinding` adapters for all
-7 LTEE modules and 7 Barrick Lab baseline tools. `litho visualize` pushes live dashboards
-to petalTongue via IPC. Interactive SceneGraph with click-to-select, pan/zoom, parameter
-controls, and data-driven animation on stream updates.
+**Visualization Integration**: `litho-core::viz` provides `DataBinding` adapters for all
+7 LTEE modules and 7 Barrick Lab baseline tools via 9 generic builder helpers (bar, gauge,
+timeseries, scatter, heatmap, distribution, genome_track). `litho visualize` pushes live
+dashboards to visualization primals via capability-based IPC discovery. Interactive
+SceneGraph with click-to-select, pan/zoom, parameter controls, and data-driven animation.
 
 **Deployment testing** (3 paths):
 - Local: `litho deploy-test` — filesystem isolation, ~1s

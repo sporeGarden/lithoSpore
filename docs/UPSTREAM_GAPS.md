@@ -1,8 +1,8 @@
 # CATHEDRAL Upstream Gap Registry
 
-**Last Updated**: May 15, 2026 (7/7 modules PASS Tier 2, deployment-validated across Linux/Alpine/Windows — Pillar 4 GATE EXCEEDED)
-**Phase**: Interstadial → Stadial
-**Scope**: lithoSpore + projectFOUNDATION (L5 knowledge layer)
+**Last Updated**: May 16, 2026 (75/75 checks, chassis abstraction landed, Wave 18 signal adoption absorbed)
+**Phase**: Stadial (post-CATHEDRAL split — lithoSpore is now a dedicated workstream)
+**Scope**: lithoSpore verification chassis (LTEE is the first instance)
 **Geo-delocalization**: Absorbed — discovery chain extended to TURN, liveSpore.json provenance updated
 
 ---
@@ -130,7 +130,7 @@ Upstream-blocked (not actionable by CATHEDRAL):
 | ID | Priority | Gap | Owner |
 |----|----------|-----|-------|
 | CC-1 | INFO | `SCYBORG_PROVENANCE_TRIO_GUIDANCE.md` only in external fossilRecord repo | infra team |
-| CC-2 | MEDIUM | `LTEE_GUIDESTONE_SUBSYSTEM_HANDOFF_MAY11_2026.md` missing from `handoffs/` | primalSpring — file never committed |
+| CC-2 | RESOLVED | `LTEE_GUIDESTONE_SUBSYSTEM_HANDOFF_MAY11_2026.md` in `handoffs/archive/` | Archived as expected |
 | CC-3 | RESOLVED | No CATHEDRAL handoffs written back to primalSpring | Written May 13: `CATHEDRAL_DEEP_DEBT_AUDIT_MAY13_2026.md` |
 | FN-DATA | RESOLVED | `data/README.md` schema stale | Updated to reflect all 10 threads May 13 |
 
@@ -244,8 +244,42 @@ Additional platform evolution:
 | 4 | Lab orchestration scripts | benchScale | Pending |
 | 5 | Image provisioning scripts | agentReagents | Pending |
 
+## Wave 18 Signal Adoption Status
+
+lithoSpore is a verification chassis (consumer), not a primal (provider).
+Signal adoption applies to orchestration metadata and provenance wiring,
+not to in-process `ctx.dispatch()` calls.
+
+| Signal | Status | Notes |
+|--------|--------|-------|
+| `primal.announce` | **Registry absorbed** | Added to `capability_registry.toml`; lithoSpore does not self-register (CLI tool, not daemon) |
+| `primal.info` | **Registry absorbed** | Available for querying ecosystem primals |
+| `nest.store` | **Graph + workload annotated** | `ltee_guidestone.toml` signals field, Tier 3 workload signals field |
+| `nest.commit` | **Graph + workload annotated** | Session finalization for provenance |
+| `node.compute` | **Graph annotated** | toadStool compute dispatch in Tier 3 graph |
+| `health.readiness` | **Registry absorbed** | Deployment Validation Standard triad |
+| `health.check` | **Registry absorbed** | Deployment Validation Standard triad |
+| `visualization.render` | **Code + registry** | `RPC_VIZ_RENDER` constant in `visualize.rs`, capability-based discovery |
+
+lithoSpore's signal adoption path: When biomeOS supports signal dispatch
+routing, the Tier 3 graph's provenance phase (rhizoCrypt → loamSpine →
+sweetGrass) collapses to a single `nest.store` dispatch. The graph and
+workload TOMLs are annotated to enable this. Code-level adoption requires
+a `CompositionContext`-compatible runtime, which lithoSpore does not
+currently embed (standalone CLI pattern).
+
 ## Changelog
 
+- **2026-05-16**: Chassis regression fixed — scope-driven module resolution
+  bugs in `validate.rs` (expected-file matching, empty-path guard, multi-dataset
+  resolution). 4 integration tests added. Deep debt pass: consolidated 6
+  duplicate module tables, capability-based discovery wiring, `#[allow]`
+  elimination, redundant dep removal, stale `scripts/fetch_*.sh` references
+  cleaned from all 7 module crates. Wave 18 absorption: THREAD_INDEX.toml
+  expanded (4→6 threads, Thread 5 LTEE + Thread 6 Agriculture added),
+  capability_registry.toml aligned with health triad + primal.announce +
+  signal tier annotations, deploy graph and workload TOMLs annotated with
+  signal names, workload isolation hardened (None→Standard).
 - **2026-05-15**: Deployment matrix validated — musl-static on Ubuntu airgap/VPS, Alpine chroot,
   read-only FS; Windows litho.exe via Wine 11. agentReagents templates created for Alpine,
   Fedora, Debian, read-only. All platforms PASS.

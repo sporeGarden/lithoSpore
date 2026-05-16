@@ -12,7 +12,7 @@
 name = "ltee_guidestone"
 id = "ltee-guidestone-tier3"
 description = "LTEE Targeted GuideStone — Tier 3 primal composition for full provenance"
-version = "0.2.0"
+version = "0.3.0"
 coordination = "sequential"
 
 [graph.metadata]
@@ -25,6 +25,11 @@ tier = 3
 artifact = "ltee-guidestone"
 fragments = ["tower_atomic", "nest_atomic"]
 resolve = true
+
+# Signal mapping: the provenance phase (nodes 1-3) maps to the
+# nest.store atomic signal. When biomeOS supports signal dispatch,
+# ctx.dispatch("nest.store", ...) collapses nodes 1-3 into one call.
+signals = ["nest.store", "nest.commit"]
 
 [graph.bonding_policy]
 type = "covalent"

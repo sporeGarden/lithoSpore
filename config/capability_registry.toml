@@ -4,23 +4,40 @@
 #
 # Every JSON-RPC method string used in lithoSpore source code and
 # referenced in graph TOML files must appear here. Mirrors the
-# primalSpring canonical registry pattern.
+# primalSpring canonical registry pattern (451 methods, Wave 18).
 #
 # Structure: [domain] with `methods = [...]` and `owner` naming the
 # primal that serves them. lithoSpore itself consumes these methods
 # as a client — it never serves them.
 #
+# Signal tiers: Where applicable, `signal` names the atomic signal
+# that collapses the method sequence (per SIGNAL_ADOPTION_STANDARD).
+#
 # CI: cargo test validates that discovery.rs method strings match
 # this registry (Tier 1 structural check).
 
-# ─── Methods lithoSpore calls as a client ─────────────────────────────
+# ─── Health triad (Deployment Validation Standard v1.1) ──────────────
 
 [health]
 owner = "all"
 consumed_by = "litho-core::discovery"
 methods = [
     "health.liveness",
+    "health.readiness",
+    "health.check",
 ]
+
+# ─── Lifecycle / registration (Wave 17 signal elevation) ─────────────
+
+[lifecycle]
+owner = "biomeos"
+consumed_by = "litho-core::discovery"
+methods = [
+    "primal.announce",
+    "primal.info",
+]
+
+# ─── Capability discovery ────────────────────────────────────────────
 
 [capabilities]
 owner = "all"
@@ -45,18 +62,26 @@ methods = [
     "ipc.resolve",
 ]
 
+# ─── Visualization ───────────────────────────────────────────────────
+
 [visualization]
 owner = "petaltongue"
 consumed_by = "ltee-cli::visualize"
 methods = [
+    "visualization.render",
     "visualization.render.dashboard",
     "visualization.render.stream",
     "visualization.session.create",
 ]
 
+# ─── Provenance trio ─────────────────────────────────────────────────
+# Signal: nest.store collapses dag + spine + braid + storage into one
+# Signal: nest.commit finalizes a provenance session
+
 [dag]
 owner = "rhizocrypt"
 consumed_by = "litho-core::provenance"
+signal = "nest.store"
 methods = [
     "dag.event.append",
     "dag.session.complete",
@@ -66,6 +91,7 @@ methods = [
 [spine]
 owner = "loamspine"
 consumed_by = "litho-core::provenance"
+signal = "nest.store"
 methods = [
     "spine.create",
     "entry.append",
@@ -74,6 +100,7 @@ methods = [
 [braid]
 owner = "sweetgrass"
 consumed_by = "litho-core::provenance"
+signal = "nest.store"
 methods = [
     "braid.create",
     "braid.commit",
@@ -82,9 +109,12 @@ methods = [
 [storage]
 owner = "nestgate"
 consumed_by = "ltee-cli::verify"
+signal = "nest.store"
 methods = [
     "storage.store",
 ]
+
+# ─── Security ────────────────────────────────────────────────────────
 
 [crypto]
 owner = "beardog"
@@ -95,17 +125,18 @@ methods = [
     "crypto.verify",
 ]
 
-# ─── Methods referenced in lithoSpore graph TOMLs ────────────────────
+# ─── Compute (graph references) ─────────────────────────────────────
 
 [compute]
 owner = "toadstool"
 consumed_by = "graphs/ltee_guidestone.toml"
+signal = "node.compute"
 methods = [
     "compute.dispatch",
     "compute.status",
 ]
 
-# ─── Test fixtures ────────────────────────────────────────────────────
+# ─── Test fixtures ───────────────────────────────────────────────────
 
 [test_fixtures]
 owner = "tests"

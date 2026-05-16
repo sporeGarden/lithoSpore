@@ -4,9 +4,20 @@
 # This is lithoSpore's view of which projectFOUNDATION threads feed it.
 
 [meta]
-version = "0.1.0"
+version = "0.2.0"
 artifact = "ltee-guidestone"
-generated = "2026-05-11"
+generated = "2026-05-16"
+
+# Thread 5 is the primary LTEE thread — all 7 modules are LTEE reproductions.
+# Other threads provide cross-domain connections (RMT, metabolic modeling, etc.).
+
+[[threads]]
+id = 5
+name = "LTEE / Evolution"
+short = "ltee"
+relevance = "Core LTEE experiment: 75,000-generation E. coli evolution — all 7 modules are direct reproductions"
+modules = ["ltee-fitness", "ltee-mutations", "ltee-alleles", "ltee-citrate", "ltee-biobricks", "ltee-breseq", "ltee-anderson"]
+foundation_ref = "projectFOUNDATION/data/sources/thread05_ltee.toml"
 
 [[threads]]
 id = 4
@@ -15,6 +26,14 @@ short = "enviro"
 relevance = "LTEE metagenomic diversity data, NCBI BioProject accessions"
 modules = ["ltee-fitness", "ltee-mutations", "ltee-alleles", "ltee-breseq"]
 foundation_ref = "projectFOUNDATION/data/sources/thread04_enviro.toml"
+
+[[threads]]
+id = 6
+name = "Agricultural Science"
+short = "agriculture"
+relevance = "Measurement science patterns — metabolic burden quantification, standardization via BioBricks"
+modules = ["ltee-biobricks"]
+foundation_ref = "projectFOUNDATION/data/sources/thread06_agriculture.toml"
 
 [[threads]]
 id = 7

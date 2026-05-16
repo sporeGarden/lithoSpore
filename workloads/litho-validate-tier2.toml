@@ -1,10 +1,14 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
 # lithoSpore Tier 2 validation — dispatched by projectNUCLEUS
 # Runs all 7 LTEE modules via Rust ecoBin binaries
 
 [metadata]
 name = "litho-validate-tier2"
 description = "LTEE guideStone full Tier 2 validation — 7 modules, musl-static binaries"
-version = "0.1.0"
+version = "0.2.0"
+thread = "05"
+thread_name = "LTEE / Evolution"
 
 [execution]
 type = "native"
@@ -16,4 +20,5 @@ max_memory_bytes = 4294967296
 max_cpu_percent = 100.0
 
 [security]
-isolation_level = "None"
+isolation_level = "Standard"
+trusted_directories = ["$GARDENS_ROOT/lithoSpore/artifact"]

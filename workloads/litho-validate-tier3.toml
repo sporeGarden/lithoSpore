@@ -1,16 +1,22 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
 # lithoSpore Tier 3 validation — requires NUCLEUS composition
 # Runs all modules + provenance trio verification
+# Signal: nest.store collapses the 4-call provenance sequence
 
 [metadata]
 name = "litho-validate-tier3"
 description = "LTEE guideStone Tier 3 validation — full provenance via NUCLEUS composition"
-version = "0.1.0"
+version = "0.2.0"
+thread = "05"
+thread_name = "LTEE / Evolution"
 
 [execution]
 type = "composition"
 graph = "graphs/ltee_guidestone.toml"
 command = "$GARDENS_ROOT/lithoSpore/artifact/bin/litho validate --json --max-tier 3"
 working_dir = "$GARDENS_ROOT/lithoSpore/artifact"
+signals = ["nest.store", "nest.commit"]
 
 [resources]
 max_memory_bytes = 8589934592
@@ -18,3 +24,4 @@ max_cpu_percent = 100.0
 
 [security]
 isolation_level = "btsp"
+trusted_directories = ["$GARDENS_ROOT/lithoSpore/artifact"]

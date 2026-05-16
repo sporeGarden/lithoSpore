@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Notify sporePrint to refresh metrics and import guideStone content on push.
+# lithoSpore is a Targeted GuideStone — pushes liveSpore.json provenance
+# and content pages to primals.eco.
+#
+# Secret: SPOREPRINT_DISPATCH_TOKEN (repo scope on ecoPrimals/sporePrint).
+
+name: Notify sporePrint
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch refresh to sporePrint
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.SPOREPRINT_DISPATCH_TOKEN }}
+          repository: ecoPrimals/sporePrint
+          event-type: source-updated
+          client-payload: '{"source": "${{ github.event.repository.name }}", "sha": "${{ github.sha }}", "type": "guidestone", "content": "true"}'

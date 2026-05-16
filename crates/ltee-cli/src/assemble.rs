@@ -25,7 +25,7 @@ pub fn run(root: &str, target: &str, skip_python: bool, skip_fetch: bool, skip_b
     step("1. Creating directory tree");
     let dirs = [
         "bin", "artifact/data", "validation/expected",
-        "foundation/targets", "notebooks", "figures",
+        "projectFOUNDATION/targets", "notebooks", "figures",
         "biomeOS/graphs", "papers",
     ];
     for dir in &dirs {

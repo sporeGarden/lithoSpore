@@ -2,7 +2,7 @@
 
 **Last Updated**: May 15, 2026 (7/7 modules PASS Tier 2, deployment-validated across Linux/Alpine/Windows — Pillar 4 GATE EXCEEDED)
 **Phase**: Interstadial → Stadial
-**Scope**: lithoSpore + Foundation (L5 knowledge layer)
+**Scope**: lithoSpore + projectFOUNDATION (L5 knowledge layer)
 **Geo-delocalization**: Absorbed — discovery chain extended to TURN, liveSpore.json provenance updated
 
 ---
@@ -116,7 +116,7 @@ Upstream-blocked (not actionable by CATHEDRAL):
 - sporePrint pipeline wiring (`notify-sporeprint.yml` → Zola)
 - genomeBin primal packaging for Tier 3 on USB
 
-## Remaining — Foundation
+## Remaining — projectFOUNDATION
 
 | ID | Priority | Gap | Action |
 |----|----------|-----|--------|
@@ -238,9 +238,9 @@ Additional platform evolution:
 
 | Priority | Script | Repo | Status |
 |----------|--------|------|--------|
-| 1 | `fetch_sources.sh` | Foundation | Pending |
-| 2 | `foundation_validate.sh` | Foundation | Pending |
-| 3 | `backfill_hashes.sh` | Foundation | Pending |
+| 1 | `fetch_sources.sh` | projectFOUNDATION | Pending |
+| 2 | `foundation_validate.sh` | projectFOUNDATION | Pending |
+| 3 | `backfill_hashes.sh` | projectFOUNDATION | Pending |
 | 4 | Lab orchestration scripts | benchScale | Pending |
 | 5 | Image provisioning scripts | agentReagents | Pending |
 
@@ -266,7 +266,7 @@ Additional platform evolution:
   with DataBinding adapters for all 7 LTEE modules and 7 Barrick Lab baseline
   tools. Render-path convergence validation pipeline established.
 - **2026-05-13**: Deep-debt audit sweep — extracted `litho_core::{harness, stats, discovery}`,
-  ecoBin BLAKE3 compliance, SPDX headers, Foundation CI fix, schema alignment.
+  ecoBin BLAKE3 compliance, SPDX headers, projectFOUNDATION CI fix, schema alignment.
   CATHEDRAL handoff written to `validation/handbacks/`.
 - **2026-05-13**: Modules 3+4 promoted from scaffold: groundSpring B3 (Good 2017 clonal
   interference) and B4 (Blount 2008/2012 citrate innovation) ingested. 6/7 modules wired.

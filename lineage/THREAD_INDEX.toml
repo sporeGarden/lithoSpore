@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
-# LTEE guideStone lineage — maps this artifact to foundation threads.
-# This is lithoSpore's view of which foundation threads feed it.
+# LTEE guideStone lineage — maps this artifact to projectFOUNDATION threads.
+# This is lithoSpore's view of which projectFOUNDATION threads feed it.
 
 [meta]
 version = "0.1.0"
@@ -14,7 +14,7 @@ name = "Environmental Genomics"
 short = "enviro"
 relevance = "LTEE metagenomic diversity data, NCBI BioProject accessions"
 modules = ["ltee-fitness", "ltee-mutations", "ltee-alleles", "ltee-breseq"]
-foundation_ref = "foundation/data/sources/thread04_enviro.toml"
+foundation_ref = "projectFOUNDATION/data/sources/thread04_enviro.toml"
 
 [[threads]]
 id = 7
@@ -22,7 +22,7 @@ name = "Anderson Framework"
 short = "anderson"
 relevance = "Anderson disorder analogy, DFE/RMT connection"
 modules = ["ltee-anderson", "ltee-fitness"]
-foundation_ref = "foundation/data/sources/thread07_anderson.toml"
+foundation_ref = "projectFOUNDATION/data/sources/thread07_anderson.toml"
 
 [[threads]]
 id = 2
@@ -30,7 +30,7 @@ name = "Plasma Physics / Lattice QCD"
 short = "plasma"
 relevance = "RMT eigenvalue statistics for DFE analysis"
 modules = ["ltee-anderson"]
-foundation_ref = "foundation/data/sources/thread02_plasma.toml"
+foundation_ref = "projectFOUNDATION/data/sources/thread02_plasma.toml"
 
 [[threads]]
 id = 1
@@ -38,4 +38,4 @@ name = "Whole-Cell Modeling"
 short = "wcm"
 relevance = "Metabolic modeling context for citrate innovation"
 modules = ["ltee-citrate"]
-foundation_ref = "foundation/data/sources/thread01_wcm.toml"
+foundation_ref = "projectFOUNDATION/data/sources/thread01_wcm.toml"

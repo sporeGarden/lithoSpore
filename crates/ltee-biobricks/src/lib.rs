@@ -31,7 +31,7 @@ pub fn run_validation(data_dir: &str, expected: &str, max_tier: u8) -> ModuleRes
     if !Path::new(data_dir).exists() {
         return harness::skip(
             "biobrick_burden", 1, start,
-            "Data not fetched — run scripts/fetch_biobricks_2024.sh",
+            "Data not fetched — run `litho fetch --all`",
         );
     }
 

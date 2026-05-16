@@ -10,28 +10,22 @@ pub fn cmd_refresh(root: &str) {
 pub fn cmd_status(root: &str) {
     let root_path = std::path::Path::new(root);
 
-    let modules: &[(&str, &str, &str)] = &[
-        ("1 (fitness)", "validation/expected/module1_fitness.json", "artifact/data/wiser_2013"),
-        ("2 (mutations)", "validation/expected/module2_mutations.json", "artifact/data/barrick_2009"),
-        ("3 (alleles)", "validation/expected/module3_alleles.json", "artifact/data/good_2017"),
-        ("4 (citrate)", "validation/expected/module4_citrate.json", "artifact/data/blount_2012"),
-        ("5 (biobricks)", "validation/expected/module5_biobricks.json", "artifact/data/biobricks_2024"),
-        ("6 (breseq)", "validation/expected/module6_breseq.json", "artifact/data/tenaillon_2016"),
-        ("7 (anderson)", "validation/expected/module7_anderson.json", "artifact/data/anderson_predictions"),
-    ];
+    let scope_name = litho_core::ScopeManifest::load(&root_path.join("artifact/scope.toml"))
+        .map_or_else(|_| "ltee-guidestone".to_string(), |s| s.guidestone.name.clone());
 
-    let mut live = 0_u32;
-    println!("lithoSpore v{} — LTEE Targeted GuideStone", env!("CARGO_PKG_VERSION"));
+    println!("lithoSpore v{} — {scope_name}", env!("CARGO_PKG_VERSION"));
     println!("  Artifact root: {root}");
 
-    for &(name, expected_path, data_path) in modules {
-        let has_expected = root_path.join(expected_path).exists();
-        let has_data = root_path.join(data_path).exists();
+    let mut live = 0_u32;
+    let total = crate::validate::LTEE_MODULES.len();
+    for (name, _binary, data_dir, expected) in crate::validate::LTEE_MODULES {
+        let has_expected = root_path.join(expected).exists();
+        let has_data = root_path.join(data_dir).exists();
         if has_expected { live += 1; }
-        println!("  Module {name:<14} expected={has_expected} data={has_data}");
+        println!("  Module {name:<25} expected={has_expected} data={has_data}");
     }
 
-    println!("  Modules: 7 ({live} live, {} scaffold)", 7 - live);
+    println!("  Modules: {total} ({live} live, {} scaffold)", total as u32 - live);
     println!("  Tier support: 1 (Python) + 2 (Rust) + 3 (Primal/NUCLEUS)");
 }
 
@@ -39,17 +33,7 @@ pub fn cmd_status(root: &str) {
 mod tests {
     #[test]
     fn status_module_table_is_seven() {
-        // Verify the module table used in cmd_status
-        let modules: &[(&str, &str, &str)] = &[
-            ("1 (fitness)", "validation/expected/module1_fitness.json", "artifact/data/wiser_2013"),
-            ("2 (mutations)", "validation/expected/module2_mutations.json", "artifact/data/barrick_2009"),
-            ("3 (alleles)", "validation/expected/module3_alleles.json", "artifact/data/good_2017"),
-            ("4 (citrate)", "validation/expected/module4_citrate.json", "artifact/data/blount_2012"),
-            ("5 (biobricks)", "validation/expected/module5_biobricks.json", "artifact/data/biobricks_2024"),
-            ("6 (breseq)", "validation/expected/module6_breseq.json", "artifact/data/tenaillon_2016"),
-            ("7 (anderson)", "validation/expected/module7_anderson.json", "artifact/data/anderson_predictions"),
-        ];
-        assert_eq!(modules.len(), 7);
+        assert_eq!(crate::validate::LTEE_MODULES.len(), 7);
     }
 
     #[test]
@@ -69,20 +53,11 @@ pub fn cmd_self_test(root: &str) {
     println!("  Root: {root}");
     println!();
 
-    let expected_files = [
-        "validation/expected/module1_fitness.json",
-        "validation/expected/module2_mutations.json",
-        "validation/expected/module3_alleles.json",
-        "validation/expected/module4_citrate.json",
-        "validation/expected/module5_biobricks.json",
-        "validation/expected/module6_breseq.json",
-        "validation/expected/module7_anderson.json",
-    ];
-    for f in &expected_files {
+    for (_name, _binary, _data_dir, expected) in crate::validate::LTEE_MODULES {
         total += 1;
-        let exists = root_path.join(f).exists();
+        let exists = root_path.join(expected).exists();
         if exists { passed += 1; }
-        println!("  [{}] {f}", if exists { "OK" } else { "MISSING" });
+        println!("  [{}] {expected}", if exists { "OK" } else { "MISSING" });
     }
 
     let artifact_files = [
@@ -110,20 +85,11 @@ pub fn cmd_self_test(root: &str) {
         println!("  [{}] {f}", if exists { "OK" } else { "MISSING" });
     }
 
-    let data_dirs = [
-        "artifact/data/wiser_2013",
-        "artifact/data/barrick_2009",
-        "artifact/data/good_2017",
-        "artifact/data/blount_2012",
-        "artifact/data/biobricks_2024",
-        "artifact/data/tenaillon_2016",
-        "artifact/data/anderson_predictions",
-    ];
-    for d in &data_dirs {
+    for (_name, _binary, data_dir, _expected) in crate::validate::LTEE_MODULES {
         total += 1;
-        let exists = root_path.join(d).exists();
+        let exists = root_path.join(data_dir).exists();
         if exists { passed += 1; }
-        println!("  [{}] {d}/", if exists { "OK" } else { "MISSING" });
+        println!("  [{}] {data_dir}/", if exists { "OK" } else { "MISSING" });
     }
 
     // Check figures
@@ -164,12 +130,12 @@ pub fn cmd_tier(root: &str) {
         if has_embedded { "(embedded)" } else if has_python { "(system)" } else { "" });
 
     // Tier 2: Rust binaries
-    let binaries = ["ltee-fitness", "ltee-mutations", "ltee-alleles", "ltee-citrate",
-                    "ltee-biobricks", "ltee-breseq", "ltee-anderson", "litho"];
-    let bin_count = binaries.iter()
+    let mut tier2_bins: Vec<&str> = crate::validate::LTEE_MODULES.iter().map(|(_, b, _, _)| *b).collect();
+    tier2_bins.push("litho");
+    let bin_count = tier2_bins.iter()
         .filter(|b| root_path.join(format!("bin/{b}")).exists() || root_path.join(format!("target/release/{b}")).exists())
         .count();
-    let tier2 = bin_count >= 7;
+    let tier2 = bin_count >= crate::validate::LTEE_MODULES.len();
     println!("  Tier 2 (Rust):     {} ({bin_count}/8 binaries)", if tier2 { "AVAILABLE" } else { "PARTIAL" });
 
     // Tier 3: Primals (NUCLEUS)
@@ -188,39 +154,30 @@ pub fn cmd_deploy_report(root: &str, pattern: &str) {
     let root_path = std::path::Path::new(root);
     let timestamp = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
 
-    // Self-test
-    let expected_files = [
-        "validation/expected/module1_fitness.json",
-        "validation/expected/module2_mutations.json",
-        "validation/expected/module3_alleles.json",
-        "validation/expected/module4_citrate.json",
-        "validation/expected/module5_biobricks.json",
-        "validation/expected/module6_breseq.json",
-        "validation/expected/module7_anderson.json",
-        "artifact/scope.toml",
-        "artifact/data.toml",
-        "artifact/tolerances.toml",
-        "papers/registry.toml",
-        ".biomeos-spore",
-    ];
-    let selftest_passed = expected_files.iter().filter(|f| root_path.join(f).exists()).count();
-    let selftest_total = expected_files.len();
+    // Self-test: expected module JSONs + artifact files
+    let mut selftest_files: Vec<&str> = crate::validate::LTEE_MODULES
+        .iter()
+        .map(|(_, _, _, expected)| *expected)
+        .collect();
+    for extra in ["artifact/scope.toml", "artifact/data.toml", "artifact/tolerances.toml",
+                   "papers/registry.toml", ".biomeos-spore"] {
+        selftest_files.push(extra);
+    }
+    let selftest_passed = selftest_files.iter().filter(|f| root_path.join(f).exists()).count();
+    let selftest_total = selftest_files.len();
 
     // Tier detection
     let has_python = std::process::Command::new("python3").arg("--version").output().is_ok()
         || root_path.join("python/bin/python3").exists();
-    let binaries = ["ltee-fitness", "ltee-mutations", "ltee-alleles", "ltee-citrate",
-                    "ltee-biobricks", "ltee-breseq", "ltee-anderson", "litho"];
-    let bin_count = binaries.iter()
+    let deploy_bins: Vec<&str> = crate::validate::LTEE_MODULES.iter().map(|(_, b, _, _)| *b).chain(std::iter::once("litho")).collect();
+    let bin_count = deploy_bins.iter()
         .filter(|b| root_path.join(format!("bin/{b}")).exists() || root_path.join(format!("target/release/{b}")).exists())
         .count();
-    let max_tier = if bin_count >= 7 { 2 } else if has_python { 1 } else { 0 };
+    let max_tier = if bin_count >= crate::validate::LTEE_MODULES.len() { 2 } else if has_python { 1 } else { 0 };
 
     // Data bundles
-    let data_dirs = ["wiser_2013", "barrick_2009", "good_2017", "blount_2012",
-                     "biobricks_2024", "tenaillon_2016", "anderson_predictions"];
-    let data_count = data_dirs.iter()
-        .filter(|d| root_path.join(format!("artifact/data/{d}")).exists())
+    let data_count = crate::validate::LTEE_MODULES.iter()
+        .filter(|(_, _, data_dir, _)| root_path.join(data_dir).exists())
         .count();
 
     // Figures

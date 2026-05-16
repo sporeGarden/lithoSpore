@@ -25,7 +25,7 @@ pub fn run_validation(data_dir: &str, expected: &str, max_tier: u8) -> ModuleRes
 
     if !Path::new(data_dir).exists() {
         return harness::skip("mutation_accumulation", 1, start,
-            "Data not fetched — run scripts/fetch_barrick_2009.sh");
+            "Data not fetched — run `litho fetch --all`");
     }
 
     if max_tier >= 2 {

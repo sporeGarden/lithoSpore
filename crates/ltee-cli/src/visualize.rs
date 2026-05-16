@@ -2,17 +2,7 @@
 
 //! `litho visualize` — generate scientific visualizations for all modules.
 
-use crate::validate::LTEE_MODULES;
-
-const NOTEBOOKS: &[(&str, &str)] = &[
-    ("module1_fitness", "notebooks/module1_fitness/power_law_fitness.py"),
-    ("module2_mutations", "notebooks/module2_mutations/mutation_accumulation.py"),
-    ("module3_alleles", "notebooks/module3_alleles/allele_trajectories.py"),
-    ("module4_citrate", "notebooks/module4_citrate/citrate_innovation.py"),
-    ("module5_biobricks", "notebooks/module5_biobricks/biobrick_burden.py"),
-    ("module6_breseq", "notebooks/module6_breseq/breseq_comparison.py"),
-    ("module7_anderson", "notebooks/module7_anderson/anderson_predictions.py"),
-];
+use crate::validate::{LTEE_MODULES, LTEE_NOTEBOOKS};
 
 const BASELINE_TOOLS: &[&str] = &[
     "breseq", "plannotate", "ostir", "cryptkeeper",
@@ -53,7 +43,7 @@ fn run_svg(root_path: &std::path::Path, output_dir: &str) {
     std::fs::create_dir_all(&out_path).ok();
 
     let mut generated = 0u32;
-    for (mod_name, notebook) in NOTEBOOKS {
+    for (mod_name, notebook) in LTEE_NOTEBOOKS {
         let nb_path = root_path.join(notebook);
         if !nb_path.exists() {
             eprintln!("  SKIP {mod_name}: notebook not found");
@@ -92,23 +82,23 @@ fn run_svg(root_path: &std::path::Path, output_dir: &str) {
 }
 
 fn run_dashboard(root_path: &std::path::Path, modules: &[(&str, &str)]) {
-    let socket_path = discover_petaltongue_socket();
+    let socket_path = discover_visualization_socket();
     if socket_path.is_empty() {
-        eprintln!("ERROR: petalTongue socket not found");
-        eprintln!("  Set PETALTONGUE_SOCKET or start petalTongue first");
+        eprintln!("ERROR: visualization socket not found");
+        eprintln!("  Set VISUALIZATION_SOCKET or start a visualization primal first");
         eprintln!("  Falling back to JSON output:");
         run_json(root_path, modules);
         return;
     }
 
     eprintln!("litho visualize --format dashboard");
-    eprintln!("  petalTongue socket: {socket_path}");
+    eprintln!("  visualization socket: {socket_path}");
 
     let all = load_module_data(root_path, modules);
     let refs: Vec<(&str, &serde_json::Value)> = all.iter().map(|(n, v)| (*n, v)).collect();
     let dashboard = litho_core::viz::build_dashboard(&refs);
 
-    push_to_petaltongue(&socket_path, &dashboard, "Dashboard");
+    push_to_visualization(&socket_path, &dashboard, "Dashboard");
 }
 
 fn run_baselines(root_path: &std::path::Path) {
@@ -142,14 +132,14 @@ fn run_baselines(root_path: &std::path::Path) {
     let bindings_count = dashboard["bindings"].as_array().map(|a| a.len()).unwrap_or(0);
     eprintln!("  {bindings_count} DataBindings from {} tools", all_tools.len());
 
-    let socket_path = discover_petaltongue_socket();
+    let socket_path = discover_visualization_socket();
     if socket_path.is_empty() {
-        eprintln!("  petalTongue not found — outputting JSON");
+        eprintln!("  visualization socket not found — outputting JSON");
         println!("{}", serde_json::to_string_pretty(&dashboard).unwrap_or_default());
         return;
     }
 
-    push_to_petaltongue(&socket_path, &dashboard, "Baselines");
+    push_to_visualization(&socket_path, &dashboard, "Baselines");
 }
 
 fn load_module_data<'a>(root_path: &std::path::Path, modules: &[(&'a str, &str)]) -> Vec<(&'a str, serde_json::Value)> {
@@ -173,12 +163,15 @@ fn load_module_data<'a>(root_path: &std::path::Path, modules: &[(&'a str, &str)]
     all
 }
 
-fn push_to_petaltongue(socket_path: &str, dashboard: &serde_json::Value, label: &str) {
-    eprintln!("  Pushing to petalTongue: {socket_path}");
+/// JSON-RPC method for pushing visualization data to the visualization primal.
+const RPC_VIZ_RENDER: &str = "visualization.render";
+
+fn push_to_visualization(socket_path: &str, dashboard: &serde_json::Value, label: &str) {
+    eprintln!("  Pushing to visualization primal: {socket_path}");
 
     let rpc_request = serde_json::json!({
         "jsonrpc": "2.0",
-        "method": "visualization.render",
+        "method": RPC_VIZ_RENDER,
         "params": dashboard,
         "id": 1,
     });
@@ -186,38 +179,42 @@ fn push_to_petaltongue(socket_path: &str, dashboard: &serde_json::Value, label: 
     let payload = serde_json::to_vec(&rpc_request).unwrap_or_default();
     match send_uds(socket_path, &payload) {
         Ok(response) => {
-            eprintln!("  {label} pushed to petalTongue");
+            eprintln!("  {label} pushed to visualization primal");
             if !response.is_empty() {
                 println!("{response}");
             }
         }
         Err(e) => {
-            eprintln!("  WARNING: petalTongue push failed: {e}");
+            eprintln!("  WARNING: visualization push failed: {e}");
             println!("{}", serde_json::to_string_pretty(dashboard).unwrap_or_default());
         }
     }
 }
 
-/// Discover the petalTongue socket using the capability-based chain:
-///   1. `$PETALTONGUE_SOCKET` explicit path
-///   2. `$XDG_RUNTIME_DIR/biomeos/petaltongue*.sock` (XDG standard)
-///   3. `/tmp/biomeos/petaltongue.sock` (fallback)
-///
-/// No primal-specific names are encoded — only the "visualization"
-/// capability socket convention.
-pub(crate) fn discover_petaltongue_socket() -> String {
-    if let Ok(path) = std::env::var("PETALTONGUE_SOCKET") {
-        if std::path::Path::new(&path).exists() {
-            return path;
+/// Discover a visualization socket using the capability-based discovery chain:
+///   1. `$VISUALIZATION_SOCKET` explicit path (capability-generic)
+///   2. `$PETALTONGUE_SOCKET` explicit path (legacy compat)
+///   3. `litho_core::discover("visualization")` — ecosystem UDS/env/TURN chain
+///   4. XDG runtime dir socket scan (fallback)
+pub(crate) fn discover_visualization_socket() -> String {
+    for env_key in ["VISUALIZATION_SOCKET", "PETALTONGUE_SOCKET"] {
+        if let Ok(path) = std::env::var(env_key) {
+            if std::path::Path::new(&path).exists() {
+                return path;
+            }
+        }
+    }
+
+    if let Some(ep) = litho_core::discovery::discover("visualization") {
+        if ep.transport == litho_core::discovery::Transport::Uds {
+            return ep.host;
         }
     }
 
     let xdg_runtime = resolve_xdg_runtime();
-
     let candidates = [
+        format!("{xdg_runtime}/biomeos/visualization.sock"),
         format!("{xdg_runtime}/biomeos/petaltongue.sock"),
-        format!("{xdg_runtime}/biomeos/petaltongue-nat0.sock"),
-        "/tmp/biomeos/petaltongue.sock".into(),
     ];
 
     for candidate in &candidates {
@@ -256,11 +253,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn discover_petaltongue_socket_returns_string() {
-        // In test environments the socket likely doesn't exist, so we just
-        // verify the function returns without panicking.
-        let result = discover_petaltongue_socket();
-        // Empty is expected unless a live petalTongue is running
+    fn discover_visualization_socket_returns_string() {
+        let result = discover_visualization_socket();
         let _ = result;
     }
 

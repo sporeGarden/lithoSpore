@@ -17,6 +17,15 @@ use std::net::TcpStream;
 use std::path::PathBuf;
 use std::time::Duration;
 
+/// JSON-RPC method for resolving capabilities through the discovery socket.
+const RPC_METHOD_RESOLVE: &str = "ipc.resolve";
+
+/// Subdirectory under `$XDG_RUNTIME_DIR` for ecosystem socket discovery.
+const RUNTIME_SUBDIR: &str = "ecoPrimals";
+
+/// Filename of the discovery socket within the runtime subdirectory.
+const DISCOVERY_SOCKET_NAME: &str = "discovery.sock";
+
 /// Which discovery mechanism resolved the primal.
 /// Recorded in `liveSpore.json` for provenance.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -141,7 +150,7 @@ fn resolve_primal_host() -> String {
 
 fn discovery_socket_path() -> Option<PathBuf> {
     let runtime = std::env::var("XDG_RUNTIME_DIR").unwrap_or_else(|_| "/tmp".to_string());
-    let path = PathBuf::from(runtime).join("ecoPrimals/discovery.sock");
+    let path = PathBuf::from(runtime).join(RUNTIME_SUBDIR).join(DISCOVERY_SOCKET_NAME);
     if path.exists() { Some(path) } else { None }
 }
 
@@ -156,7 +165,7 @@ fn discover_from_socket(capability: &str) -> Option<PrimalEndpoint> {
         stream.set_write_timeout(Some(Duration::from_secs(2))).ok()?;
 
         let request = format!(
-            "{{\"jsonrpc\":\"2.0\",\"method\":\"ipc.resolve\",\"params\":{{\"capability\":\"{capability}\"}},\"id\":1}}\n"
+            "{{\"jsonrpc\":\"2.0\",\"method\":\"{RPC_METHOD_RESOLVE}\",\"params\":{{\"capability\":\"{capability}\"}},\"id\":1}}\n"
         );
         stream.write_all(request.as_bytes()).ok()?;
         stream.flush().ok()?;
@@ -175,7 +184,7 @@ fn discover_from_socket(capability: &str) -> Option<PrimalEndpoint> {
     }
 }
 
-#[cfg_attr(not(unix), allow(dead_code))]
+#[cfg_attr(not(unix), expect(dead_code, reason = "used only on unix via discover_from_socket"))]
 fn parse_discovery_response(capability: &str, response: &str) -> Option<PrimalEndpoint> {
     let v: serde_json::Value = serde_json::from_str(response).ok()?;
     let result = v.get("result")?;

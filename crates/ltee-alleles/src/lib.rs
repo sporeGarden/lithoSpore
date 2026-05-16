@@ -23,7 +23,7 @@ pub fn run_validation(data_dir: &str, expected: &str, _max_tier: u8) -> ModuleRe
         return harness::skip(
             "allele_trajectories", 2, start,
             &format!(
-                "Data or expected values not found — run scripts/fetch_good_2017.sh first (expected={}, data={})",
+                "Data or expected values not found — run `litho fetch --all` (expected={}, data={})",
                 expected_path.display(), data_path.display()
             ),
         );

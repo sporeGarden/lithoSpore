@@ -21,7 +21,7 @@ pub fn run_validation(data_dir: &str, expected: &str, max_tier: u8) -> ModuleRes
 
     if !Path::new(expected).exists() {
         return harness::skip("breseq_264_genomes", 1, start,
-            "Expected values not found — run scripts/fetch_tenaillon_2016.sh first");
+            "Expected values not found — run `litho fetch --all`");
     }
 
     if !Path::new(data_dir).exists() {

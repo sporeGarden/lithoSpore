@@ -24,7 +24,7 @@ pub fn run_validation(data_dir: &str, expected: &str, max_tier: u8) -> ModuleRes
 
     if !Path::new(data_dir).exists() {
         return harness::skip("power_law_fitness", 1, start,
-            "Data not fetched — run scripts/fetch_wiser_2013.sh");
+            "Data not fetched — run `litho fetch --all`");
     }
 
     if max_tier >= 2 {

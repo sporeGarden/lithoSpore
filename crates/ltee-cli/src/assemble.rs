@@ -148,8 +148,7 @@ pub fn run(root: &str, target: &str, skip_python: bool, skip_fetch: bool, skip_b
     // 10. Generate data_manifest.toml
     step("10. Generating data_manifest.toml");
     let artifact_name = litho_core::ScopeManifest::load(&root_path.join("artifact/scope.toml"))
-        .map(|s| s.guidestone.name.clone())
-        .unwrap_or_else(|_| "ltee-guidestone".to_string());
+        .map_or_else(|_| "ltee-guidestone".to_string(), |s| s.guidestone.name.clone());
     generate_manifest(target_path, &artifact_name);
 
     // Summary

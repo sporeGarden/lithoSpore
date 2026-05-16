@@ -67,10 +67,8 @@ pub fn dispatch_python(name: &str, script_path: &Path, working_dir: &Path) -> Mo
                 eprintln!("{stderr}");
             }
 
-            #[allow(clippy::cast_possible_truncation)]
-            let passed = stdout.matches("[PASS]").count() as u32;
-            #[allow(clippy::cast_possible_truncation)]
-            let failed = stdout.matches("[FAIL]").count() as u32;
+            let passed = u32::try_from(stdout.matches("[PASS]").count()).unwrap_or(u32::MAX);
+            let failed = u32::try_from(stdout.matches("[FAIL]").count()).unwrap_or(u32::MAX);
 
             let status = if out.status.code() == Some(0) && failed == 0 {
                 ValidationStatus::Pass

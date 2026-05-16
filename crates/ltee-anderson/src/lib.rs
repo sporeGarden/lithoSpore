@@ -20,7 +20,7 @@ pub fn run_validation(data_dir: &str, expected: &str, max_tier: u8) -> ModuleRes
 
     if !Path::new(expected).exists() {
         return harness::skip("anderson_qs_predictions", 1, start,
-            "Expected values not found — run scripts/fetch_dfe_2024.sh first");
+            "Expected values not found — run `litho fetch --all`");
     }
 
     if !Path::new(data_dir).exists() {

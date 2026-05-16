@@ -12,7 +12,7 @@ pub fn pearson_r(x: &[f64], y: &[f64]) -> f64 {
     if x.len() != y.len() || x.is_empty() {
         return 0.0;
     }
-    #[allow(clippy::cast_precision_loss)]
+    #[expect(clippy::cast_precision_loss, reason = "slice len fits in f64 for any realistic dataset")]
     let n = x.len() as f64;
     let mx = x.iter().sum::<f64>() / n;
     let my = y.iter().sum::<f64>() / n;

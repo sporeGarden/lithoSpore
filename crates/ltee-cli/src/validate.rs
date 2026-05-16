@@ -21,7 +21,7 @@ pub(crate) const LTEE_MODULES: &[(&str, &str, &str, &str)] = &[
     ("anderson_qs_predictions", "ltee-anderson", "artifact/data/anderson_predictions", "validation/expected/module7_anderson.json"),
 ];
 
-const LTEE_NOTEBOOKS: &[(&str, &str)] = &[
+pub(crate) const LTEE_NOTEBOOKS: &[(&str, &str)] = &[
     ("power_law_fitness", "notebooks/module1_fitness/power_law_fitness.py"),
     ("mutation_accumulation", "notebooks/module2_mutations/mutation_accumulation.py"),
     ("allele_trajectories", "notebooks/module3_alleles/allele_trajectories.py"),
@@ -57,11 +57,20 @@ fn load_module_table(root: &std::path::Path) -> Vec<ModuleEntry> {
             let mut entries = Vec::new();
 
             for bin_name in &module_bins {
-                let ds = datasets.and_then(|arr| {
-                    arr.iter().find(|d| {
-                        d.get("module").and_then(|v| v.as_str()) == Some(bin_name)
+                let matching: Vec<&toml::Value> = datasets
+                    .map(|arr| {
+                        arr.iter()
+                            .filter(|d| d.get("module").and_then(|v| v.as_str()) == Some(bin_name))
+                            .collect()
                     })
-                });
+                    .unwrap_or_default();
+
+                let ds = matching.iter().find(|d| {
+                    d.get("local_path")
+                        .and_then(|v| v.as_str())
+                        .map(|p| root.join(p.trim_end_matches('/')).exists())
+                        .unwrap_or(false)
+                }).or_else(|| matching.first());
 
                 let data_dir = ds
                     .and_then(|d| d.get("local_path").and_then(|v| v.as_str()))
@@ -100,6 +109,8 @@ fn load_module_table(root: &std::path::Path) -> Vec<ModuleEntry> {
 }
 
 /// Find the expected JSON file for a module by scanning `validation/expected/`.
+/// Matches both the full underscore name (`ltee_fitness`) and the short suffix
+/// (`fitness`), since expected files use numbering like `module1_fitness.json`.
 fn find_expected_json(root: &std::path::Path, module_binary: &str) -> String {
     let expected_dir = root.join("validation/expected");
     if !expected_dir.is_dir() {
@@ -110,10 +121,11 @@ fn find_expected_json(root: &std::path::Path, module_binary: &str) -> String {
         Err(_) => return String::new(),
     };
     let suffix = module_binary.replace('-', "_");
+    let short = suffix.strip_prefix("ltee_").unwrap_or(&suffix);
     for entry in entries.flatten() {
         let name = entry.file_name();
         let name_str = name.to_string_lossy();
-        if name_str.ends_with(".json") && name_str.contains(&suffix) {
+        if name_str.ends_with(".json") && (name_str.contains(&suffix) || name_str.contains(short)) {
             if let Ok(rel) = entry.path().strip_prefix(root) {
                 return rel.to_string_lossy().to_string();
             }
@@ -138,8 +150,7 @@ pub fn run(root: &str, json: bool, max_tier: u8) {
     let root_path = std::path::Path::new(root);
 
     let scope_name = litho_core::ScopeManifest::load(&root_path.join("artifact/scope.toml"))
-        .map(|s| s.guidestone.name.clone())
-        .unwrap_or_else(|_| "ltee-guidestone".to_string());
+        .map_or_else(|_| "ltee-guidestone".to_string(), |s| s.guidestone.name.clone());
 
     let mut report = litho_core::ValidationReport::new(&scope_name, env!("CARGO_PKG_VERSION"));
     let modules = load_module_table(root_path);
@@ -148,7 +159,7 @@ pub fn run(root: &str, json: bool, max_tier: u8) {
         let data_path = root_path.join(&entry.data_dir);
         let expected_path = root_path.join(&entry.expected);
 
-        if data_path.exists() && expected_path.exists() {
+        if !entry.expected.is_empty() && data_path.exists() && expected_path.is_file() {
             let result = run_module_in_process(
                 &entry.binary,
                 data_path.to_str().unwrap_or(&entry.data_dir),
@@ -198,9 +209,9 @@ pub fn run(root: &str, json: bool, max_tier: u8) {
     std::process::exit(report.exit_code());
 }
 
-    /// Resolve a module binary, checking USB layout (`bin/`) first, then dev layout.
-    #[allow(dead_code)]
-    pub(crate) fn resolve_binary(root: &std::path::Path, name: &str) -> Option<std::path::PathBuf> {
+/// Resolve a module binary, checking USB layout (`bin/`) first, then dev layout.
+#[cfg(test)]
+pub(crate) fn resolve_binary(root: &std::path::Path, name: &str) -> Option<std::path::PathBuf> {
     let usb = root.join(format!("bin/{name}"));
     if usb.exists() {
         return Some(usb);

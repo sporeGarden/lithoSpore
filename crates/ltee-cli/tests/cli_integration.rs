@@ -262,3 +262,167 @@ fn deploy_report_produces_toml() {
     assert!(stdout.contains("[meta]"), "deploy-report should produce TOML");
     assert!(stdout.contains("deployment_pattern = \"test\""));
 }
+
+// ── Scope-driven path tests ────────────────────────────────────────
+
+fn scope_driven_root(scope_toml: &str, data_toml: &str) -> tempfile::TempDir {
+    let dir = tempfile::tempdir().expect("create temp dir");
+    let root = dir.path();
+    std::fs::create_dir_all(root.join("artifact/data/test_data")).ok();
+    std::fs::create_dir_all(root.join("validation/expected")).ok();
+
+    std::fs::write(root.join("artifact/scope.toml"), scope_toml).expect("write scope.toml");
+    std::fs::write(root.join("artifact/data.toml"), data_toml).expect("write data.toml");
+
+    dir
+}
+
+#[test]
+fn validate_uses_scope_toml_for_module_table() {
+    let scope = r#"
+[guidestone]
+name = "test-artifact"
+version = "1.0.0"
+target = "Scope-driven test"
+
+[[spring]]
+name = "testSpring"
+modules = ["ltee-fitness"]
+"#;
+    let data = r#"
+[meta]
+artifact = "test-artifact"
+
+[[dataset]]
+id = "test_fitness"
+source_uri = ""
+local_path = "artifact/data/test_data/"
+module = "ltee-fitness"
+blake3 = ""
+"#;
+
+    let root = scope_driven_root(scope, data);
+    let root_str = root.path().to_str().unwrap();
+
+    // Write a minimal expected JSON that ltee-fitness can parse
+    let expected = serde_json::json!({
+        "generations": [0.0, 500.0, 1000.0],
+        "mean_fitness": [1.0, 1.1, 1.2],
+        "model_fits": {
+            "power_law": {"params": [0.004, 0.65], "r_squared": 0.999, "aic": -50.0, "bic": -49.0, "k": 2, "rss": 0.001},
+            "hyperbolic": {"params": [0.0002, 0.00002], "r_squared": 0.998, "aic": -48.0, "bic": -47.0, "k": 2, "rss": 0.002},
+            "logarithmic": {"params": [0.98, -6.7], "r_squared": 0.90, "aic": -10.0, "bic": -9.0, "k": 2, "rss": 2.5}
+        }
+    });
+    std::fs::write(
+        root.path().join("validation/expected/module1_fitness.json"),
+        serde_json::to_string_pretty(&expected).unwrap(),
+    ).unwrap();
+
+    // Write minimal CSV data
+    std::fs::write(
+        root.path().join("artifact/data/test_data/fitness_data.csv"),
+        "generation,mean_fitness\n0,1.0\n500,1.1\n1000,1.2\n",
+    ).unwrap();
+
+    let output = litho_bin()
+        .args(["validate", "--artifact-root", root_str, "--json"])
+        .output()
+        .expect("run litho validate");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let report: serde_json::Value = serde_json::from_str(&stdout)
+        .expect("scope-driven validate should produce valid JSON");
+
+    assert_eq!(report["artifact"], "test-artifact",
+        "scope-driven path should use guidestone name from scope.toml");
+
+    let modules = report["modules"].as_array().expect("modules array");
+    assert_eq!(modules.len(), 1,
+        "scope declares only ltee-fitness, so only 1 module should run");
+    assert_eq!(modules[0]["name"], "power_law_fitness",
+        "module name comes from the module's run_validation, not scope");
+}
+
+#[test]
+fn validate_falls_back_to_ltee_constants_without_scope() {
+    let root = temp_artifact_root();
+    let root_str = root.path().to_str().unwrap();
+
+    let output = litho_bin()
+        .args(["validate", "--artifact-root", root_str, "--json"])
+        .output()
+        .expect("run litho validate");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let report: serde_json::Value = serde_json::from_str(&stdout)
+        .expect("fallback validate should produce valid JSON");
+
+    assert_eq!(report["artifact"], "ltee-guidestone",
+        "without scope.toml should fall back to ltee-guidestone");
+    let modules = report["modules"].as_array().expect("modules array");
+    assert_eq!(modules.len(), 7,
+        "without scope.toml should load all 7 LTEE modules");
+}
+
+#[test]
+fn assemble_dry_run_uses_scope_for_binary_list() {
+    let scope = r#"
+[guidestone]
+name = "minimal-artifact"
+version = "0.1.0"
+
+[[spring]]
+name = "oneSpring"
+modules = ["mod-alpha", "mod-beta"]
+"#;
+    let data = r#"
+[meta]
+artifact = "minimal-artifact"
+"#;
+    let root = scope_driven_root(scope, data);
+    let root_str = root.path().to_str().unwrap();
+    let target = root.path().join("usb-out");
+
+    let output = litho_bin()
+        .args([
+            "assemble",
+            "--artifact-root", root_str,
+            "--target", target.to_str().unwrap(),
+            "--dry-run",
+        ])
+        .output()
+        .expect("run litho assemble --dry-run");
+
+    assert!(output.status.success(), "assemble --dry-run should exit 0");
+}
+
+#[test]
+fn scope_with_empty_modules_produces_no_entries() {
+    let scope = r#"
+[guidestone]
+name = "empty-scope"
+version = "0.1.0"
+"#;
+    let data = r#"
+[meta]
+artifact = "empty-scope"
+"#;
+    let root = scope_driven_root(scope, data);
+    let root_str = root.path().to_str().unwrap();
+
+    let output = litho_bin()
+        .args(["validate", "--artifact-root", root_str, "--json"])
+        .output()
+        .expect("run litho validate");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let report: serde_json::Value = serde_json::from_str(&stdout)
+        .expect("empty-scope validate should produce valid JSON");
+
+    // Scope has no springs/modules, so load_module_table falls through to LTEE constants
+    assert_eq!(report["artifact"], "empty-scope");
+    let modules = report["modules"].as_array().expect("modules array");
+    assert_eq!(modules.len(), 7,
+        "scope with no modules should fall back to LTEE constant table");
+}

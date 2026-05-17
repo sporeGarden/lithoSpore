@@ -88,7 +88,7 @@ Each carries `doi`, `source_figures`, and tolerance specifications.
 
 ## Test Coverage
 
-117 tests across 9 crates:
-- `litho-core`: 54 unit tests (discovery, provenance, validation, spore, viz, graph, etc.)
+119 tests across 9 crates:
+- `litho-core`: 56 unit tests (discovery, provenance, validation, spore, viz, graph, etc.)
 - `ltee-cli`: 16 unit + 20 integration tests
 - Module crates: 27 combined (fitness 6, mutations 6, anderson 5, biobricks 4, alleles 2, citrate 2, breseq 2)

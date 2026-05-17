@@ -55,25 +55,39 @@ const CAP_BRAID: &str = "braid";
 /// Attempt to record a Tier 3 provenance session via the primal trio.
 ///
 /// Discovers rhizoCrypt (DAG), loamSpine (spine), and sweetGrass (braid)
-/// by capability. If all three are reachable, records the validation results
-/// as a provenance chain and returns the session metadata.
+/// by capability. Partial provenance is valid per the ecosystem standard
+/// (`PROVENANCE_TRIO_INTEGRATION_GUIDE.md`):
+///
+/// | State              | DAG | Spine | Braid | Valid? |
+/// |--------------------|-----|-------|-------|--------|
+/// | Full               | YES | YES   | YES   | YES    |
+/// | Partial (DAG+spine)| YES | YES   | no    | YES    |
+/// | Partial (DAG only) | YES | no    | no    | YES    |
+/// | None               | no  | no    | no    | YES (standalone) |
+///
+/// At minimum, the DAG primal must be reachable for any Tier 3 recording.
+/// Spine and braid phases degrade gracefully. `primals_reached` tracks
+/// which primals were successfully contacted.
 ///
 /// # Errors
 ///
-/// Returns `Err` if any required primal is unreachable — caller stays at Tier 2.
+/// Returns `Err` only when the DAG primal is unreachable — caller stays at Tier 2.
 pub fn try_record_tier3(report: &ValidationReport) -> Result<Tier3Session, String> {
     let dag_ep = discovery::discover(CAP_DAG)
-        .ok_or("rhizoCrypt (dag) not reachable")?;
-    let spine_ep = discovery::discover(CAP_SPINE)
-        .ok_or("loamSpine (spine) not reachable")?;
-    let braid_ep = discovery::discover(CAP_BRAID)
-        .ok_or("sweetGrass (braid) not reachable")?;
+        .ok_or("rhizoCrypt (dag) not reachable — no Tier 3 provenance possible")?;
+
+    let spine_ep = discovery::discover(CAP_SPINE);
+    let braid_ep = discovery::discover(CAP_BRAID);
 
     let mut primals_reached = vec![
         format!("rhizocrypt@{}", endpoint_addr(&dag_ep)),
-        format!("loamspine@{}", endpoint_addr(&spine_ep)),
-        format!("sweetgrass@{}", endpoint_addr(&braid_ep)),
     ];
+    if let Some(ref ep) = spine_ep {
+        primals_reached.push(format!("loamspine@{}", endpoint_addr(ep)));
+    }
+    if let Some(ref ep) = braid_ep {
+        primals_reached.push(format!("sweetgrass@{}", endpoint_addr(ep)));
+    }
 
     // Phase 1: DAG session — create, append module events, complete
     let create_params = serde_json::json!({"artifact": &report.artifact, "version": &report.version});
@@ -105,39 +119,42 @@ pub fn try_record_tier3(report: &ValidationReport) -> Result<Tier3Session, Strin
         "merkle_root",
     ).unwrap_or_else(|_| "pending".into());
 
-    // Phase 2: Spine — create entry with validation summary
-    let spine_params = serde_json::json!({"name": format!("{}-validation", report.artifact)});
-    let spine_id = rpc_call_extract(
-        &spine_ep,
-        "spine.create",
-        &spine_params,
-        "spine_id",
-    ).unwrap_or_else(|_| "pending".into());
+    // Phase 2: Spine — degrade gracefully if loamSpine unreachable
+    let spine_id = if let Some(ref ep) = spine_ep {
+        let spine_params = serde_json::json!({"name": format!("{}-validation", report.artifact)});
+        let id = rpc_call_extract(ep, "spine.create", &spine_params, "spine_id")
+            .unwrap_or_else(|_| String::new());
 
-    let entry_params = serde_json::json!({
-        "spine_id": &spine_id,
-        "entry_type": "validation_summary",
-        "dag_session": &dag_session_id,
-        "merkle_root": &merkle_root,
-        "tier_reached": report.tier_reached,
-        "modules_passed": report.modules.iter().filter(|m| m.status == crate::ValidationStatus::Pass).count(),
-        "modules_total": report.modules.len(),
-    });
-    let _ = rpc_call_result(&spine_ep, "entry.append", &entry_params);
+        if !id.is_empty() {
+            let entry_params = serde_json::json!({
+                "spine_id": &id,
+                "entry_type": "validation_summary",
+                "dag_session": &dag_session_id,
+                "merkle_root": &merkle_root,
+                "tier_reached": report.tier_reached,
+                "modules_passed": report.modules.iter().filter(|m| m.status == crate::ValidationStatus::Pass).count(),
+                "modules_total": report.modules.len(),
+            });
+            let _ = rpc_call_result(ep, "entry.append", &entry_params);
+        }
+        id
+    } else {
+        String::new()
+    };
 
-    // Phase 3: Braid — attribution record
-    let braid_params = serde_json::json!({
-        "artifact": &report.artifact,
-        "dag_session": &dag_session_id,
-        "spine_id": &spine_id,
-        "attribution": "lithoSpore automated validation",
-    });
-    let braid_id = rpc_call_extract(
-        &braid_ep,
-        "braid.create",
-        &braid_params,
-        "braid_id",
-    ).unwrap_or_else(|_| "pending".into());
+    // Phase 3: Braid — degrade gracefully if sweetGrass unreachable
+    let braid_id = if let Some(ref ep) = braid_ep {
+        let braid_params = serde_json::json!({
+            "artifact": &report.artifact,
+            "dag_session": &dag_session_id,
+            "spine_id": &spine_id,
+            "attribution": "lithoSpore automated validation",
+        });
+        rpc_call_extract(ep, "braid.create", &braid_params, "braid_id")
+            .unwrap_or_else(|_| String::new())
+    } else {
+        String::new()
+    };
 
     // Check for optional crypto primal
     if let Some(crypto_ep) = discovery::discover("crypto") {

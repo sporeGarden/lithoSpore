@@ -338,6 +338,13 @@ pub struct CapabilityListResponse {
     pub primal: String,
 }
 
+/// Wave 20 canonical `primal.list` response shape.
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct PrimalListResponse {
+    pub primals: Vec<serde_json::Value>,
+    pub count: usize,
+}
+
 /// Query a primal's capabilities using the Wave 20 canonical envelope.
 /// Returns `None` if the primal is unreachable or the response doesn't
 /// conform to the `{ "capabilities": [...], "count": N }` shape.
@@ -346,6 +353,22 @@ pub fn query_capabilities(ep: &PrimalEndpoint) -> Option<CapabilityListResponse>
     let request = serde_json::json!({
         "jsonrpc": "2.0",
         "method": "capability.list",
+        "params": {},
+        "id": 1,
+    });
+    let request_str = serde_json::to_string(&request).ok()?;
+    let response = rpc_call(ep, &request_str)?;
+    let result = response.get("result")?;
+    serde_json::from_value(result.clone()).ok()
+}
+
+/// Query the list of known primals via Wave 20 canonical `primal.list`.
+/// Returns `None` if unreachable or non-conformant.
+#[must_use]
+pub fn query_primal_list(ep: &PrimalEndpoint) -> Option<PrimalListResponse> {
+    let request = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "primal.list",
         "params": {},
         "id": 1,
     });
@@ -413,5 +436,22 @@ mod tests {
         assert_eq!(DiscoveryPath::Env.to_string(), "env");
         assert_eq!(DiscoveryPath::Turn.to_string(), "turn");
         assert_eq!(DiscoveryPath::Standalone.to_string(), "standalone");
+    }
+
+    #[test]
+    fn wave20_capability_list_envelope() {
+        let json = r#"{"capabilities":["dag","spine","braid"],"count":3,"primal":"rhizocrypt"}"#;
+        let resp: CapabilityListResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(resp.capabilities.len(), 3);
+        assert_eq!(resp.count, 3);
+        assert_eq!(resp.primal, "rhizocrypt");
+    }
+
+    #[test]
+    fn wave20_primal_list_envelope() {
+        let json = r#"{"primals":[{"name":"rhizocrypt"},{"name":"loamspine"}],"count":2}"#;
+        let resp: PrimalListResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(resp.primals.len(), 2);
+        assert_eq!(resp.count, 2);
     }
 }

@@ -24,5 +24,5 @@ pub use provenance::ProvenanceEntry;
 pub use scope::ScopeManifest;
 pub use tolerance::{Tolerance, ToleranceSet};
 pub use validation::{ModuleResult, ParityReport, ParityResult, ParityStatus, TargetCoverage, Tier3Session, ValidationReport, ValidationStatus};
-pub use discovery::DiscoveryPath;
+pub use discovery::{DiscoveryPath, PrimalListResponse};
 pub use spore::LiveSporeEntry;

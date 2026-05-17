@@ -1,6 +1,6 @@
 # lithoSpore Upstream Gap Registry
 
-**Last Updated**: May 17, 2026 (75/75 checks, Tier 3 wired, cross-tier parity, 117 tests)
+**Last Updated**: May 17, 2026 PM (75/75 checks, Tier 3 wired, cross-tier parity, 119 tests)
 **Phase**: Stadial (lithoSpore is a dedicated workstream, post-CATHEDRAL split)
 **Scope**: lithoSpore verification chassis (LTEE is the first instance; chassis evolving toward domain-agnostic)
 **Geo-delocalization**: Absorbed — discovery chain extended to TURN, liveSpore.json provenance updated
@@ -318,6 +318,14 @@ currently embed (standalone CLI pattern).
 
 ## Changelog
 
+- **2026-05-17 PM**: Wave 21 absorption — canonical `primal.list` / `capability.list`
+  envelope types and `query_primal_list()` added. Method stability tiers annotated
+  on all registry domains (stable/evolving/internal). `try_record_tier3()` evolved
+  for partial provenance (DAG-only valid, spine/braid optional). `ParityReport`
+  published as ecosystem standard (`specs/PARITY_REPORT_SCHEMA.md`). Per-primal
+  degradation matrix documented (`docs/DEGRADATION_BEHAVIOR.md`). Braid ingestion
+  path prepared (`provenance/braids/`). 119 tests pass (2 new Wave 20 envelope tests).
+  wateringHole handoff: `LITHOSPORE_WAVE21_ABSORPTION_HANDOFF_MAY17_2026.md`.
 - **2026-05-17**: Root docs cleanup — README.md chaos count corrected (15→10),
   GETTING_STARTED.md paper count (18→16) and check count (73→75) fixed,
   specs/MODULES.md Tier 1 status for M6/M7 updated (No Tier 1 → Complete,

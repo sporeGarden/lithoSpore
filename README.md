@@ -114,11 +114,12 @@ lithoSpore/
 ├── lineage/                      # Foundation thread linkage
 ├── papers/                       # Paper registry (16 DOIs) + READING_ORDER.md
 ├── figures/                      # Publication-quality SVG figures (7 modules)
+├── provenance/braids/            # Upstream ferment transcript braids (from springs)
 ├── whitePaper/baseCamp/          # Python → Rust → Primal pipeline docs
 ├── experiments/                  # Experiment index (chronological log)
 ├── scripts/                      # Container build, VM cloud-init, Python wrapper
-├── specs/                        # Specifications
-└── docs/                         # Architecture + gap analysis
+├── specs/                        # Specifications + ParityReport schema
+└── docs/                         # Architecture, gap analysis, degradation behavior
 ```
 
 ## Building
@@ -151,11 +152,11 @@ The assembled USB is a self-sufficient hypogeal cotyledon: plug it into
 any Linux machine and run `./validate`. See `artifact/usb-root/` for
 the root file templates.
 
-## Current Status — 7/7 PASS (May 17, 2026)
+## Current Status — 7/7 PASS (May 17, 2026 PM)
 
 **Pillar 4 EXIT GATE: EXCEEDED** — 7 modules PASS at Tier 2, gate required 2+.
-**Deployment-validated**: USB pipeline tested via agentReagents (VM + container + local) — 75/75 checks, 117 unit/integration tests, 10 chaos/fault-injection tests.
-**Tier 3**: Provenance trio wired via JSON-RPC (requires NUCLEUS primals at runtime).
+**Deployment-validated**: USB pipeline tested via agentReagents (VM + container + local) — 75/75 checks, 119 unit/integration tests, 10 chaos/fault-injection tests.
+**Tier 3**: Provenance trio wired via JSON-RPC with partial completion support (requires NUCLEUS primals at runtime).
 **Cross-tier parity**: `litho parity` validates math stability between Python and Rust.
 
 | Module | Status | Checks | Source |
@@ -179,7 +180,7 @@ the root file templates.
 **Infrastructure**: `litho-core` crate with 11 modules (validation types including
 `Tier3Session`/`ParityReport`, provenance JSON-RPC client for trio, tolerance framework,
 spore tracking, capability-based discovery with `announce_self()`/`query_capabilities()`,
-scope parser, data manifest, graph checks, shared stats, harness, viz), 117 unit/integration
+scope parser, data manifest, graph checks, shared stats, harness, viz), 119 unit/integration
 tests + 10 chaos/fault-injection tests, 15 CLI subcommands, zero clippy warnings,
 `#![forbid(unsafe_code)]` workspace-wide, pure Rust BLAKE3 (ecoBin compliant),
 `liveSpore.json` operational with corruption resilience and backup.
@@ -213,6 +214,13 @@ SceneGraph with click-to-select, pan/zoom, parameter controls, and data-driven a
 - Container: `agentReagents/scripts/validate-lithoSpore-container.sh` — Docker, airgap-capable
 - VM: `agentReagents/scripts/validate-lithoSpore.sh` — libvirt, full airgap simulation
 - Chaos: `litho chaos-test` — fault injection (10 tests: drift, corruption, missing files)
+
+**Ecosystem posture** (Wave 21): primalSpring registry at 452 methods (stable),
+delta spring tests 9,539+, all 8 springs at zero debt, wetSpring producing first
+ferment transcript braids (Barrick 2009, 3/7 clones done). Method stability tiers
+annotated in `config/capability_registry.toml`. Partial provenance supported
+(DAG without braid is valid). `ParityReport` published as ecosystem standard
+(`specs/PARITY_REPORT_SCHEMA.md`).
 
 See `docs/UPSTREAM_GAPS.md` for upstream integration status.
 

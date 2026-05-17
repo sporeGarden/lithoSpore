@@ -2,6 +2,8 @@
   "experiment": "037_ltee_neutral_mutation",
   "paper": "Barrick2009",
   "paper_id": "B1",
+  "doi": "10.1038/nature08480",
+  "source_figures": ["Fig. 2", "Fig. 3"],
   "litho_module": 2,
   "kimura_fixation_prob_neutral": 2e-06,
   "molecular_clock_rate": 0.0009152594557881484,

@@ -1,12 +1,14 @@
 # lithoSpore
 
 The ecosystem's first **Targeted GuideStone** — a self-contained, USB-deployable
-artifact that reproduces Long-Term Evolution Experiment (LTEE) papers and generates
-new predictions using the Anderson disorder framework.
+verification chassis that reproduces published scientific results and proves its
+own correctness. The LTEE (Long-Term Evolution Experiment) is the first instance;
+the chassis is evolving toward domain-agnostic support for any body of science
+with quantitative claims, source data, and expected values.
 
 **Organization**: sporeGarden (products built on ecoPrimals)
 **Subsystem of**: projectNUCLEUS
-**Target**: Barrick Lab, UT Austin (LTEE continuation)
+**First Instance**: Barrick Lab, UT Austin (LTEE continuation)
 **License**: AGPL-3.0-or-later (code), CC-BY-SA 4.0 (docs)
 **Standard**: `TARGETED_GUIDESTONE_STANDARD.md` (ecoPrimals/infra/wateringHole)
 
@@ -46,15 +48,22 @@ lithoSpore builds a portable validation artifact — a ~16GB USB that:
 
 ## Three-Tier Architecture
 
-| Tier | What Runs | Requirements |
-|------|-----------|-------------|
-| **1 (Python)** | Pre-rendered HTML notebooks, Python analysis scripts | Python 3.10+ (or browser for HTML) |
-| **2 (Rust)** | musl-static ecoBin binaries — full validation at native speed | Linux x86_64 or aarch64 |
-| **3 (Primal)** | NUCLEUS composition with provenance trio | NUCLEUS running + plasmidBin |
+| Tier | What Runs | Requirements | Provenance |
+|------|-----------|-------------|------------|
+| **1 (Python)** | Python analysis scripts with numpy/scipy | Python 3.10+ | — |
+| **2 (Rust)** | musl-static ecoBin binaries — full validation at native speed | Linux x86_64 or aarch64 | BLAKE3 on inputs/outputs |
+| **3 (Primal)** | Tier 2 science + NUCLEUS provenance trio | NUCLEUS running + plasmidBin | DAG + spine + braid via JSON-RPC |
+
+`litho validate --max-tier 3` runs Tier 2 science then attempts provenance recording
+via rhizoCrypt (DAG), loamSpine (certificates), sweetGrass (attribution braids).
+Falls back to Tier 2 gracefully when primals are unavailable.
+
+`litho parity` runs both Tier 1 and Tier 2 side-by-side for all modules and reports
+MATCH/DIVERGENCE — proving the math is stable between implementation languages.
 
 The deployed artifact requires no containers — ecoBin/genomeBin handles platform
 detection via musl-static binaries. An optional OCI image (`Containerfile`) exists
-for CI/dev environments. Primals self-container via genomeBin if needed for Tier 3.
+for cross-OS deployment. Primals self-container via genomeBin if needed for Tier 3.
 
 ## Seven Science Modules
 
@@ -82,7 +91,7 @@ lithoSpore/
 │   ├── ltee-biobricks/           # Module 5: BioBrick burden
 │   ├── ltee-breseq/              # Module 6: 264-genome comparison
 │   ├── ltee-anderson/            # Module 7: Anderson-QS predictions
-│   └── ltee-cli/                 # Unified CLI: 13 subcommands (validate, verify, fetch, assemble, ...)
+│   └── ltee-cli/                 # Unified CLI: 15 subcommands (validate, parity, verify, fetch, assemble, grow, ...)
 │
 ├── artifact/                     # The deployable artifact
 │   ├── usb-root/                 # USB root templates (.biomeos-spore, biomeOS/)
@@ -107,7 +116,7 @@ lithoSpore/
 ├── figures/                      # Publication-quality SVG figures (7 modules)
 ├── whitePaper/baseCamp/          # Python → Rust → Primal pipeline docs
 ├── experiments/                  # Experiment index (chronological log)
-├── scripts/                      # Container build script
+├── scripts/                      # Container build, VM cloud-init, Python wrapper
 ├── specs/                        # Specifications
 └── docs/                         # Architecture + gap analysis
 ```
@@ -142,10 +151,12 @@ The assembled USB is a self-sufficient hypogeal cotyledon: plug it into
 any Linux machine and run `./validate`. See `artifact/usb-root/` for
 the root file templates.
 
-## Current Status — 7/7 PASS (May 16, 2026)
+## Current Status — 7/7 PASS (May 17, 2026)
 
 **Pillar 4 EXIT GATE: EXCEEDED** — 7 modules PASS at Tier 2, gate required 2+.
-**Deployment-validated**: USB pipeline tested via agentReagents (VM + container + local) — 75/75 checks, 116 unit/integration tests, 15 chaos/fault-injection tests.
+**Deployment-validated**: USB pipeline tested via agentReagents (VM + container + local) — 75/75 checks, 117 unit/integration tests, 10 chaos/fault-injection tests.
+**Tier 3**: Provenance trio wired via JSON-RPC (requires NUCLEUS primals at runtime).
+**Cross-tier parity**: `litho parity` validates math stability between Python and Rust.
 
 | Module | Status | Checks | Source |
 |--------|--------|--------|--------|
@@ -165,9 +176,11 @@ the root file templates.
 - **Module 6**: breseq 264-genome comparison, mutation accumulation analysis, parallel evolution significance
 - **Module 7**: Anderson disorder mapping, GOE/Poisson eigenvalue statistics
 
-**Infrastructure**: `litho-core` crate with 7 modules (validation, provenance, tolerance,
-spore tracking, capability-based discovery, shared stats + harness, viz), 116 unit/integration
-tests + 15 chaos/fault-injection tests, CI wired, zero clippy warnings,
+**Infrastructure**: `litho-core` crate with 11 modules (validation types including
+`Tier3Session`/`ParityReport`, provenance JSON-RPC client for trio, tolerance framework,
+spore tracking, capability-based discovery with `announce_self()`/`query_capabilities()`,
+scope parser, data manifest, graph checks, shared stats, harness, viz), 117 unit/integration
+tests + 10 chaos/fault-injection tests, 15 CLI subcommands, zero clippy warnings,
 `#![forbid(unsafe_code)]` workspace-wide, pure Rust BLAKE3 (ecoBin compliant),
 `liveSpore.json` operational with corruption resilience and backup.
 

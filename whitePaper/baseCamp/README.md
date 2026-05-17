@@ -2,9 +2,10 @@
 
 # baseCamp — Python → Rust (uniBin) → Primal (NUCLEUS Composition)
 
-**Date:** May 16, 2026
-**Status:** 7/7 modules validated at Tier 2 (Rust). Python baselines complete.
-           Tier 3 composition graph annotated, pending NUCLEUS runtime.
+**Date:** May 17, 2026
+**Status:** 7/7 modules validated at Tier 2 (Rust). 7/7 Tier 1 (Python) complete.
+           Tier 3 provenance trio wired via JSON-RPC. Cross-tier parity implemented.
+           Two-tier data model formalized with upstream braid handoff.
 
 ---
 
@@ -89,8 +90,14 @@ Each module follows the same elevation pattern:
    compares Rust output against Python golden values within named
    tolerances defined in `artifact/tolerances.toml`.
 
-4. **Tier 3 annotation** — workload and graph TOMLs declare primal
-   dependencies and signal adoption for future NUCLEUS composition.
+4. **Tier 3 provenance** (`litho validate --max-tier 3`) — `provenance.rs`
+   is a JSON-RPC client for the provenance trio. On discovery of
+   rhizoCrypt + loamSpine + sweetGrass, records a DAG session, spine
+   entry, and attribution braid. Falls back to Tier 2 gracefully.
+
+5. **Cross-tier parity** (`litho parity`) — runs both Tier 1 and Tier 2
+   side-by-side for all 7 modules and reports MATCH/DIVERGENCE. Proves
+   the math is stable between Python and Rust implementations.
 
 ### What Changes Between Tiers
 
@@ -179,6 +186,32 @@ NUCLEUS topology without per-module wiring.
 | Validate | Module output hash | `litho validate` → liveSpore.json | Append-only JSON |
 | Compose | DAG chain hash | rhizoCrypt `dag.session.create` | Primal storage |
 | Attest | Braid integrity hash | sweetGrass `braid.sign` | Attribution chain |
+
+---
+
+## Two-Tier Data Model
+
+The spore ships summary statistics (~3.4 MB) — enough for 75/75 checks
+airgapped. Full upstream data (raw sequencing reads, complete archives)
+ranges 10–200 GB per dataset and lives at SRA/NCBI.
+
+`litho fetch --full` pulls raw upstream data when online. Each dataset
+in `data.toml` carries `data_tier` (summary/complete/internal),
+`full_data_size`, `full_data_tool`, and `full_data_checks` documenting
+what deeper analysis becomes possible.
+
+### Ferment Transcript Pattern
+
+Upstream springs do the massive computation (e.g., wetSpring runs breseq
+on 264 genomes). They record provenance via the trio and hand the
+**braid** — the receipt that the computation was performed — to lithoSpore.
+The artifact stores `upstream_spring`, `upstream_braid`, and
+`upstream_dag_session` in `data.toml`. Airgapped, these are documentation.
+Online, they're verifiable chains.
+
+See `docs/ARCHITECTURE.md` for the full pattern and
+`ecoPrimals/infra/wateringHole/handoffs/LITHOSPORE_FERMENT_TRANSCRIPT_BRAID_HANDOFF_MAY17_2026.md`
+for the upstream contract.
 
 ---
 

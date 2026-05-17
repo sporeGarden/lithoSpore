@@ -1,8 +1,8 @@
 # lithoSpore Upstream Gap Registry
 
-**Last Updated**: May 16, 2026 (75/75 checks, deep debt resolved, Wave 18 signal adoption absorbed)
+**Last Updated**: May 17, 2026 (75/75 checks, Tier 3 wired, cross-tier parity, 117 tests)
 **Phase**: Stadial (lithoSpore is a dedicated workstream, post-CATHEDRAL split)
-**Scope**: lithoSpore verification chassis (LTEE is the first instance)
+**Scope**: lithoSpore verification chassis (LTEE is the first instance; chassis evolving toward domain-agnostic)
 **Geo-delocalization**: Absorbed — discovery chain extended to TURN, liveSpore.json provenance updated
 
 ---
@@ -98,6 +98,54 @@ all bash fetch scripts. `litho assemble` replaces `assemble-usb.sh`.
 | LS-UDS | UDS RPC transport was stub (`None`) | Implemented `rpc_uds()` — `UnixStream` JSON-RPC matching TCP pattern |
 | LS-ENVHC | Hardcoded IPs, env keys, socket paths | Evolved to `$PRIMAL_HOST`, `resolve_xdg_runtime`, `has_any_capability_env`, configurable connectivity hosts |
 | LS-TEST | `ltee-cli` had zero tests | Added 13 unit + 8 integration tests with fixture-based harness |
+
+### Tier 3 Wiring and Cross-Tier Parity (May 17, 2026)
+
+| ID | Gap | Resolution |
+|----|-----|-----------|
+| T3-BRANCH | `validate.rs` treated `--max-tier 3` identically to `--max-tier 2` | Added Tier 3 branch: discovery probe → `announce_self()` → `try_record_tier3()` → upgrade `tier_reached` to 3 on success |
+| T3-RPC | `provenance.rs` had data structs only, no RPC client | Evolved to JSON-RPC client: `dag.session.create` → `event.append` × N → `dag.session.complete` → `spine.create` → `entry.append` → `braid.create` |
+| T3-SESSION | `ValidationReport` had no Tier 3 metadata | Added `Tier3Session` struct (dag_session_id, merkle_root, spine_id, braid_id, primals_reached) as optional field on report |
+| T3-ANNOUNCE | `discovery.rs` never called from validation | Added `announce_self()` → `primal.announce` to biomeOS; `query_capabilities()` for Wave 20 canonical envelope |
+| T3-SIGNAL | `nest.store` signal mapping undocumented in code | Added code-level documentation mapping 3-call provenance sequence to `nest.store` atomic signal for future biomeOS collapse |
+| PARITY | No cross-tier numerical check | New `litho parity` subcommand: runs Tier 1 + Tier 2 side-by-side, reports MATCH/DIVERGENCE/SKIPPED per module |
+| PARITY-TYPES | No parity report types | Added `ParityResult`, `ParityStatus`, `ParityReport` to `litho-core::validation` |
+| PROV-DIR | No projectFOUNDATION Thread 10 output | Added `--provenance-dir` flag: writes `results.json` + `provenance.toml` to dated folder |
+
+### Chassis Abstraction Status (May 17, 2026)
+
+| Coupling Point | Status | Notes |
+|----------------|--------|-------|
+| `MODULE_DISPATCH` (validate.rs) | **Instance-coupled** | Compile-time table mapping `ltee-*` → `run_validation()` |
+| `MODULE_DISPATCH` (parity.rs) | **Instance-coupled** | Duplicates validate dispatch for cross-tier comparison |
+| `LTEE_MODULES` constant | **Superseded** | `load_module_table()` reads from `scope.toml` + `data.toml` at runtime, falls back to constant |
+| `LTEE_NOTEBOOKS` constant | **Instance-coupled** | Maps module names → Python notebook paths |
+| `module_name_matches()` | **Instance-coupled** | LTEE-specific name mapping for target coverage |
+| `ltee-cli` naming | **Instance-coupled** | Crate named for LTEE, not chassis |
+| `litho-core` | **Agnostic** | No LTEE-specific code; all domain concepts via scope/manifest/tolerance |
+| `scope.toml` loader | **Agnostic** | Module table constructed from scope + data TOMLs at runtime |
+| `data.toml` manifest | **Agnostic** | Dataset registry with BLAKE3, source URIs, licenses |
+| `tolerance.toml` | **Agnostic** | Named tolerances with scientific justification |
+| `discovery.rs` | **Agnostic** | Capability strings, not primal names |
+| `provenance.rs` | **Agnostic** | JSON-RPC to capability-discovered endpoints |
+| `liveSpore.json` | **Agnostic** | Append-only, PII-hashed, platform-detected |
+
+**Evolution path**: The lithoSpore repo will evolve to be domain-agnostic.
+Future instances (hotQCD, pharmacometrics, etc.) will be workspace members
+in the same repo, not forks. The `ltee-cli` → `litho-cli` rename and
+trait-based dispatch registry are the key remaining abstraction steps.
+
+### guideStone Five-Property Audit (May 17, 2026)
+
+Per primals.eco guideStone specification:
+
+| Property | Status | Gap |
+|----------|--------|-----|
+| **1. Deterministic Output** | PARTIAL | 7/7 modules deterministic on x86_64. No cross-arch (aarch64) validation matrix yet. No bit-identical cross-substrate comparison table. |
+| **2. Reference-Traceable** | **STRONG** | 16 papers, all DOIs. 14 targets. Expected JSONs carry `doi` + `source_figures`. |
+| **3. Self-Verifying** | **STRONG** | BLAKE3 in `data.toml`, `litho verify`, `litho self-test` (23 checks), `litho validate` (75 checks). |
+| **4. Environment-Agnostic** | PARTIAL | Tier 2 is pure Rust musl-static. Tier 1 depends on Python. Container deployment helps but isn't musl-pure. |
+| **5. Tolerance-Documented** | PARTIAL | `tolerances.toml` exists with justifications. Not all modules derive tolerances from published quantities; some are empirical. |
 
 ### Discovery Capability Gaps (documented, upstream-blocked)
 
@@ -270,6 +318,37 @@ currently embed (standalone CLI pattern).
 
 ## Changelog
 
+- **2026-05-17**: Root docs cleanup — README.md chaos count corrected (15→10),
+  GETTING_STARTED.md paper count (18→16) and check count (73→75) fixed,
+  specs/MODULES.md Tier 1 status for M6/M7 updated (No Tier 1 → Complete,
+  parity No → Yes), experiments/README.md chaos count fixed and experiments
+  008-010 added (parity, Tier 3, two-tier data). whitePaper/baseCamp/README.md
+  updated with Tier 3, parity, and ferment transcript sections. main.rs module
+  doc updated (9→15 subcommands). scripts/ description corrected in README tree.
+  7 CATHEDRAL handoffs (May 13-15) archived per 48h rule. New wateringHole
+  handoff: LITHOSPORE_PRIMAL_SPRING_EVOLUTION_HANDOFF_MAY17_2026.md — primal
+  evolution requests, NUCLEUS composition, deployment patterns. All 117 tests
+  pass, zero clippy errors.
+- **2026-05-17**: Two-tier data model and ferment transcript pattern formalized.
+  `data.toml` gains `data_tier`, `full_data_size`, `full_data_tool`, `full_data_checks`,
+  `upstream_spring`, `upstream_braid`, `upstream_dag_session` fields. `litho fetch --full`
+  flag implemented for deep data pulls. ARCHITECTURE.md and GETTING_STARTED.md updated
+  with "ship small, validate deep" strategy. wateringHole handoff written:
+  `LITHOSPORE_FERMENT_TRANSCRIPT_BRAID_HANDOFF_MAY17_2026.md` — defines the upstream
+  contract for springs handing braids to guideStone artifacts. Cross-referenced from
+  `PROVENANCE_TRIO_INTEGRATION_GUIDE.md`, `SWEETGRASS_SPRING_BRAID_PATTERNS.md`,
+  and `LITHOSPORE_USB_DEPLOYMENT.md`.
+- **2026-05-17**: Tier 3 and cross-tier parity implementation — `provenance.rs` evolved
+  from data structs to JSON-RPC client for provenance trio (dag/spine/braid).
+  `validate.rs` gains `--max-tier 3` branch with discovery probe, `announce_self()`,
+  `try_record_tier3()`. New `litho parity` subcommand for cross-tier numerical
+  comparison. `Tier3Session`, `ParityReport`, `ParityResult`, `ParityStatus` types
+  added to `litho-core::validation`. `discovery.rs` gains `announce_self()` +
+  `query_capabilities()` for Wave 20 canonical envelope. `--provenance-dir` flag
+  for projectFOUNDATION Thread 10 compatibility. 117 tests, 15 subcommands.
+  Specs updated: ARCHITECTURE.md (chassis evolution roadmap, guideStone five-property
+  assessment), MODULES.md (tier support matrix, coupling inventory), UPSTREAM_GAPS.md
+  (Tier 3, parity, chassis abstraction status, guideStone audit), README.md, SCIENCE.md.
 - **2026-05-16**: Deep debt pass: viz/baselines.rs (637→376 LOC) and viz/modules.rs
   (367→178 LOC) refactored via 9 extracted DataBinding builder helpers. Discovery
   evolved to capability-generic env vars ($RELAY_SERVER, $VISUALIZATION_SOCKET) with

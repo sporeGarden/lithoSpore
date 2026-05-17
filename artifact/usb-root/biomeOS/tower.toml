@@ -53,5 +53,5 @@ notes = "sweetGrass — attribution braid integrity"
 [validation]
 graph = "biomeOS/graphs/lithoSpore_validation.toml"
 modules = 7
-live_modules = 6
-scaffold_modules = 1
+live_modules = 7
+scaffold_modules = 0

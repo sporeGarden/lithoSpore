@@ -147,6 +147,10 @@ const MODULE_DISPATCH: &[(&str, ModuleFn)] = &[
 ];
 
 pub fn run(root: &str, json: bool, max_tier: u8) {
+    run_with_provenance(root, json, max_tier, None);
+}
+
+pub fn run_with_provenance(root: &str, json: bool, max_tier: u8, provenance_dir: Option<&str>) {
     let root_path = std::path::Path::new(root);
 
     let scope_name = litho_core::ScopeManifest::load(&root_path.join("artifact/scope.toml"))
@@ -155,24 +159,69 @@ pub fn run(root: &str, json: bool, max_tier: u8) {
     let mut report = litho_core::ValidationReport::new(&scope_name, env!("CARGO_PKG_VERSION"));
     let modules = load_module_table(root_path);
 
-    for entry in &modules {
-        let data_path = root_path.join(&entry.data_dir);
-        let expected_path = root_path.join(&entry.expected);
+    if max_tier == 1 {
+        eprintln!("=== Tier 1 (Python) — chain escalation baseline ===");
+        for entry in &modules {
+            let data_path = root_path.join(&entry.data_dir);
+            let expected_path = root_path.join(&entry.expected);
+            report.add_module(dispatch_python_tier1(entry, root, &data_path, &expected_path));
+        }
+    } else {
+        eprintln!("=== Tier 2 (Rust) — compiled validation ===");
+        for entry in &modules {
+            let data_path = root_path.join(&entry.data_dir);
+            let expected_path = root_path.join(&entry.expected);
 
-        if !entry.expected.is_empty() && data_path.exists() && expected_path.is_file() {
-            let result = run_module_in_process(
-                &entry.binary,
-                data_path.to_str().unwrap_or(&entry.data_dir),
-                expected_path.to_str().unwrap_or(&entry.expected),
-                max_tier,
-            );
-            report.add_module(result);
-        } else {
-            report.add_module(dispatch_python_tier1(&entry.name, root, &data_path, &expected_path));
+            if !entry.expected.is_empty() && data_path.exists() && expected_path.is_file() {
+                let result = run_module_in_process(
+                    &entry.binary,
+                    data_path.to_str().unwrap_or(&entry.data_dir),
+                    expected_path.to_str().unwrap_or(&entry.expected),
+                    max_tier,
+                );
+                report.add_module(result);
+            } else {
+                report.add_module(dispatch_python_tier1(entry, root, &data_path, &expected_path));
+            }
+        }
+
+        // Tier 3: attempt provenance recording via NUCLEUS primals
+        if max_tier >= 3 {
+            eprintln!();
+            eprintln!("=== Tier 3 (Primal) — NUCLEUS composition ===");
+
+            // Announce ourselves to biomeOS (non-fatal)
+            if litho_core::discovery::announce_self().is_some() {
+                eprintln!("  Announced to biomeOS");
+            }
+
+            let (mode, _) = litho_core::discovery::probe_operating_mode();
+            eprintln!("  Discovery mode: {mode}");
+
+            match litho_core::provenance::try_record_tier3(&report) {
+                Ok(session) => {
+                    eprintln!("  [PASS] DAG session: {}", session.dag_session_id);
+                    eprintln!("  [PASS] Merkle root: {}", session.dag_merkle_root);
+                    eprintln!("  [PASS] Spine ID:    {}", session.spine_id);
+                    eprintln!("  [PASS] Braid ID:    {}", session.braid_id);
+                    eprintln!("  Primals: {}", session.primals_reached.join(", "));
+                    report.tier_reached = 3;
+                    report.tier3 = Some(session);
+                }
+                Err(e) => {
+                    eprintln!("  Tier 3 unavailable: {e}");
+                    eprintln!("  Remaining at Tier {} (science validation complete)", report.tier_reached);
+                }
+            }
         }
     }
 
     wire_target_coverage(root_path, &mut report);
+
+    // Write provenance artifacts for projectFOUNDATION Thread 10
+    if let Some(dir) = provenance_dir {
+        write_provenance_dir(dir, &report);
+    }
 
     if json {
         println!(
@@ -197,6 +246,12 @@ pub fn run(root: &str, json: bool, max_tier: u8) {
             };
             println!("  {} — {} ({}/{})", m.name, status, m.checks_passed, m.checks);
         }
+        if let Some(ref t3) = report.tier3 {
+            println!("\nTier 3 Provenance:");
+            println!("  DAG:   {}", t3.dag_session_id);
+            println!("  Spine: {}", t3.spine_id);
+            println!("  Braid: {}", t3.braid_id);
+        }
         if !report.target_coverage.is_empty() {
             println!("\nTarget Coverage (T01–T14):");
             for tc in &report.target_coverage {
@@ -207,6 +262,51 @@ pub fn run(root: &str, json: bool, max_tier: u8) {
 
     write_livespore(root, &report);
     std::process::exit(report.exit_code());
+}
+
+/// Write provenance artifacts to a dated directory for projectFOUNDATION Thread 10.
+/// Pattern: `<dir>/results.json` + `<dir>/provenance.toml`
+fn write_provenance_dir(dir: &str, report: &litho_core::ValidationReport) {
+    let dir_path = std::path::Path::new(dir);
+    if let Err(e) = std::fs::create_dir_all(dir_path) {
+        eprintln!("WARNING: Could not create provenance dir {dir}: {e}");
+        return;
+    }
+
+    // results.json — full validation report
+    let results_path = dir_path.join("results.json");
+    match serde_json::to_string_pretty(report) {
+        Ok(json) => {
+            if let Err(e) = std::fs::write(&results_path, &json) {
+                eprintln!("WARNING: Could not write {}: {e}", results_path.display());
+            } else {
+                eprintln!("  Provenance: {}", results_path.display());
+            }
+        }
+        Err(e) => eprintln!("WARNING: Could not serialize results: {e}"),
+    }
+
+    // provenance.toml — summary metadata
+    let timestamp = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+    let passed = report.modules.iter()
+        .filter(|m| m.status == litho_core::ValidationStatus::Pass).count();
+    let toml_content = format!(
+        "# lithoSpore provenance artifact — projectFOUNDATION Thread 10\n\
+         [meta]\n\
+         artifact = \"{}\"\n\
+         version = \"{}\"\n\
+         timestamp = \"{timestamp}\"\n\
+         tier_reached = {}\n\
+         modules_passed = {passed}\n\
+         modules_total = {}\n",
+        report.artifact, report.version, report.tier_reached, report.modules.len(),
+    );
+    let toml_path = dir_path.join("provenance.toml");
+    if let Err(e) = std::fs::write(&toml_path, &toml_content) {
+        eprintln!("WARNING: Could not write {}: {e}", toml_path.display());
+    } else {
+        eprintln!("  Provenance: {}", toml_path.display());
+    }
 }
 
 /// Resolve a module binary, checking USB layout (`bin/`) first, then dev layout.
@@ -257,6 +357,14 @@ fn wire_target_coverage(root_path: &std::path::Path, report: &mut litho_core::Va
         let id = target.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
         let module = target.get("module").and_then(|v| v.as_str()).unwrap_or("").to_string();
         let claim = target.get("claim").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let target_status = target.get("status").and_then(|v| v.as_str()).unwrap_or("active");
+
+        if target_status == "pending_upstream" {
+            report.target_coverage.push(litho_core::TargetCoverage {
+                id, module, claim, status: "PENDING".to_string(),
+            });
+            continue;
+        }
 
         let module_result = report.modules.iter().find(|m| module_name_matches(&m.name, &module));
 
@@ -312,14 +420,15 @@ fn write_livespore(root: &str, report: &litho_core::ValidationReport) {
 }
 
 fn dispatch_python_tier1(
-    name: &str,
+    entry: &ModuleEntry,
     root: &str,
     data_path: &std::path::Path,
     expected_path: &std::path::Path,
 ) -> litho_core::ModuleResult {
     let start = std::time::Instant::now();
+    let name = &entry.name;
 
-    if !data_path.exists() || !expected_path.exists() {
+    if !data_path.exists() && !expected_path.exists() {
         return litho_core::ModuleResult {
             name: name.to_string(),
             status: litho_core::ValidationStatus::Skip,
@@ -331,7 +440,9 @@ fn dispatch_python_tier1(
         };
     }
 
-    let notebook = match LTEE_NOTEBOOKS.iter().find(|(n, _)| *n == name) {
+    let notebook = match LTEE_NOTEBOOKS.iter().find(|(n, _)| {
+        *n == name.as_str() || module_name_matches(n, &entry.binary)
+    }) {
         Some((_, nb)) => *nb,
         None => return litho_core::ModuleResult {
             name: name.to_string(),
@@ -358,7 +469,9 @@ fn dispatch_python_tier1(
         };
     }
 
-    let output = std::process::Command::new("python3")
+    let python = find_python(root_path);
+    eprintln!("  Python: {python}");
+    let output = std::process::Command::new(&python)
         .arg(&nb_path)
         .current_dir(root)
         .output();
@@ -396,6 +509,19 @@ fn dispatch_python_tier1(
             error: Some(format!("Python dispatch failed: {e}")),
         },
     }
+}
+
+/// Find the best Python interpreter: bundled first, then system.
+fn find_python(root: &std::path::Path) -> String {
+    for candidate in [
+        root.join("python/bin/python3.13"),
+        root.join("python/bin/python3"),
+    ] {
+        if candidate.exists() {
+            return candidate.to_string_lossy().to_string();
+        }
+    }
+    "python3".to_string()
 }
 
 fn module_name_matches(result_name: &str, target_module: &str) -> bool {

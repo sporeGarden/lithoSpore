@@ -2,13 +2,16 @@
 
 //! Unified CLI entry point for lithoSpore.
 //!
-//! Subcommands: validate, refresh, status, spore, verify, visualize, self-test, tier
+//! Subcommands: validate, parity, verify, fetch, assemble, grow, refresh, status,
+//! spore, visualize, self-test, tier, chaos-test, deploy-test, deploy-report
 
 mod assemble;
 mod chaos;
 mod deploy_test;
 mod fetch;
+mod grow;
 mod ops;
+mod parity;
 mod validate;
 mod verify;
 mod visualize;
@@ -37,9 +40,23 @@ enum Commands {
         #[arg(long)]
         json: bool,
 
-        /// Only run Tier 1 (Python) or Tier 2 (Rust) checks
+        /// Max tier: 1 = Python only, 2 = Rust (default), 3 = Rust + NUCLEUS provenance.
         #[arg(long, default_value = "2")]
         max_tier: u8,
+
+        /// Write provenance artifacts (results.json + provenance.toml) to this directory.
+        /// Follows projectFOUNDATION Thread 10 conventions.
+        #[arg(long)]
+        provenance_dir: Option<String>,
+    },
+
+    /// Cross-tier parity check: run Tier 1 and Tier 2 side-by-side and compare results
+    Parity {
+        #[arg(long, default_value = ".")]
+        artifact_root: String,
+
+        #[arg(long)]
+        json: bool,
     },
 
     /// Re-fetch datasets from source URIs and re-validate
@@ -131,6 +148,11 @@ enum Commands {
         /// Fetch all datasets
         #[arg(long)]
         all: bool,
+
+        /// Fetch full upstream data (SRA reads, complete archives) instead of summary stats.
+        /// Requires SRA toolkit for genomic datasets. Can be 10s–100s of GB.
+        #[arg(long)]
+        full: bool,
     },
 
     /// Run fault injection tests against the artifact (replaces scripts/chaos-test.sh)
@@ -154,18 +176,62 @@ enum Commands {
         #[arg(long, default_value = "local")]
         pattern: String,
     },
+
+    /// Grow: germinate the USB artifact into a full development environment
+    Grow {
+        #[arg(long, default_value = ".")]
+        artifact_root: String,
+
+        /// Target directory for the cloned source tree
+        #[arg(long, default_value = ".")]
+        target: String,
+
+        /// Also provision a benchScale VM for isolated validation
+        #[arg(long)]
+        vm: bool,
+
+        /// Deploy via Docker/Podman container (works on any OS)
+        #[arg(long)]
+        container: bool,
+
+        /// Also clone the full ecoPrimals ecosystem
+        #[arg(long)]
+        ecosystem: bool,
+
+        /// Skip building from source
+        #[arg(long)]
+        skip_build: bool,
+
+        /// Skip fetching upstream datasets
+        #[arg(long)]
+        skip_fetch: bool,
+    },
 }
 
 fn main() {
     // argv[0] symlink detection: if invoked as validate/verify/refresh/spore,
     // dispatch directly without requiring the subcommand name.
+    // Strip .exe suffix for Windows compatibility.
     if let Some(invoked_as) = std::env::args().next().and_then(|a| {
-        std::path::Path::new(&a).file_name().map(|f| f.to_string_lossy().to_string())
+        std::path::Path::new(&a).file_name().map(|f| {
+            let name = f.to_string_lossy().to_string();
+            name.strip_suffix(".exe").unwrap_or(&name).to_string()
+        })
     }) {
         let root = ".".to_string();
         match invoked_as.as_str() {
             "validate" => {
-                validate::run(&root, false, 2);
+                let args: Vec<String> = std::env::args().collect();
+                let tier = if args.iter().any(|a| a == "--tier" || a == "--max-tier") {
+                    args.windows(2)
+                        .find(|w| w[0] == "--tier" || w[0] == "--max-tier")
+                        .and_then(|w| w[1].parse::<u8>().ok())
+                        .unwrap_or(2)
+                } else {
+                    2
+                };
+                let json_out = args.iter().any(|a| a == "--json");
+                validate::run(&root, json_out, tier);
                 return;
             }
             "verify" => {
@@ -186,6 +252,33 @@ fn main() {
                 ops::cmd_spore(&root);
                 return;
             }
+            "parity" => {
+                let args: Vec<String> = std::env::args().collect();
+                let json_out = args.iter().any(|a| a == "--json");
+                parity::run(&root, json_out);
+                return;
+            }
+            "grow" => {
+                let args: Vec<String> = std::env::args().collect();
+                let container = args.iter().any(|a| a == "--container");
+                let target = args.windows(2)
+                    .find(|w| w[0] == "--target")
+                    .map(|w| w[1].clone())
+                    .unwrap_or_else(|| {
+                        if container { ".".to_string() } else {
+                            eprintln!("ERROR: --target <DIR> is required for grow");
+                            eprintln!("Usage: ./grow --target ~/Development/lithoSpore");
+                            eprintln!("       ./grow --container   (Docker/Podman, any OS)");
+                            std::process::exit(1);
+                        }
+                    });
+                let vm = args.iter().any(|a| a == "--vm");
+                let ecosystem = args.iter().any(|a| a == "--ecosystem");
+                let skip_build = args.iter().any(|a| a == "--skip-build");
+                let skip_fetch = args.iter().any(|a| a == "--skip-fetch");
+                grow::run(&root, &target, vm, container, ecosystem, skip_build, skip_fetch);
+                return;
+            }
             "ltee" => {
                 // Legacy entry point — re-parse remaining args as subcommands
             }
@@ -196,7 +289,9 @@ fn main() {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Validate { artifact_root, json, max_tier } => validate::run(&artifact_root, json, max_tier),
+        Commands::Validate { artifact_root, json, max_tier, provenance_dir } =>
+            validate::run_with_provenance(&artifact_root, json, max_tier, provenance_dir.as_deref()),
+        Commands::Parity { artifact_root, json } => parity::run(&artifact_root, json),
         Commands::Refresh { artifact_root } => ops::cmd_refresh(&artifact_root),
         Commands::Status { artifact_root } => ops::cmd_status(&artifact_root),
         Commands::Spore { artifact_root } => ops::cmd_spore(&artifact_root),
@@ -208,8 +303,10 @@ fn main() {
             assemble::run(&artifact_root, &target, skip_python, skip_fetch, skip_build, dry_run),
         Commands::ChaosTest { artifact_root } => chaos::run(&artifact_root),
         Commands::DeployTest { artifact_root } => deploy_test::run(&artifact_root),
-        Commands::Fetch { artifact_root, dataset, all } => fetch::run(&artifact_root, dataset.as_deref(), all),
+        Commands::Fetch { artifact_root, dataset, all, full } => fetch::run(&artifact_root, dataset.as_deref(), all, full),
         Commands::DeployReport { artifact_root, pattern } => ops::cmd_deploy_report(&artifact_root, &pattern),
+        Commands::Grow { artifact_root, target, vm, container, ecosystem, skip_build, skip_fetch } =>
+            grow::run(&artifact_root, &target, vm, container, ecosystem, skip_build, skip_fetch),
     }
 }
 

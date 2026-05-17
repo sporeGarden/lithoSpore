@@ -1,7 +1,9 @@
 {
   "experiment": "039_ltee_citrate_innovation",
-  "paper": "Blount2008",
+  "paper": "Blount2008/2012",
   "paper_id": "B4",
+  "doi": ["10.1073/pnas.0803151105", "10.1038/nature11514"],
+  "source_figures": ["Blount2008 Fig. 4", "Blount2012 Fig. 1"],
   "litho_module": 4,
   "module_name": "ltee-citrate",
   "description": "Citrate innovation \u2014 historical contingency and potentiation",

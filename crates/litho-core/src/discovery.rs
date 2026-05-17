@@ -306,6 +306,55 @@ fn rpc_uds(_endpoint: &PrimalEndpoint, _request: &str) -> Option<serde_json::Val
     None
 }
 
+/// Announce lithoSpore as a validation consumer to biomeOS via `primal.announce`.
+/// Non-fatal — if biomeOS is not reachable, returns `None` silently.
+/// Follows the `primalSpring` `PRIMAL_ANNOUNCE_PROTOCOL.md` wire format.
+#[must_use]
+pub fn announce_self() -> Option<serde_json::Value> {
+    let biomeos = discover("orchestration")?;
+    let request = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "primal.announce",
+        "params": {
+            "primal": "litho",
+            "capabilities": ["validation"],
+            "methods": ["validate.run", "validate.parity", "validate.verify"],
+            "signal_tiers": ["nest"],
+            "version": env!("CARGO_PKG_VERSION"),
+        },
+        "id": 1,
+    });
+    let request_str = serde_json::to_string(&request).ok()?;
+    rpc_call(&biomeos, &request_str)
+}
+
+/// Wave 20 canonical `capability.list` response shape.
+/// `capabilities` MUST be a string array; `count` MUST match array length.
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct CapabilityListResponse {
+    pub capabilities: Vec<String>,
+    pub count: usize,
+    #[serde(default)]
+    pub primal: String,
+}
+
+/// Query a primal's capabilities using the Wave 20 canonical envelope.
+/// Returns `None` if the primal is unreachable or the response doesn't
+/// conform to the `{ "capabilities": [...], "count": N }` shape.
+#[must_use]
+pub fn query_capabilities(ep: &PrimalEndpoint) -> Option<CapabilityListResponse> {
+    let request = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "capability.list",
+        "params": {},
+        "id": 1,
+    });
+    let request_str = serde_json::to_string(&request).ok()?;
+    let response = rpc_call(ep, &request_str)?;
+    let result = response.get("result")?;
+    serde_json::from_value(result.clone()).ok()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

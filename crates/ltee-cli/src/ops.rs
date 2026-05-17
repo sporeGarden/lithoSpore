@@ -4,7 +4,7 @@
 
 pub fn cmd_refresh(root: &str) {
     println!("litho refresh: re-fetching all datasets via litho fetch...");
-    crate::fetch::run(root, None, true);
+    crate::fetch::run(root, None, true, false);
 }
 
 pub fn cmd_status(root: &str) {

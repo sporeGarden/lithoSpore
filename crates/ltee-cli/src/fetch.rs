@@ -24,9 +24,21 @@ struct DatasetEntry {
     module: String,
     #[serde(default)]
     blake3: String,
+    #[serde(default)]
+    status: String,
+    #[serde(default)]
+    sra_accession: String,
+    #[serde(default)]
+    data_tier: String,
+    #[serde(default)]
+    full_data_size: String,
+    #[serde(default)]
+    full_data_tool: String,
+    #[serde(default)]
+    full_data_checks: String,
 }
 
-pub fn run(root: &str, dataset_filter: Option<&str>, all: bool) {
+pub fn run(root: &str, dataset_filter: Option<&str>, all: bool, full: bool) {
     let root_path = Path::new(root);
     let data_toml = root_path.join("artifact/data.toml");
 
@@ -52,6 +64,12 @@ pub fn run(root: &str, dataset_filter: Option<&str>, all: bool) {
         return;
     }
 
+    if full {
+        eprintln!("=== Full data mode: pulling upstream datasets ===");
+        eprintln!("  This may download 10s–100s of GB of sequencing data.");
+        eprintln!();
+    }
+
     let mut fetched = 0u32;
     let mut failed = 0u32;
 
@@ -65,12 +83,36 @@ pub fn run(root: &str, dataset_filter: Option<&str>, all: bool) {
             std::process::exit(1);
         }
 
+        if matches!(ds.status.as_str(), "internal" | "derived") && dataset_filter.is_none() && !full {
+            println!("[{id}] SKIP ({status}): data is generated from expected values, not fetched",
+                     id = ds.id, status = ds.status);
+            fetched += 1;
+            continue;
+        }
+
+        // In full mode, report the data tier and what we're pulling
+        if full {
+            let tier = if ds.data_tier.is_empty() { "unknown" } else { &ds.data_tier };
+            println!("[{id}] Data tier: {tier}", id = ds.id);
+            if !ds.full_data_size.is_empty() {
+                println!("[{id}]   Full data: {} (via {})", ds.full_data_size, if ds.full_data_tool.is_empty() { "fetch" } else { &ds.full_data_tool }, id = ds.id);
+            }
+            if !ds.full_data_checks.is_empty() {
+                println!("[{id}]   Additional checks: {}", ds.full_data_checks, id = ds.id);
+            }
+            if ds.data_tier == "complete" {
+                println!("[{id}]   Already complete — no additional download needed", id = ds.id);
+                fetched += 1;
+                continue;
+            }
+        }
+
         let target_dir = root_path.join(&ds.local_path);
         std::fs::create_dir_all(&target_dir).ok();
 
         println!("[{id}] Fetching: {uri}", id = ds.id, uri = if ds.source_uri.is_empty() { "(generated)" } else { &ds.source_uri });
 
-        match fetch_dataset(root_path, ds) {
+        match fetch_dataset(root_path, ds, full) {
             Ok(hash) => {
                 println!("[{id}]   BLAKE3: {hash}", id = ds.id);
                 if !ds.blake3.is_empty() && ds.blake3 != hash {
@@ -96,31 +138,85 @@ pub fn run(root: &str, dataset_filter: Option<&str>, all: bool) {
     }
 }
 
-fn fetch_dataset(root: &Path, ds: &DatasetEntry) -> Result<String, String> {
+fn fetch_dataset(root: &Path, ds: &DatasetEntry, full: bool) -> Result<String, String> {
     let target_dir = root.join(&ds.local_path);
 
-    // Strategy 1: try HTTP download if source URI is present
-    if !ds.source_uri.is_empty() && ds.source_uri.starts_with("http") {
-        match try_http_download(&ds.source_uri, &target_dir, &ds.id) {
+    // In full mode, prioritize SRA download for genomic datasets
+    if full && !ds.sra_accession.is_empty() {
+        match try_sra_download(&ds.sra_accession, &target_dir, &ds.id) {
             Ok(()) => return hash_directory(&target_dir),
-            Err(e) => eprintln!("[{}]   HTTP download failed: {e} — trying fallback", ds.id),
+            Err(e) => eprintln!("[{}]   SRA download failed: {e} — trying other strategies", ds.id),
         }
     }
 
-    // Strategy 2: generate from expected JSON
+    // Strategy 1: SRA toolkit for genomic datasets with accession numbers (non-full mode skips BioProject)
+    if !full && !ds.sra_accession.is_empty() {
+        match try_sra_download(&ds.sra_accession, &target_dir, &ds.id) {
+            Ok(()) => return hash_directory(&target_dir),
+            Err(e) => eprintln!("[{}]   SRA download skipped: {e}", ds.id),
+        }
+    }
+
+    // Strategy 2: try HTTP download if source URI is present and not a BioProject landing page
+    if !ds.source_uri.is_empty() && ds.source_uri.starts_with("http") {
+        if !full && is_bioproject_uri(&ds.source_uri) {
+            eprintln!("[{}]   URI is a BioProject landing page — skipping HTTP download", ds.id);
+            eprintln!("[{}]   Use --full to pull via SRA toolkit: prefetch {} && fastq-dump",
+                      ds.id, if ds.sra_accession.is_empty() { "<accession>" } else { &ds.sra_accession });
+        } else {
+            match try_http_download(&ds.source_uri, &target_dir, &ds.id) {
+                Ok(()) => return hash_directory(&target_dir),
+                Err(e) => eprintln!("[{}]   HTTP download failed: {e} — trying fallback", ds.id),
+            }
+        }
+    }
+
+    // Strategy 3: generate from expected JSON
     let expected_dir = root.join("validation/expected");
     match generate_from_expected(root, &target_dir, &ds.module, &expected_dir) {
         Ok(()) => return hash_directory(&target_dir),
         Err(e) => eprintln!("[{}]   Fallback generation failed: {e}", ds.id),
     }
 
-    // Strategy 3: check if data already exists
+    // Strategy 4: check if data already exists
     if target_dir.exists() && std::fs::read_dir(&target_dir).map(|mut d| d.next().is_some()).unwrap_or(false) {
         eprintln!("[{}]   Using existing data in {}", ds.id, target_dir.display());
         return hash_directory(&target_dir);
     }
 
     Err("No download source, no expected values, and no existing data".to_string())
+}
+
+fn is_bioproject_uri(uri: &str) -> bool {
+    uri.contains("ncbi.nlm.nih.gov/bioproject")
+        || uri.contains("ncbi.nlm.nih.gov/sra")
+        || uri.contains("ncbi.nlm.nih.gov/Traces")
+}
+
+fn try_sra_download(accession: &str, target_dir: &Path, id: &str) -> Result<(), String> {
+    let has_prefetch = std::process::Command::new("which").arg("prefetch")
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status().map(|s| s.success()).unwrap_or(false);
+
+    if !has_prefetch {
+        return Err("SRA toolkit not installed (prefetch not found). \
+                    Install: https://github.com/ncbi/sra-tools/wiki".to_string());
+    }
+
+    eprintln!("[{id}]   Fetching via SRA toolkit: prefetch {accession}");
+    let status = std::process::Command::new("prefetch")
+        .arg(accession)
+        .arg("--output-directory").arg(target_dir)
+        .status()
+        .map_err(|e| format!("prefetch failed: {e}"))?;
+
+    if !status.success() {
+        return Err(format!("prefetch exited with {status}"));
+    }
+
+    eprintln!("[{id}]   SRA prefetch complete for {accession}");
+    Ok(())
 }
 
 fn try_http_download(uri: &str, target_dir: &Path, id: &str) -> Result<(), String> {
@@ -140,12 +236,29 @@ fn try_http_download(uri: &str, target_dir: &Path, id: &str) -> Result<(), Strin
     let body = response.body_mut().read_to_vec()
         .map_err(|e| format!("Failed to read response body: {e}"))?;
 
+    if content_type.contains("html") || content_type.contains("xml") {
+        return Err(format!(
+            "Source URI returned {content_type} (landing page, not downloadable data). \
+             Use a direct download link or fetch via SRA toolkit."
+        ));
+    }
+
+    if body.len() < 256 {
+        let preview = String::from_utf8_lossy(&body[..body.len().min(128)]);
+        if preview.contains("<html") || preview.contains("<!DOCTYPE") || preview.contains("<HTML") {
+            return Err("Response body appears to be HTML despite content-type header. \
+                        Likely a redirect to a login/landing page.".to_string());
+        }
+    }
+
     let (suffix, label) = if content_type.contains("zip") || uri.ends_with(".zip") {
         ("_raw.zip", "archive")
     } else if content_type.contains("gzip") || uri.ends_with(".tar.gz") || uri.ends_with(".tgz") {
         (".tar.gz", "tarball")
     } else if content_type.contains("json") || uri.ends_with(".json") {
         (".json", "JSON")
+    } else if content_type.contains("csv") || uri.ends_with(".csv") {
+        (".csv", "CSV")
     } else {
         ("_data", "data")
     };

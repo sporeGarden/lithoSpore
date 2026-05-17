@@ -19,6 +19,30 @@ pub struct ScopeManifest {
     pub primal: Vec<PrimalEntry>,
     #[serde(default)]
     pub foundation_thread: Vec<FoundationThread>,
+    #[serde(default)]
+    pub source: Option<SourceMetadata>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct SourceMetadata {
+    #[serde(default)]
+    pub repo: String,
+    #[serde(default)]
+    pub repo_https: String,
+    #[serde(default)]
+    pub branch: String,
+    #[serde(default)]
+    pub ecosystem_repo: String,
+    #[serde(default)]
+    pub ecosystem_repo_https: String,
+    #[serde(default)]
+    pub rust_toolchain: String,
+    #[serde(default)]
+    pub rust_target: String,
+    #[serde(default)]
+    pub containerfile: String,
+    #[serde(default)]
+    pub license: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]

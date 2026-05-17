@@ -118,3 +118,18 @@ id = "02"
 name = "Plasma Physics / Lattice QCD"
 datasets = []
 notes = "RMT connection to DFE via eigenvalue distributions"
+
+# --- Source Metadata (for `litho grow`) ---
+# Enables the USB artifact to clone, build, and grow the full project
+# on a clean system with internet access.
+
+[source]
+repo = "git@github.com:sporeGarden/lithoSpore.git"
+repo_https = "https://github.com/sporeGarden/lithoSpore.git"
+branch = "main"
+ecosystem_repo = "git@github.com:sporeGarden/ecoPrimals.git"
+ecosystem_repo_https = "https://github.com/sporeGarden/ecoPrimals.git"
+rust_toolchain = "stable"
+rust_target = "x86_64-unknown-linux-musl"
+containerfile = "Containerfile"
+license = "AGPL-3.0-or-later"

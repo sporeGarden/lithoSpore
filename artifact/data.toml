@@ -1,115 +1,183 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # Data Manifest — every dataset in the LTEE guideStone artifact.
-# Each entry has a source URI, license, BLAKE3 hash, and refresh command.
-# blake3 fields are empty until data is actually fetched and hashed.
-# local_path is relative to artifact/ (matches artifact/data/{dataset}/ on disk).
+#
+# TWO-TIER DATA MODEL:
+#
+#   The spore ships SMALL data (summary statistics, published parameters,
+#   expected values). When deployed in a live environment with internet,
+#   it can pull FULL data (raw sequencing reads, complete archives) and
+#   re-validate at deeper granularity.
+#
+#   data_tier = "summary"   → shipped on spore (~KB), validates from published stats
+#   data_tier = "complete"  → shipped on spore (full dataset present, e.g. BioBricks CSVs)
+#   data_tier = "internal"  → generated/derived, no external source
+#
+#   full_data_size   = estimated size of the upstream raw data
+#   full_data_tool   = tool needed to pull full data (e.g. "sra-toolkit", "wget")
+#   full_data_checks = additional checks possible with full data
+#
+# STATUS CONVENTION:
+#   fetched    = source data retrieved, hashed, present on disk
+#   derived    = data derived from expected values / published parameters
+#   internal   = generated data, no external source
+#
+# PROVENANCE: Each entry has a source_uri for re-pulling and re-validating.
 
 [meta]
 artifact = "ltee-guidestone"
-version = "0.1.0"
-last_updated = "2026-05-13"
-total_datasets = 8
+version = "0.4.0"
+last_updated = "2026-05-17"
+total_datasets = 7
+datasets_with_data = 7
 
 # --- Module 1: Power-law fitness (Wiser 2013) ---
 
 [[dataset]]
 id = "wiser_2013_fitness"
+status = "fetched"
+data_tier = "summary"
 source_uri = "https://datadryad.org/stash/dataset/doi:10.5061/dryad.0hc2m"
 license = "CC0"
 local_path = "artifact/data/wiser_2013/"
 blake3 = "e5189448911bb729839830a47cd88110f545f1dc97e3c91360c7d1fe69e485f2"
 retrieved = "2026-05-12T22:48:19Z"
-refresh_command = "litho fetch --module ltee-fitness"
+refresh_command = "litho fetch --dataset wiser_2013_fitness"
 paper = "Wiser et al. 2013, Science"
 module = "ltee-fitness"
+data_contents = "fitness_data.csv: 12-row summary (generation, mean_fitness) from Dryad archive"
+full_data_size = "~5 MB (Dryad CSV archive with all replicates)"
+full_data_tool = "wget"
+full_data_checks = "per-replicate curve fits, confidence intervals on exponent, jackknife resampling"
 
 # --- Module 2: Mutation accumulation (Barrick 2009) ---
 
 [[dataset]]
 id = "barrick_2009_mutations"
+status = "fetched"
+data_tier = "summary"
 source_uri = "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA29543"
 license = "public-domain"
 local_path = "artifact/data/barrick_2009/"
 blake3 = "ee14abb2d3d55f645c56053059986369d6e4c610db95905ae73d28ca51dc65be"
 retrieved = "2026-05-12T22:48:19Z"
-refresh_command = "litho fetch --module ltee-mutations"
+refresh_command = "litho fetch --dataset barrick_2009_mutations"
 paper = "Barrick et al. 2009, Nature"
 module = "ltee-mutations"
+data_contents = "mutation_parameters.json: published N, μ, and simulation parameters"
+sra_accession = "PRJNA29543"
+full_data_size = "~15 GB (whole-genome sequencing reads, 19 genomes)"
+full_data_tool = "sra-toolkit"
+full_data_checks = "breseq re-pipeline, de novo mutation calling, molecular clock from raw SNPs"
+upstream_spring = "wetSpring"
+upstream_braid = ""
+upstream_dag_session = ""
 
 # --- Module 3: Allele trajectories (Good 2017) ---
 
 [[dataset]]
 id = "good_2017_alleles"
+status = "derived"
+data_tier = "summary"
 source_uri = "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA380528"
 license = "public-domain"
 local_path = "artifact/data/good_2017/"
-blake3 = ""
-retrieved = ""
-refresh_command = "litho fetch --module ltee-alleles"
+blake3 = "cfbe7825f9c8530f9e1c2e3b29d507e7f2f92e534dc575346f39d8a255d8577b"
+retrieved = "2026-05-16T18:31:00Z"
+refresh_command = "litho fetch --dataset good_2017_alleles"
 paper = "Good et al. 2017, Nature"
 module = "ltee-alleles"
+data_contents = "expected_values.json: simulation tallies (total_fixations, total_mutations, haldane_probability) at 4 population sizes + tolerances.toml"
+sra_accession = "PRJNA380528"
+full_data_size = "~50 GB (deep metagenomic sequencing, ~500-gen intervals)"
+full_data_tool = "sra-toolkit"
+full_data_checks = "allele frequency time-series reconstruction, clade detection from raw reads, interference dynamics from variant calls"
+upstream_spring = "wetSpring"
+upstream_braid = ""
+upstream_dag_session = ""
 
 # --- Module 4: Citrate innovation (Blount 2012) ---
 
 [[dataset]]
 id = "blount_2012_citrate"
+status = "derived"
+data_tier = "summary"
 source_uri = "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA188627"
 license = "public-domain"
 local_path = "artifact/data/blount_2012/"
-blake3 = ""
-retrieved = ""
-refresh_command = "litho fetch --module ltee-citrate"
+blake3 = "b2cdffad126570eab8d691c3a4f0e8127939b6774fa8e00709396352e6887c61"
+retrieved = "2026-05-16T18:31:00Z"
+refresh_command = "litho fetch --dataset blount_2012_citrate"
 paper = "Blount et al. 2012, Nature"
 module = "ltee-citrate"
+data_contents = "expected_values.json: potentiation/replay data (12 populations, 9 freeze generations) + tolerances.toml"
+sra_accession = "PRJNA188627"
+full_data_size = "~30 GB (replay experiment sequencing + frozen stock metadata)"
+full_data_tool = "sra-toolkit"
+full_data_checks = "replay re-sequencing, potentiation mutation identification, two-hit model from raw variant calls"
+upstream_spring = "wetSpring"
+upstream_braid = ""
+upstream_dag_session = ""
 
 # --- Module 5: BioBrick burden (2024) ---
 
 [[dataset]]
 id = "biobricks_2024_burden"
+status = "fetched"
+data_tier = "complete"
 source_uri = "https://github.com/barricklab/igem2019/releases/tag/v1.0.2"
 license = "CC-BY-4.0"
 local_path = "artifact/data/biobricks_2024/"
 blake3 = "85f5c40ba13a0ab9b6c0140fd0603f18f070a144e27e08805aa6a2556a9c2c93"
 retrieved = "2026-05-14T20:42:13Z"
-refresh_command = "litho fetch --module ltee-biobricks"
+refresh_command = "litho fetch --dataset biobricks_2024_burden"
 paper = "Barrick et al. 2024, Nat Comms. doi:10.1038/s41467-024-50639-9"
 module = "ltee-biobricks"
+data_contents = "69 files, 3.3MB: strain/part/plate metadata CSVs + 25 plate reader experiments + analysis scripts"
+full_data_size = "3.3 MB (complete — all plate reader data shipped)"
+full_data_tool = "wget"
+full_data_checks = "all checks run on shipped data — this dataset is complete on the spore"
 
 # --- Module 6: 264 genomes (Tenaillon 2016) ---
 
 [[dataset]]
 id = "tenaillon_2016_genomes"
+status = "derived"
+data_tier = "summary"
 source_uri = "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA294072"
 license = "public-domain"
 local_path = "artifact/data/tenaillon_2016/"
-blake3 = ""
-retrieved = ""
-refresh_command = "litho fetch --module ltee-breseq"
+blake3 = "fb7f7dcc34d1cfdebf9138d9708a500c84e4e828061db1a4b490a940b7c97d97"
+retrieved = "2026-05-16T18:31:00Z"
+refresh_command = "litho fetch --dataset tenaillon_2016_genomes"
 paper = "Tenaillon et al. 2016, Nature"
 module = "ltee-breseq"
+data_contents = "README.md with published summary statistics (264 genomes, mutation rates, spectrum). Tier 2 validates from expected JSON."
+sra_accession = "PRJNA294072"
+full_data_size = "~200 GB (264 whole-genome sequencing runs, Illumina)"
+full_data_tool = "sra-toolkit"
+full_data_checks = "breseq re-pipeline on all 264 genomes, de novo mutation calling, spectrum from raw reads, accumulation curve from individual genomes"
+upstream_spring = "wetSpring"
+upstream_braid = ""
+upstream_dag_session = ""
 
 # --- Module 7: Anderson-QS predictions ---
 
 [[dataset]]
-id = "dfe_evolution_2024"
-source_uri = ""
-license = "public-domain"
-local_path = "artifact/data/dfe_2024/"
-blake3 = ""
-retrieved = ""
-refresh_command = "litho fetch --module ltee-anderson"
-paper = "DFE Evolution in LTEE 2024, Science"
-module = "ltee-anderson"
-notes = "DOI pending — DFE evolution paper source URI TBD"
-
-[[dataset]]
 id = "anderson_predictions"
+status = "internal"
+data_tier = "internal"
 source_uri = ""
 license = "AGPL-3.0-or-later"
 local_path = "artifact/data/anderson_predictions/"
-blake3 = ""
-retrieved = ""
-paper = "Internal — Anderson-QS framework predictions generated by hotSpring + groundSpring"
+blake3 = "089e5efa871dace8a38767036edb5c66ad0a42dcf21dc6d463e2526d2b985f4a"
+retrieved = "2026-05-16T18:31:00Z"
+paper = "Anderson-QS framework predictions generated by hotSpring + groundSpring"
 module = "ltee-anderson"
-notes = "Generated data — no external source URI, no fetch script. Provenance via scope graph."
+data_contents = "expected_values.json: fitness checkpoints, power-law model parameters, Anderson disorder diagnostics, GOE/Poisson references + README.md"
+full_data_size = "n/a (internally generated)"
+full_data_tool = "none"
+full_data_checks = "DFE parameter estimation from raw fitness data (requires Module 1 full data)"
+upstream_spring = "hotSpring"
+upstream_braid = ""
+upstream_dag_session = ""

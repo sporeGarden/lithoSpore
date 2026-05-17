@@ -32,6 +32,48 @@ pub struct TargetCoverage {
     pub status: String,
 }
 
+/// Tier 3 provenance session — recorded when NUCLEUS primals are available
+/// and the provenance trio (rhizoCrypt + loamSpine + sweetGrass) successfully
+/// anchors the validation run.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Tier3Session {
+    pub dag_session_id: String,
+    pub dag_merkle_root: String,
+    pub spine_id: String,
+    pub braid_id: String,
+    pub primals_reached: Vec<String>,
+}
+
+/// Per-module parity result — records whether Tier 1 and Tier 2 agree.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ParityResult {
+    pub module: String,
+    pub tier1_status: ValidationStatus,
+    pub tier2_status: ValidationStatus,
+    pub tier1_checks: u32,
+    pub tier2_checks: u32,
+    pub tier1_passed: u32,
+    pub tier2_passed: u32,
+    pub parity: ParityStatus,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "UPPERCASE")]
+pub enum ParityStatus {
+    Match,
+    Divergence,
+    Skipped,
+}
+
+/// Cross-tier parity report — verifies math stability between Tier 1 and Tier 2.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ParityReport {
+    pub artifact: String,
+    pub version: String,
+    pub modules: Vec<ParityResult>,
+    pub parity_pass: bool,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ValidationReport {
     pub artifact: String,
@@ -40,6 +82,8 @@ pub struct ValidationReport {
     pub modules: Vec<ModuleResult>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub target_coverage: Vec<TargetCoverage>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tier3: Option<Tier3Session>,
 }
 
 impl ValidationReport {
@@ -51,6 +95,7 @@ impl ValidationReport {
             tier_reached: 0,
             modules: Vec::new(),
             target_coverage: Vec::new(),
+            tier3: None,
         }
     }
 

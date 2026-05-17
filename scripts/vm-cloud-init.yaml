@@ -1,0 +1,83 @@
+#cloud-config
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# lithoSpore benchScale VM — cloud-init user-data
+#
+# Provisions a clean VM that clones, builds, and validates lithoSpore
+# from scratch. Used with `litho grow --vm` or manual invocation:
+#
+#   cloud-localds /tmp/litho-seed.iso scripts/vm-cloud-init.yaml
+#   virt-install --name litho-vm --memory 4096 --vcpus 2 \
+#     --disk size=20 --cdrom /tmp/litho-seed.iso \
+#     --os-variant generic --import
+
+hostname: litho-vm
+manage_etc_hosts: true
+
+users:
+  - name: litho
+    groups: sudo
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: true
+
+package_update: true
+packages:
+  - build-essential
+  - musl-tools
+  - git
+  - curl
+  - pkg-config
+  - libssl-dev
+  - python3
+  - python3-pip
+  - python3-numpy
+  - python3-scipy
+  - python3-matplotlib
+
+runcmd:
+  - |
+    set -euo pipefail
+    export HOME=/home/litho
+    export USER=litho
+    LOGFILE=/var/log/litho-grow.log
+
+    echo "=== lithoSpore VM bootstrap ===" | tee $LOGFILE
+    date | tee -a $LOGFILE
+
+    # Install Rust toolchain
+    echo "--- Installing Rust ---" | tee -a $LOGFILE
+    su - litho -c 'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable' 2>&1 | tee -a $LOGFILE
+    su - litho -c 'source $HOME/.cargo/env && rustup target add x86_64-unknown-linux-musl' 2>&1 | tee -a $LOGFILE
+
+    # Clone lithoSpore
+    echo "--- Cloning lithoSpore ---" | tee -a $LOGFILE
+    su - litho -c 'git clone --depth 1 https://github.com/sporeGarden/lithoSpore.git $HOME/lithoSpore' 2>&1 | tee -a $LOGFILE
+
+    # Build
+    echo "--- Building ---" | tee -a $LOGFILE
+    su - litho -c 'source $HOME/.cargo/env && cd $HOME/lithoSpore && cargo build --release --target x86_64-unknown-linux-musl' 2>&1 | tee -a $LOGFILE
+
+    # Fetch data
+    echo "--- Fetching datasets ---" | tee -a $LOGFILE
+    su - litho -c 'source $HOME/.cargo/env && cd $HOME/lithoSpore && cargo run --release --bin litho -- fetch --all' 2>&1 | tee -a $LOGFILE
+
+    # Validate Tier 2
+    echo "--- Validating (Tier 2) ---" | tee -a $LOGFILE
+    su - litho -c 'source $HOME/.cargo/env && cd $HOME/lithoSpore && cargo run --release --bin litho -- validate --max-tier 2' 2>&1 | tee -a $LOGFILE
+    TIER2_EXIT=$?
+
+    # Validate Tier 1
+    echo "--- Validating (Tier 1) ---" | tee -a $LOGFILE
+    su - litho -c 'source $HOME/.cargo/env && cd $HOME/lithoSpore && cargo run --release --bin litho -- validate --max-tier 1' 2>&1 | tee -a $LOGFILE
+    TIER1_EXIT=$?
+
+    echo "--- Results ---" | tee -a $LOGFILE
+    echo "Tier 2 exit: $TIER2_EXIT" | tee -a $LOGFILE
+    echo "Tier 1 exit: $TIER1_EXIT" | tee -a $LOGFILE
+    echo "deployment_method: vm-benchscale" | tee -a $LOGFILE
+    date | tee -a $LOGFILE
+
+    echo "=== lithoSpore VM bootstrap complete ===" | tee -a $LOGFILE
+
+final_message: "lithoSpore VM ready after $UPTIME seconds"

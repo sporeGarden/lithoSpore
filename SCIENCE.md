@@ -8,19 +8,31 @@ Evolution Experiment (LTEE) — a continuous evolutionary experiment with
 generations across 12 replicate populations.
 
 This document connects the seven science modules into a coherent
-narrative of evolutionary dynamics.
+narrative of evolutionary dynamics. The LTEE is the first **instance** of
+the lithoSpore verification chassis — the same infrastructure (multi-tier
+validation, BLAKE3 integrity, provenance, tolerances) will serve other
+domains of science.
+
+### Cross-Tier Parity
+
+Every numerical claim is validated independently in two implementations:
+Python (Tier 1) and Rust (Tier 2). `litho parity` runs both side-by-side
+and confirms they agree — the math is stable between languages. This is
+not a test of software correctness alone; it validates that the science
+is implementation-independent.
 
 ## Module 1: Fitness Never Stops Increasing
 
 **Wiser, Ribeck & Lenski 2013** (Science 342:1364–1367)
 
 Does fitness plateau after tens of thousands of generations? No.
-The LTEE shows fitness follows a power law w(t) ~ t^β, not an
+The LTEE shows fitness follows a power law w(t) ~ t^b, not an
 asymptote. lithoSpore fits power-law, hyperbolic, and logarithmic
 models to Dryad competition assay data and verifies the power law
 wins by AIC/BIC.
 
-Key result: β ≈ 0.12, with no sign of leveling off.
+Key result: power-law exponent b ≈ 0.66 (equivalently, Wiser's
+daily-rate parametrization β ≈ 0.056), with no sign of leveling off.
 
 ## Module 2: Mutations Accumulate Like Clockwork
 

@@ -6,7 +6,7 @@
 //! Creates the directory tree, stages binaries, data, papers, notebooks,
 //! figures, documentation, and generates data_manifest.toml with BLAKE3 hashes.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub fn run(root: &str, target: &str, skip_python: bool, skip_fetch: bool, skip_build: bool, dry_run: bool) {
     let root_path = Path::new(root);
@@ -26,7 +26,8 @@ pub fn run(root: &str, target: &str, skip_python: bool, skip_fetch: bool, skip_b
     let dirs = [
         "bin", "artifact/data", "validation/expected",
         "projectFOUNDATION/targets", "notebooks", "figures",
-        "biomeOS/graphs", "papers",
+        "biomeOS/graphs", "papers", "scripts",
+        "config", "graphs", "workloads", "lineage",
     ];
     for dir in &dirs {
         std::fs::create_dir_all(target_path.join(dir)).ok();
@@ -42,7 +43,7 @@ pub fn run(root: &str, target: &str, skip_python: bool, skip_fetch: bool, skip_b
     touch(target_path, ".family.seed");
 
     // Create symlinks instead of copying shell shims
-    for shim in ["validate", "verify", "refresh", "spore"] {
+    for shim in ["validate", "verify", "refresh", "spore", "grow"] {
         let link = target_path.join(shim);
         let _ = std::fs::remove_file(&link);
         #[cfg(unix)]
@@ -102,7 +103,7 @@ pub fn run(root: &str, target: &str, skip_python: bool, skip_fetch: bool, skip_b
     // 5. Fetch and stage data
     step("5. Staging data bundles");
     if !skip_fetch {
-        crate::fetch::run(root, None, true);
+        crate::fetch::run(root, None, true, false);
     }
     let data_src = root_path.join("artifact/data");
     if data_src.exists() {
@@ -122,7 +123,29 @@ pub fn run(root: &str, target: &str, skip_python: bool, skip_fetch: bool, skip_b
     for doc in ["GETTING_STARTED.md", "SCIENCE.md"] {
         copy_if_exists(root_path, doc, target_path, doc);
     }
-    println!("  Documentation staged");
+    copy_if_exists(root_path, "data/targets/ltee_validation_targets.toml",
+        target_path, "projectFOUNDATION/targets/ltee_validation_targets.toml");
+
+    // NUCLEUS deployment infrastructure
+    copy_if_exists(root_path, "config/capability_registry.toml",
+        target_path, "config/capability_registry.toml");
+    copy_if_exists(root_path, "graphs/ltee_guidestone.toml",
+        target_path, "graphs/ltee_guidestone.toml");
+    copy_if_exists(root_path, "lineage/THREAD_INDEX.toml",
+        target_path, "lineage/THREAD_INDEX.toml");
+    let workloads_src = root_path.join("workloads");
+    if workloads_src.exists() {
+        copy_dir_recursive(&workloads_src, &target_path.join("workloads"));
+    }
+
+    // Grow capability: cloud-init template for VM bootstrapping
+    copy_if_exists(root_path, "scripts/vm-cloud-init.yaml",
+        target_path, "scripts/vm-cloud-init.yaml");
+
+    // Cross-OS deployment: Containerfile for Docker/Podman substrate
+    copy_if_exists(root_path, "artifact/usb-root/Containerfile",
+        target_path, "Containerfile");
+    println!("  Documentation + NUCLEUS deployment + grow capability + Containerfile staged");
 
     // 7. Stage expected values
     step("7. Staging expected values");
@@ -143,6 +166,20 @@ pub fn run(root: &str, target: &str, skip_python: bool, skip_fetch: bool, skip_b
     let nb_src = root_path.join("notebooks");
     if nb_src.exists() {
         copy_dir_recursive(&nb_src, &target_path.join("notebooks"));
+    }
+
+    // 9b. Stage bundled Python runtime
+    step("9b. Staging bundled Python");
+    if skip_python {
+        println!("  SKIP: --skip-python (Tier 1 will require host Python)");
+    } else {
+        let python_staged = stage_bundled_python(root_path, target_path);
+        if python_staged {
+            println!("  Bundled Python staged (Tier 1 self-contained)");
+        } else {
+            println!("  WARNING: No bundled Python found — Tier 1 requires host Python");
+            println!("  To bundle: place python-build-standalone at python-standalone/python/");
+        }
     }
 
     // 10. Generate data_manifest.toml
@@ -297,6 +334,38 @@ fn count_files_with_ext(dir: &Path, ext: &str) -> usize {
         .unwrap_or(0)
 }
 
+/// Stage bundled Python runtime from python-standalone/python/ to target/python/.
+/// Also installs the ./python wrapper shim at the target root.
+/// Returns true if Python was successfully staged.
+fn stage_bundled_python(root: &Path, target: &Path) -> bool {
+    let candidates = [
+        root.join("python-standalone/python"),
+        PathBuf::from("/tmp/python-standalone/python"),
+    ];
+
+    let python_src = match candidates.iter().find(|p| p.join("bin").exists()) {
+        Some(p) => p.clone(),
+        None => return false,
+    };
+
+    let python_dst = target.join("python");
+    std::fs::create_dir_all(&python_dst).ok();
+    copy_dir_recursive(&python_src, &python_dst);
+
+    let wrapper_src = root.join("scripts/python-wrapper.sh");
+    let wrapper_dst = target.join("python-wrapper");
+    if wrapper_src.exists() {
+        std::fs::copy(&wrapper_src, &wrapper_dst).ok();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&wrapper_dst, std::fs::Permissions::from_mode(0o755)).ok();
+        }
+    }
+
+    true
+}
+
 fn print_dry_run(root: &str, target: &str, skip_python: bool, skip_fetch: bool, skip_build: bool) {
     println!("DRY RUN — showing what would be assembled");
     println!("  Source:  {root}");
@@ -312,10 +381,13 @@ fn print_dry_run(root: &str, target: &str, skip_python: bool, skip_fetch: bool, 
     println!("  ├── verify → bin/litho (symlink)");
     println!("  ├── refresh → bin/litho (symlink)");
     println!("  ├── spore → bin/litho (symlink)");
+    println!("  ├── grow → bin/litho (symlink)");
     println!("  ├── bin/litho (unified binary)");
     println!("  ├── artifact/data/ (7 datasets)");
     println!("  ├── validation/expected/ (7 JSONs)");
     println!("  ├── papers/ (registry + reading order)");
     println!("  ├── figures/ (SVGs)");
+    println!("  ├── Containerfile (OCI cross-OS deployment)");
+    println!("  ├── scripts/vm-cloud-init.yaml");
     println!("  └── data_manifest.toml (BLAKE3)");
 }

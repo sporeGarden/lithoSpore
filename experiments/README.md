@@ -24,19 +24,23 @@ NNN_DESCRIPTOR.{rs,md,json,toml}
 | 002 | Rust Tier 2 elevation | md | All 7 modules | Complete — 75/75 checks |
 | 003 | Tolerance calibration | md | Cross-module | Complete — tolerances.toml finalized |
 | 004 | USB deployment validation | md | Infrastructure | Complete — VM + container + local |
-| 005 | Chaos/fault injection | md | Infrastructure | Complete — 15 scenarios |
+| 005 | Chaos/fault injection | md | Infrastructure | Complete — 10 scenarios |
 | 006 | Cross-platform binary validation | md | Infrastructure | Complete — x86_64, aarch64, Windows |
 | 007 | Scope-driven chassis abstraction | md | Architecture | Complete — scope.toml + data.toml |
+
+| 008 | Cross-tier parity validation | md | Validation | Complete — `litho parity` all 7 modules |
+| 009 | Tier 3 NUCLEUS provenance wiring | md | Primal integration | Complete — JSON-RPC trio client |
+| 010 | Two-tier data model | md | Data strategy | Complete — `litho fetch --full`, upstream braids |
 
 ## Planned Experiments
 
 | # | Name | Type | Domain | Blocked By |
 |---|------|------|--------|------------|
-| 008 | BLAKE3 hash backfill | toml | Data integrity | Network access to source repos |
-| 009 | neuralSpring ML surrogate integration | md | Modules 3, 4 | neuralSpring B3/B4 models |
-| 010 | Tier 3 NUCLEUS composition | md | Primal integration | NUCLEUS runtime + primals |
-| 011 | Signal dispatch collapse | md | Architecture | biomeOS signal routing |
-| 012 | FIDO2 hardware attestation | md | Security | BearDog CTAP2 library |
+| 011 | BLAKE3 hash backfill | toml | Data integrity | Network access to source repos |
+| 012 | neuralSpring ML surrogate integration | md | Modules 3, 4 | neuralSpring B3/B4 models |
+| 013 | Signal dispatch collapse | md | Architecture | biomeOS signal routing |
+| 014 | FIDO2 hardware attestation | md | Security | BearDog CTAP2 library |
+| 015 | Upstream braid handoff (wetSpring) | md | Provenance | wetSpring breseq pipeline |
 
 ## Experiment Log (May 2026)
 
@@ -70,7 +74,7 @@ Three deployment paths validated via agentReagents:
 
 ### 005 — Chaos/Fault Injection (May 14)
 
-15 fault injection scenarios via `litho chaos-test`:
+10 fault injection scenarios via `litho chaos-test`:
 - Data file corruption (bit flip, truncation, deletion)
 - Expected value drift (tolerance boundary testing)
 - Manifest corruption (TOML parse failure)
@@ -89,3 +93,26 @@ Abstracted LTEE-specific module tables to runtime-loaded `scope.toml` +
 `data.toml`. Regression introduced (0/75 → fixed → 75/75). Root cause:
 expected-file matching, empty-path guard, multi-dataset resolution.
 4 integration tests added as regression guards.
+
+### 008 — Cross-Tier Parity Validation (May 17)
+
+`litho parity` runs Tier 1 (Python) and Tier 2 (Rust) side-by-side for
+all 7 modules and reports MATCH/DIVERGENCE per module. Validates that
+the math is implementation-independent. `ParityReport`, `ParityResult`,
+`ParityStatus` types added to `litho-core::validation`.
+
+### 009 — Tier 3 NUCLEUS Provenance Wiring (May 17)
+
+`provenance.rs` evolved from data structs to a JSON-RPC client for the
+provenance trio. `validate --max-tier 3` branches into `announce_self()`
++ `try_record_tier3()` — creates DAG session, spine entry, and braid
+via discovered rhizoCrypt/loamSpine/sweetGrass endpoints. Falls back
+gracefully when primals are unavailable.
+
+### 010 — Two-Tier Data Model (May 17)
+
+Formalized "ship small, validate deep" — `data.toml` gains `data_tier`,
+`full_data_size`, `full_data_tool`, `full_data_checks`, `upstream_spring`,
+`upstream_braid`, `upstream_dag_session` fields. `litho fetch --full`
+pulls raw upstream data when online. Ferment transcript pattern defined:
+upstream springs compute, record provenance, hand the braid to lithoSpore.

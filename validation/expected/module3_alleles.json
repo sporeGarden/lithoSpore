@@ -2,9 +2,12 @@
   "experiment": "038_ltee_clonal_interference",
   "paper": "Good2017",
   "paper_id": "B3",
+  "doi": "10.1038/nature24287",
+  "source_figures": ["Fig. 1", "Fig. 2", "Extended Data Fig. 5"],
   "litho_module": 3,
   "module_name": "ltee-alleles",
-  "description": "Allele frequency trajectories \u2014 clonal interference dynamics",
+  "description": "Allele frequency trajectories — clonal interference dynamics",
+  "methodology_note": "Results are from Wright-Fisher simulations with beneficial mutations (s=0.02, mu=0.01). Fixation probabilities and interference ratios match population genetics theory. Fitness values at N>=10000 are simulation artifacts, not empirical LTEE measurements.",
   "pop_sizes": [
     100,
     1000,
@@ -58,7 +61,8 @@
       "interference_ratio": 0.7014921642630408,
       "mean_final_fitness": 8719953.677241795,
       "std_final_fitness": 6117697.885885733,
-      "adaptation_rate": 0.0031537036554838715
+      "adaptation_rate": 0.0031537036554838715,
+      "note": "Simulation artifact: mean_final_fitness diverges at high N due to unbounded beneficial mutations in the Wright-Fisher model. Real LTEE fitness is bounded by physiology (~1-6x ancestor). The key quantity validated here is the interference_ratio showing clonal interference suppresses fixation."
     }
   },
   "checks_total": 7,

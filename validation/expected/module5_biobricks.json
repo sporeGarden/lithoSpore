@@ -41,6 +41,7 @@
     "count_tolerance": 5,
     "fraction_absolute_tolerance": 0.03
   },
+  "methodology_note": "Tier 2 Rust validation computes growth rates from plate reader CSVs (log-phase OD600 0.02-0.3, least-squares slope of ln(OD) vs time). Burden is computed as 1 - sample_rate/mean_rate using the grand mean growth rate as reference. The paper (Barrick 2024) uses matched BFP empty-vector controls per backbone. This simplified methodology validates the distribution shape and counts, not individual strain burdens.",
   "checks_expected": 5,
   "check_descriptions": [
     "total_parts_count: exactly 301 BioBricks (excluding BFP controls)",

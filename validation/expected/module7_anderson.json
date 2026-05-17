@@ -7,7 +7,8 @@
     "formula": "w(t) = (1 + 2*alpha*t)^beta",
     "alpha": 6.2e-4,
     "beta": 0.056,
-    "source": "Wiser et al. 2013 Table S2"
+    "source": "Wiser et al. 2013 Table S2",
+    "note": "This is Wiser's original parametrization. Module 1 (ltee-fitness) uses the equivalent form w(t) = 1 + a*t^b with a=0.00385, b=0.66. Both fit the same data; the exponents differ because the functional forms differ."
   },
   "fitness_values": {
     "gen_500": 1.0341,

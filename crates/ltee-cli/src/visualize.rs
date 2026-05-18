@@ -2,7 +2,7 @@
 
 //! `litho visualize` — generate scientific visualizations for all modules.
 
-use crate::validate::{LTEE_MODULES, LTEE_NOTEBOOKS};
+use crate::registry;
 
 const BASELINE_TOOLS: &[&str] = &[
     "breseq", "plannotate", "ostir", "cryptkeeper",
@@ -11,15 +11,16 @@ const BASELINE_TOOLS: &[&str] = &[
 
 pub fn run(root: &str, format: &str, output_dir: &str) {
     let root_path = std::path::Path::new(root);
+    let entries = registry::load_module_table(root_path);
 
-    let modules: Vec<(&str, &str)> = LTEE_MODULES
+    let modules: Vec<(&str, &str)> = entries
         .iter()
-        .map(|(name, _, _, expected)| (*name, *expected))
+        .map(|e| (e.name.as_str(), e.expected.as_str()))
         .collect();
 
     match format {
         "json" => run_json(root_path, &modules),
-        "svg" => run_svg(root_path, output_dir),
+        "svg" => run_svg(root_path, &entries, output_dir),
         "dashboard" => run_dashboard(root_path, &modules),
         "baselines" => run_baselines(root_path),
         _ => {
@@ -32,25 +33,34 @@ pub fn run(root: &str, format: &str, output_dir: &str) {
 fn run_json(root_path: &std::path::Path, modules: &[(&str, &str)]) {
     let all = load_module_data(root_path, modules);
     let refs: Vec<(&str, &serde_json::Value)> = all.iter().map(|(n, v)| (*n, v)).collect();
-    let dashboard = litho_core::viz::build_dashboard(&refs);
+    let dashboard = crate::viz::build_dashboard(&refs);
     println!("{}", serde_json::to_string_pretty(&dashboard).unwrap_or_default());
 }
 
-fn run_svg(root_path: &std::path::Path, output_dir: &str) {
+fn run_svg(root_path: &std::path::Path, entries: &[registry::ModuleEntry], output_dir: &str) {
     eprintln!("litho visualize --format svg: generating static figures via Python baselines");
 
     let out_path = root_path.join(output_dir);
     std::fs::create_dir_all(&out_path).ok();
 
     let mut generated = 0u32;
-    for (mod_name, notebook) in LTEE_NOTEBOOKS {
+    for entry in entries {
+        let notebook = if !entry.tier1_notebook.is_empty() {
+            entry.tier1_notebook.as_str()
+        } else if let Some((_, nb)) = registry::LTEE_NOTEBOOKS.iter().find(|(n, _)| *n == entry.name.as_str()) {
+            *nb
+        } else {
+            eprintln!("  SKIP {}: no notebook", entry.name);
+            continue;
+        };
+
         let nb_path = root_path.join(notebook);
         if !nb_path.exists() {
-            eprintln!("  SKIP {mod_name}: notebook not found");
+            eprintln!("  SKIP {}: notebook not found", entry.name);
             continue;
         }
 
-        eprintln!("  {mod_name}...");
+        eprintln!("  {}...", entry.name);
         let status = std::process::Command::new("python3")
             .arg(&nb_path)
             .current_dir(root_path)
@@ -96,7 +106,7 @@ fn run_dashboard(root_path: &std::path::Path, modules: &[(&str, &str)]) {
 
     let all = load_module_data(root_path, modules);
     let refs: Vec<(&str, &serde_json::Value)> = all.iter().map(|(n, v)| (*n, v)).collect();
-    let dashboard = litho_core::viz::build_dashboard(&refs);
+    let dashboard = crate::viz::build_dashboard(&refs);
 
     push_to_visualization(&socket_path, &dashboard, "Dashboard");
 }
@@ -128,7 +138,7 @@ fn run_baselines(root_path: &std::path::Path) {
     }
 
     let refs: Vec<(&str, &serde_json::Value)> = all_tools.iter().map(|(n, v)| (*n, v)).collect();
-    let dashboard = litho_core::viz::build_baseline_dashboard(&refs);
+    let dashboard = crate::viz::build_baseline_dashboard(&refs);
     let bindings_count = dashboard["bindings"].as_array().map(|a| a.len()).unwrap_or(0);
     eprintln!("  {bindings_count} DataBindings from {} tools", all_tools.len());
 

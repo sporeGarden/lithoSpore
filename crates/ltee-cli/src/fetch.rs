@@ -159,8 +159,8 @@ fn fetch_dataset(root: &Path, ds: &DatasetEntry, full: bool) -> Result<String, S
 
     // Strategy 2: try HTTP download if source URI is present and not a BioProject landing page
     if !ds.source_uri.is_empty() && ds.source_uri.starts_with("http") {
-        if !full && is_bioproject_uri(&ds.source_uri) {
-            eprintln!("[{}]   URI is a BioProject landing page — skipping HTTP download", ds.id);
+        if !full && is_landing_page_uri(&ds.source_uri) {
+            eprintln!("[{}]   URI is a landing page — skipping HTTP download", ds.id);
             eprintln!("[{}]   Use --full to pull via SRA toolkit: prefetch {} && fastq-dump",
                       ds.id, if ds.sra_accession.is_empty() { "<accession>" } else { &ds.sra_accession });
         } else {
@@ -187,10 +187,12 @@ fn fetch_dataset(root: &Path, ds: &DatasetEntry, full: bool) -> Result<String, S
     Err("No download source, no expected values, and no existing data".to_string())
 }
 
-fn is_bioproject_uri(uri: &str) -> bool {
+fn is_landing_page_uri(uri: &str) -> bool {
     uri.contains("ncbi.nlm.nih.gov/bioproject")
         || uri.contains("ncbi.nlm.nih.gov/sra")
         || uri.contains("ncbi.nlm.nih.gov/Traces")
+        || uri.contains("datadryad.org/stash/dataset")
+        || uri.contains("datadryad.org/dataset")
 }
 
 fn try_sra_download(accession: &str, target_dir: &Path, id: &str) -> Result<(), String> {
@@ -251,10 +253,12 @@ fn try_http_download(uri: &str, target_dir: &Path, id: &str) -> Result<(), Strin
         }
     }
 
-    let (suffix, label) = if content_type.contains("zip") || uri.ends_with(".zip") {
-        ("_raw.zip", "archive")
-    } else if content_type.contains("gzip") || uri.ends_with(".tar.gz") || uri.ends_with(".tgz") {
+    let (suffix, label) = if content_type.contains("gzip") || content_type.contains("x-tar")
+        || uri.ends_with(".tar.gz") || uri.ends_with(".tgz")
+    {
         (".tar.gz", "tarball")
+    } else if content_type.contains("zip") || uri.ends_with(".zip") {
+        ("_raw.zip", "archive")
     } else if content_type.contains("json") || uri.ends_with(".json") {
         (".json", "JSON")
     } else if content_type.contains("csv") || uri.ends_with(".csv") {
@@ -267,7 +271,42 @@ fn try_http_download(uri: &str, target_dir: &Path, id: &str) -> Result<(), Strin
     std::fs::write(&dest, &body).map_err(|e| format!("write: {e}"))?;
     eprintln!("[{id}]   Saved {:.1} KB {label}", body.len() as f64 / 1024.0);
 
+    // Unpack archives so module validators can read individual files
+    if suffix == ".tar.gz" {
+        unpack_tar_gz(&dest, target_dir, id);
+    } else if suffix == "_raw.zip" {
+        unpack_zip(&dest, target_dir, id);
+    }
+
     Ok(())
+}
+
+fn unpack_tar_gz(archive: &Path, target_dir: &Path, id: &str) {
+    let file = match std::fs::File::open(archive) {
+        Ok(f) => f,
+        Err(e) => { eprintln!("[{id}]   Cannot open archive: {e}"); return; }
+    };
+    let gz = flate2::read::GzDecoder::new(file);
+    let mut tar = tar::Archive::new(gz);
+    match tar.unpack(target_dir) {
+        Ok(()) => eprintln!("[{id}]   Unpacked tar.gz to {}", target_dir.display()),
+        Err(e) => eprintln!("[{id}]   Unpack failed: {e}"),
+    }
+}
+
+fn unpack_zip(archive: &Path, target_dir: &Path, id: &str) {
+    let file = match std::fs::File::open(archive) {
+        Ok(f) => f,
+        Err(e) => { eprintln!("[{id}]   Cannot open archive: {e}"); return; }
+    };
+    let mut zip = match zip::ZipArchive::new(file) {
+        Ok(z) => z,
+        Err(e) => { eprintln!("[{id}]   Invalid zip: {e}"); return; }
+    };
+    match zip.extract(target_dir) {
+        Ok(()) => eprintln!("[{id}]   Unpacked zip ({} entries) to {}", zip.len(), target_dir.display()),
+        Err(e) => eprintln!("[{id}]   Zip extraction failed: {e}"),
+    }
 }
 
 fn generate_from_expected(

@@ -29,35 +29,41 @@ Cross-tier parity testable for all 7 modules.
 
 ## Shared Infrastructure
 
-- **`litho-core`** (chassis — domain-agnostic):
+- **`litho-core`** (chassis — 100% domain-agnostic, 11 modules):
   validation types (`ModuleResult`, `ValidationReport`, `Tier3Session`, `ParityReport`),
   tolerance framework, provenance chain + JSON-RPC client for trio,
+  braid ingestion with dual wire format support,
   liveSpore tracking, capability-based primal discovery (env → UDS → TURN → standalone),
   `announce_self()` + `query_capabilities()` for Wave 20,
   shared statistics (`pearson_r`), validation harness (`skip`, `load_expected`, `dispatch_python`),
-  scope parser (`ScopeManifest`), data manifest, graph checks,
-  visualization adapters (`viz` — DataBinding for all 7 modules + 7 Barrick baselines)
+  scope parser (`ScopeManifest`, `ScopeModule` with `[[module]]` registry), data manifest,
+  graph checks
 
-- **`ltee-cli`** (instance wiring — LTEE-specific):
-  unified `litho` binary with 15 subcommands:
-  `validate`, `parity`, `refresh`, `status`, `spore`, `verify`, `visualize`,
-  `self-test`, `tier`, `assemble`, `fetch`, `chaos-test`, `deploy-test`,
-  `deploy-report`, `grow`
+- **`ltee-cli`** (instance wiring + chassis glue):
+  unified `litho` binary with 15 subcommands,
+  scope-driven module registry (`registry.rs` — `load_module_table()`, `dispatch_module()`,
+  `module_name_matches()`), visualization adapters (`viz/` — DataBinding for all 7 LTEE
+  modules + 7 Barrick baselines). `.biomeos-spore` generated from scope.toml during assembly.
 
 ## Chassis vs Instance Coupling Inventory
 
-The following compile-time coupling points tie `ltee-cli` to the LTEE instance.
-These are the specific items that must evolve for domain-agnostic support:
+Coupling status after the Chassis Abstraction Evolution (May 17, 2026):
 
-| Coupling Point | File | What It Does | Agnostic Path |
-|----------------|------|-------------|---------------|
-| `MODULE_DISPATCH` | `validate.rs:139-147` | Maps binary names → `run_validation()` entry points | Load from scope.toml or trait registry |
-| `LTEE_MODULES` | `validate.rs:14-22` | Fallback module table (name, binary, data, expected) | Already superseded by scope.toml loader |
-| `LTEE_NOTEBOOKS` | `validate.rs:24-32` | Maps module names → Python notebook paths | Move to scope.toml `[module.tier1]` |
-| `MODULE_DISPATCH` (parity) | `parity.rs:11-20` | Duplicates dispatch table for parity | Share with validate.rs |
-| `LTEE_MODULES` (parity) | `parity.rs:34` | Iterates hardcoded module list | Use scope-driven loader |
-| `module_name_matches()` | `validate.rs:437-448` | LTEE-specific name mapping | Derive from scope.toml module metadata |
-| `ltee-*` Cargo deps | `ltee-cli/Cargo.toml` | Compile-time module crate imports | Feature flags per instance |
+| Coupling Point | Status | Resolution |
+|----------------|--------|------------|
+| `MODULE_DISPATCH` | **RESOLVED** | Centralized in `registry.rs` — compiled fallback, scope.toml `[[module]]` is primary |
+| `LTEE_MODULES` | **RESOLVED** | Moved to `registry.rs` as fallback; `load_module_table()` reads scope.toml first |
+| `LTEE_NOTEBOOKS` | **RESOLVED** | Moved to `registry.rs`; scope.toml `[[module]]` `tier1_notebook` field is primary |
+| `MODULE_DISPATCH` (parity) | **RESOLVED** | `parity.rs` imports from `registry.rs` — no duplication |
+| `LTEE_MODULES` usage across 6 files | **RESOLVED** | validate, parity, ops, chaos, deploy_test, visualize all import from `registry.rs` |
+| `module_name_matches()` | **RESOLVED** | `registry::module_name_matches()` does registry lookup, not hardcoded match |
+| `.biomeos-spore` template | **RESOLVED** | Generated from scope.toml during `litho assemble` |
+| `viz/` in litho-core | **RESOLVED** | Moved to `ltee-cli/src/viz/` (instance layer) |
+| Graph/target paths | **RESOLVED** | `guidestone.graph_file` and `guidestone.targets_file` in scope.toml |
+| Braid accessions | **RESOLVED** | Derived from `data.toml` `sra_accession` fields |
+| `strip_prefix("ltee-")` | **RESOLVED** | `derive_logical_name()` handles `ltee-`, `milc-`, `lattice-` prefixes |
+| `ltee-*` Cargo deps | **Remaining** | Compile-time module crate imports — feature flags per instance (future) |
+| `ltee-cli` naming | **Remaining** | Crate named for LTEE — cosmetic rename to `litho-cli` (future) |
 
 ## Per-Module Contract
 
@@ -88,7 +94,7 @@ Each carries `doi`, `source_figures`, and tolerance specifications.
 
 ## Test Coverage
 
-119 tests across 9 crates:
-- `litho-core`: 56 unit tests (discovery, provenance, validation, spore, viz, graph, etc.)
-- `ltee-cli`: 16 unit + 20 integration tests
+125 tests across 9 crates:
+- `litho-core`: 49 unit tests (discovery, provenance, validation, braid, spore, scope, graph, etc.)
+- `ltee-cli`: 49 unit + integration tests (registry 4, viz 11, ops 2, validate 1, visualize 3, cli integration 20, verify 2, fetch 6)
 - Module crates: 27 combined (fitness 6, mutations 6, anderson 5, biobricks 4, alleles 2, citrate 2, breseq 2)

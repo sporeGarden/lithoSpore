@@ -6,6 +6,7 @@
 **Status:** 7/7 modules validated at Tier 2 (Rust). 7/7 Tier 1 (Python) complete.
            Tier 3 provenance trio wired via JSON-RPC. Cross-tier parity implemented.
            Two-tier data model formalized with upstream braid handoff.
+           Chassis abstraction evolved: scope-driven module registry, litho-core 100% agnostic.
 
 ---
 
@@ -40,8 +41,8 @@ notebooks/module*/        crates/ltee-*/src/lib.rs      graphs/ltee_guidestone.t
   *.py scripts              run_validation() → JSON       DAG: beardog → rhizocrypt
   numpy + scipy              litho-core::harness           → loamspine → sweetgrass
   matplotlib figs            litho-core::stats              → toadstool (optional)
-  ↓                          litho-core::viz
-  HTML reports               ↓                            workloads/litho-validate-
+  ↓                          ltee-cli::registry
+  HTML reports               ltee-cli::viz                workloads/litho-validate-
   visual inspection        JSON with PASS/FAIL              tier3.toml
                            tolerance matching               signals: nest.store,
 validation/expected/       BLAKE3 provenance                        nest.commit
@@ -174,6 +175,30 @@ to enable this transition without code changes.
 primal connectivity. biomeOS can instantiate this atomically — the
 lithoSpore spore is a self-sufficient unit that composes into the
 NUCLEUS topology without per-module wiring.
+
+---
+
+## Chassis Abstraction
+
+The three-tier pipeline is now domain-agnostic at the infrastructure layer.
+`litho-core` (11 modules) contains zero LTEE-specific code. The LTEE instance
+is decoupled via:
+
+- **`scope.toml` `[[module]]` entries**: Carry name, binary, data_dir, expected,
+  and tier1_notebook for each module. The chassis reads these instead of compiled constants.
+- **`registry.rs`**: Unified module resolution for all CLI subcommands. Falls back to
+  compiled LTEE constants only when scope.toml lacks `[[module]]` entries.
+- **`.biomeos-spore` generation**: Derived from `scope.toml` identity fields during assembly.
+- **Braid accession expectations**: Derived from `data.toml` `sra_accession` fields.
+- **`viz/`**: Moved from `litho-core` to `ltee-cli` — pure instance layer.
+
+**What this enables**: Creating a hypothetical `chuna-guidestone` requires only:
+1. Write `scope.toml` + `data.toml` with Chuna identity and datasets
+2. Implement module crates with `run_validation()` entry points
+3. Add as Cargo dependencies
+4. Run `litho assemble` — the chassis handles everything else
+
+No changes to `litho-core`. No changes to the chassis plumbing.
 
 ---
 

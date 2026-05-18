@@ -83,7 +83,7 @@ for cross-OS deployment. Primals self-container via genomeBin if needed for Tier
 lithoSpore/
 ├── Cargo.toml                    # Workspace: 7 modules + core + CLI
 ├── crates/
-│   ├── litho-core/               # Shared library: validation, tolerance, provenance, discovery, stats, harness, viz
+│   ├── litho-core/               # Shared library (chassis): validation, tolerance, provenance, discovery, stats, harness, braid, scope
 │   ├── ltee-fitness/             # Module 1: power-law fitness (lib.rs + thin main.rs)
 │   ├── ltee-mutations/           # Module 2: mutation accumulation
 │   ├── ltee-alleles/             # Module 3: allele trajectories
@@ -91,7 +91,7 @@ lithoSpore/
 │   ├── ltee-biobricks/           # Module 5: BioBrick burden
 │   ├── ltee-breseq/              # Module 6: 264-genome comparison
 │   ├── ltee-anderson/            # Module 7: Anderson-QS predictions
-│   └── ltee-cli/                 # Unified CLI: 15 subcommands (validate, parity, verify, fetch, assemble, grow, ...)
+│   └── ltee-cli/                 # Unified CLI: 15 subcommands + module registry + viz (instance layer)
 │
 ├── artifact/                     # The deployable artifact
 │   ├── usb-root/                 # USB root templates (.biomeos-spore, biomeOS/)
@@ -155,9 +155,10 @@ the root file templates.
 ## Current Status — 7/7 PASS (May 17, 2026 PM)
 
 **Pillar 4 EXIT GATE: EXCEEDED** — 7 modules PASS at Tier 2, gate required 2+.
-**Deployment-validated**: USB pipeline tested via agentReagents (VM + container + local) — 75/75 checks, 119 unit/integration tests, 10 chaos/fault-injection tests.
+**Deployment-validated**: USB pipeline tested via agentReagents (VM + container + local) — 75/75 checks, 125 unit/integration tests, 10 chaos/fault-injection tests.
 **Tier 3**: Provenance trio wired via JSON-RPC with partial completion support (requires NUCLEUS primals at runtime).
 **Cross-tier parity**: `litho parity` validates math stability between Python and Rust.
+**Upstream braids**: 2 live braids from wetSpring (sovereign Rust+GPU pipeline + breseq baseline for Barrick 2009). Accession validated (SRP001569 PASS). Tenaillon 2016 braid pending (42/312 accessions downloaded).
 
 | Module | Status | Checks | Source |
 |--------|--------|--------|--------|
@@ -177,13 +178,16 @@ the root file templates.
 - **Module 6**: breseq 264-genome comparison, mutation accumulation analysis, parallel evolution significance
 - **Module 7**: Anderson disorder mapping, GOE/Poisson eigenvalue statistics
 
-**Infrastructure**: `litho-core` crate with 11 modules (validation types including
-`Tier3Session`/`ParityReport`, provenance JSON-RPC client for trio, tolerance framework,
-spore tracking, capability-based discovery with `announce_self()`/`query_capabilities()`,
-scope parser, data manifest, graph checks, shared stats, harness, viz), 119 unit/integration
-tests + 10 chaos/fault-injection tests, 15 CLI subcommands, zero clippy warnings,
-`#![forbid(unsafe_code)]` workspace-wide, pure Rust BLAKE3 (ecoBin compliant),
-`liveSpore.json` operational with corruption resilience and backup.
+**Infrastructure**: `litho-core` crate with 11 modules (chassis — domain-agnostic:
+validation types including `Tier3Session`/`ParityReport`, provenance JSON-RPC client
+for trio, braid ingestion with dual wire format support, tolerance framework, spore
+tracking, capability-based discovery with `announce_self()`/`query_capabilities()`,
+scope parser with `[[module]]` registry, data manifest, graph checks, shared stats,
+harness). `ltee-cli` adds instance layer: unified module registry (`registry.rs`),
+viz DataBinding adapters, 15 subcommands. 125 unit/integration tests + 10
+chaos/fault-injection tests, zero clippy warnings, `#![forbid(unsafe_code)]`
+workspace-wide, pure Rust BLAKE3 (ecoBin compliant), `liveSpore.json` operational
+with corruption resilience and backup.
 
 **Architecture** (May 14 geo-delocalization absorption):
 - `unsafe_code = "forbid"` enforced at workspace lint level — all 9 crates inherit
@@ -203,11 +207,17 @@ tests + 10 chaos/fault-injection tests, 15 CLI subcommands, zero clippy warnings
 - `litho verify` hardened: exits non-zero on MISSING, ERROR, and corrupt manifests
 - Cross-platform: musl-static Linux (5.1 MB), Windows x86_64 (7.9 MB), argv[0] symlink detection
 
-**Visualization Integration**: `litho-core::viz` provides `DataBinding` adapters for all
-7 LTEE modules and 7 Barrick Lab baseline tools via 9 generic builder helpers (bar, gauge,
-timeseries, scatter, heatmap, distribution, genome_track). `litho visualize` pushes live
-dashboards to visualization primals via capability-based IPC discovery. Interactive
-SceneGraph with click-to-select, pan/zoom, parameter controls, and data-driven animation.
+**Visualization Integration**: `ltee-cli::viz` (instance layer) provides `DataBinding`
+adapters for all 7 LTEE modules and 7 Barrick Lab baseline tools via 9 generic builder
+helpers. `litho visualize` pushes live dashboards to visualization primals via
+capability-based IPC discovery.
+
+**Chassis Abstraction**: Scope-driven module registry (`scope.toml` `[[module]]` entries)
+replaces all compiled `LTEE_MODULES`/`LTEE_NOTEBOOKS`/`MODULE_DISPATCH` constants.
+Unified `registry.rs` serves validate, parity, ops, chaos, deploy-test, and visualize.
+`.biomeos-spore` generated from scope.toml during assembly. Braid accession expectations
+derived from `data.toml`. Target coverage and graph paths parameterized. `litho-core`
+is 100% chassis — zero LTEE-specific code.
 
 **Deployment testing** (3 paths):
 - Local: `litho deploy-test` — filesystem isolation, ~1s

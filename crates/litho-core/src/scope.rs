@@ -20,7 +20,25 @@ pub struct ScopeManifest {
     #[serde(default)]
     pub foundation_thread: Vec<FoundationThread>,
     #[serde(default)]
+    pub module: Vec<ScopeModule>,
+    #[serde(default)]
     pub source: Option<SourceMetadata>,
+}
+
+/// Per-module metadata — the domain-agnostic contract that replaces
+/// compiled LTEE_MODULES / LTEE_NOTEBOOKS constants. When present in
+/// scope.toml, the chassis uses these fields for dispatch, parity,
+/// assembly, and Tier-1 notebook resolution.
+#[derive(Debug, Clone, Deserialize)]
+pub struct ScopeModule {
+    pub name: String,
+    pub binary: String,
+    #[serde(default)]
+    pub data_dir: String,
+    #[serde(default)]
+    pub expected: String,
+    #[serde(default)]
+    pub tier1_notebook: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -55,6 +73,10 @@ pub struct GuideStoneIdentity {
     pub created: String,
     #[serde(default)]
     pub standard: String,
+    #[serde(default)]
+    pub targets_file: String,
+    #[serde(default)]
+    pub graph_file: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -127,6 +149,8 @@ version = "0.1.0"
 target = "Test Target"
 created = "2026-05-16"
 standard = "TARGETED_GUIDESTONE_STANDARD v1.0"
+targets_file = "data/targets/test_targets.toml"
+graph_file = "graphs/test_graph.toml"
 
 [[spring]]
 name = "testSpring"
@@ -138,6 +162,19 @@ papers = ["B1"]
 name = "otherSpring"
 modules = ["mod-b", "mod-c"]
 
+[[module]]
+name = "widget_analysis"
+binary = "mod-a"
+data_dir = "artifact/data/widgets"
+expected = "validation/expected/widgets.json"
+tier1_notebook = "notebooks/widgets/analyze.py"
+
+[[module]]
+name = "gadget_validation"
+binary = "mod-b"
+data_dir = "artifact/data/gadgets"
+expected = "validation/expected/gadgets.json"
+
 [[foundation_thread]]
 id = "01"
 name = "Test Thread"
@@ -145,8 +182,14 @@ datasets = ["data_a"]
 "#;
         let scope: ScopeManifest = toml::from_str(toml).unwrap();
         assert_eq!(scope.guidestone.name, "test-guidestone");
+        assert_eq!(scope.guidestone.targets_file, "data/targets/test_targets.toml");
+        assert_eq!(scope.guidestone.graph_file, "graphs/test_graph.toml");
         assert_eq!(scope.spring.len(), 2);
         assert_eq!(scope.module_binaries(), vec!["mod-a", "mod-b", "mod-c"]);
+        assert_eq!(scope.module.len(), 2);
+        assert_eq!(scope.module[0].name, "widget_analysis");
+        assert_eq!(scope.module[0].binary, "mod-a");
+        assert_eq!(scope.module[1].tier1_notebook, "");
         assert_eq!(scope.foundation_thread.len(), 1);
     }
 }

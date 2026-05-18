@@ -37,9 +37,11 @@ pub fn run(root: &str, target: &str, skip_python: bool, skip_fetch: bool, skip_b
     }
     println!("  Directory tree created");
 
-    // 2. Stage root files
+    // 2. Stage root files (testa — the seed coat)
     step("2. Staging root files");
-    copy_if_exists(root_path, "artifact/usb-root/.biomeos-spore", target_path, ".biomeos-spore");
+    generate_biomeos_spore(root_path, target_path);
+    copy_if_exists(root_path, "artifact/usb-root/README.md", target_path, "README.md");
+    copy_if_exists(root_path, "artifact/usb-root/PROTOTYPE.md", target_path, "PROTOTYPE.md");
     touch(target_path, ".family.seed");
 
     // Create symlinks instead of copying shell shims
@@ -123,14 +125,30 @@ pub fn run(root: &str, target: &str, skip_python: bool, skip_fetch: bool, skip_b
     for doc in ["GETTING_STARTED.md", "SCIENCE.md"] {
         copy_if_exists(root_path, doc, target_path, doc);
     }
-    copy_if_exists(root_path, "data/targets/ltee_validation_targets.toml",
-        target_path, "projectFOUNDATION/targets/ltee_validation_targets.toml");
+    let scope_opt = litho_core::ScopeManifest::load(&root_path.join("artifact/scope.toml")).ok();
+    let targets_file = scope_opt.as_ref()
+        .and_then(|s| {
+            let f = &s.guidestone.targets_file;
+            if f.is_empty() { None } else { Some(f.clone()) }
+        })
+        .unwrap_or_else(|| "data/targets/ltee_validation_targets.toml".to_string());
+    let targets_basename = Path::new(&targets_file).file_name()
+        .map(|f| f.to_string_lossy().to_string())
+        .unwrap_or_else(|| "validation_targets.toml".to_string());
+    copy_if_exists(root_path, &targets_file,
+        target_path, &format!("projectFOUNDATION/targets/{targets_basename}"));
 
     // NUCLEUS deployment infrastructure
     copy_if_exists(root_path, "config/capability_registry.toml",
         target_path, "config/capability_registry.toml");
-    copy_if_exists(root_path, "graphs/ltee_guidestone.toml",
-        target_path, "graphs/ltee_guidestone.toml");
+    let graph_file = scope_opt.as_ref()
+        .and_then(|s| {
+            let f = &s.guidestone.graph_file;
+            if f.is_empty() { None } else { Some(f.clone()) }
+        })
+        .unwrap_or_else(|| "graphs/ltee_guidestone.toml".to_string());
+    copy_if_exists(root_path, &graph_file,
+        target_path, &graph_file);
     copy_if_exists(root_path, "lineage/THREAD_INDEX.toml",
         target_path, "lineage/THREAD_INDEX.toml");
     let workloads_src = root_path.join("workloads");
@@ -145,7 +163,14 @@ pub fn run(root: &str, target: &str, skip_python: bool, skip_fetch: bool, skip_b
     // Cross-OS deployment: Containerfile for Docker/Podman substrate
     copy_if_exists(root_path, "artifact/usb-root/Containerfile",
         target_path, "Containerfile");
-    println!("  Documentation + NUCLEUS deployment + grow capability + Containerfile staged");
+
+    // Upstream ferment transcript braids
+    let braids_src = root_path.join("provenance/braids");
+    if braids_src.exists() {
+        std::fs::create_dir_all(target_path.join("provenance/braids")).ok();
+        copy_dir_recursive(&braids_src, &target_path.join("provenance/braids"));
+    }
+    println!("  Documentation + NUCLEUS + grow + Containerfile + braids staged");
 
     // 7. Stage expected values
     step("7. Staging expected values");
@@ -219,6 +244,62 @@ fn load_binary_list(root: &Path) -> Vec<String> {
     ["litho", "ltee-fitness", "ltee-mutations", "ltee-alleles",
      "ltee-citrate", "ltee-biobricks", "ltee-breseq", "ltee-anderson"]
         .iter().map(|s| s.to_string()).collect()
+}
+
+/// Generate `.biomeos-spore` from `scope.toml` identity fields.
+/// Falls back to copying the static template if scope.toml is unavailable.
+fn generate_biomeos_spore(root: &Path, target: &Path) {
+    let scope = match litho_core::ScopeManifest::load(&root.join("artifact/scope.toml")) {
+        Ok(s) => s,
+        Err(_) => {
+            copy_if_exists(root, "artifact/usb-root/.biomeos-spore", target, ".biomeos-spore");
+            return;
+        }
+    };
+
+    let gs = &scope.guidestone;
+
+    let spore = serde_json::json!({
+        "name": gs.name,
+        "class": "hypogeal-cotyledon",
+        "version": gs.version,
+        "standard": gs.standard,
+        "chassis": "lithoSpore",
+        "chassis_version": env!("CARGO_PKG_VERSION"),
+        "chassis_description": "Verification chassis for portable, self-validating scientific artifacts.",
+        "instance": gs.target,
+        "target": gs.target,
+        "entry": "spore",
+        "validate": "validate",
+        "verify": "verify",
+        "refresh": "refresh",
+        "grow": "grow",
+        "containerfile": "Containerfile",
+        "substrates": ["linux-native", "container-any-os", "vm-libvirt"],
+        "provenance": "liveSpore.json",
+        "manifest": "data_manifest.toml",
+        "papers": "papers/registry.toml",
+        "readme": "README.md",
+        "prototype": "PROTOTYPE.md",
+        "getting_started": "GETTING_STARTED.md",
+        "science": "SCIENCE.md",
+        "license": scope.source.as_ref().map(|s| s.license.as_str()).unwrap_or("AGPL-3.0-or-later"),
+    });
+
+    let spore_path = target.join(".biomeos-spore");
+    match serde_json::to_string_pretty(&spore) {
+        Ok(json) => {
+            if let Err(e) = std::fs::write(&spore_path, format!("{json}\n")) {
+                eprintln!("  WARNING: could not write .biomeos-spore: {e}");
+            } else {
+                println!("  .biomeos-spore generated from scope.toml");
+            }
+        }
+        Err(e) => {
+            eprintln!("  WARNING: could not serialize .biomeos-spore: {e}");
+            copy_if_exists(root, "artifact/usb-root/.biomeos-spore", target, ".biomeos-spore");
+        }
+    }
 }
 
 fn step(msg: &str) {
@@ -376,6 +457,8 @@ fn print_dry_run(root: &str, target: &str, skip_python: bool, skip_fetch: bool, 
     println!();
     println!("Directory tree that would be created:");
     println!("  {target}/");
+    println!("  ├── README.md (seed coat — start here)");
+    println!("  ├── PROTOTYPE.md (honest status layer)");
     println!("  ├── .biomeos-spore");
     println!("  ├── validate → bin/litho (symlink)");
     println!("  ├── verify → bin/litho (symlink)");

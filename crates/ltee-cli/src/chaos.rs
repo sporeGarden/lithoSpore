@@ -234,27 +234,18 @@ fn run_validate(dir: &Path) -> bool {
     let mut report = litho_core::ValidationReport::new("chaos-test", env!("CARGO_PKG_VERSION"));
     let root_path = Path::new(root);
 
-    for (_name, binary, data_dir, expected) in crate::validate::LTEE_MODULES {
-        let data_path = root_path.join(data_dir);
-        let expected_path = root_path.join(expected);
+    let modules = crate::registry::load_module_table(root_path);
+    for entry in &modules {
+        let data_path = root_path.join(&entry.data_dir);
+        let expected_path = root_path.join(&entry.expected);
         if data_path.exists() && expected_path.exists() {
-            let dispatch: &[(&str, fn(&str, &str, u8) -> litho_core::ModuleResult)] = &[
-                ("ltee-fitness", ltee_fitness::run_validation),
-                ("ltee-mutations", ltee_mutations::run_validation),
-                ("ltee-alleles", ltee_alleles::run_validation),
-                ("ltee-citrate", ltee_citrate::run_validation),
-                ("ltee-biobricks", ltee_biobricks::run_validation),
-                ("ltee-breseq", ltee_breseq::run_validation),
-                ("ltee-anderson", ltee_anderson::run_validation),
-            ];
-            if let Some((_, func)) = dispatch.iter().find(|(n, _)| n == binary) {
-                let result = func(
-                    data_path.to_str().unwrap_or(data_dir),
-                    expected_path.to_str().unwrap_or(expected),
-                    2,
-                );
-                report.add_module(result);
-            }
+            let result = crate::registry::dispatch_module(
+                &entry.binary,
+                data_path.to_str().unwrap_or(&entry.data_dir),
+                expected_path.to_str().unwrap_or(&entry.expected),
+                2,
+            );
+            report.add_module(result);
         }
     }
 

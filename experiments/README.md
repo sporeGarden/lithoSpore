@@ -31,16 +31,17 @@ NNN_DESCRIPTOR.{rs,md,json,toml}
 | 008 | Cross-tier parity validation | md | Validation | Complete — `litho parity` all 7 modules |
 | 009 | Tier 3 NUCLEUS provenance wiring | md | Primal integration | Complete — JSON-RPC trio client |
 | 010 | Two-tier data model | md | Data strategy | Complete — `litho fetch --full`, upstream braids |
+| 011 | Chassis abstraction evolution | md | Architecture | Complete — scope-driven registry, litho-core 100% chassis |
 
 ## Planned Experiments
 
 | # | Name | Type | Domain | Blocked By |
 |---|------|------|--------|------------|
-| 011 | BLAKE3 hash backfill | toml | Data integrity | Network access to source repos |
-| 012 | neuralSpring ML surrogate integration | md | Modules 3, 4 | neuralSpring B3/B4 models |
-| 013 | Signal dispatch collapse | md | Architecture | biomeOS signal routing |
-| 014 | FIDO2 hardware attestation | md | Security | BearDog CTAP2 library |
-| 015 | Upstream braid handoff (wetSpring) | md | Provenance | wetSpring breseq pipeline |
+| 012 | BLAKE3 hash backfill | toml | Data integrity | Network access to source repos |
+| 013 | neuralSpring ML surrogate integration | md | Modules 3, 4 | neuralSpring B3/B4 models |
+| 014 | Signal dispatch collapse | md | Architecture | biomeOS signal routing |
+| 015 | FIDO2 hardware attestation | md | Security | BearDog CTAP2 library |
+| 016 | Upstream braid handoff (wetSpring) | md | Provenance | wetSpring breseq pipeline |
 
 ## Experiment Log (May 2026)
 
@@ -116,3 +117,24 @@ Formalized "ship small, validate deep" — `data.toml` gains `data_tier`,
 `upstream_braid`, `upstream_dag_session` fields. `litho fetch --full`
 pulls raw upstream data when online. Ferment transcript pattern defined:
 upstream springs compute, record provenance, hand the braid to lithoSpore.
+
+### 011 — Chassis Abstraction Evolution (May 17)
+
+Four-phase systematic decoupling of LTEE instance from lithoSpore chassis:
+
+**Phase 1**: `scope.toml` `[[module]]` entries (name, binary, data_dir,
+expected, tier1_notebook). `ScopeModule` struct in litho-core. New
+`registry.rs` in ltee-cli centralizes `load_module_table()`,
+`dispatch_module()`, `module_name_matches()`. All 6 consumer files
+migrated. `derive_logical_name()` handles arbitrary binary prefixes.
+
+**Phase 2**: Braid accession expectations derived from `data.toml`
+`sra_accession` fields. Target coverage path from `guidestone.targets_file`.
+`module_name_matches()` uses registry lookup.
+
+**Phase 3**: `.biomeos-spore` generated from scope.toml during assembly.
+Graph and target staging paths parameterized from scope.toml.
+
+**Phase 4**: `viz/` moved from litho-core to ltee-cli (instance layer).
+LTEE test fixtures isolated in `tests/fixtures/`. `litho-core` reaches
+100% chassis — 11 modules, zero LTEE-specific code. 125 tests pass.

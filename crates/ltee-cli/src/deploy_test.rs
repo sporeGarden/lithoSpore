@@ -58,35 +58,25 @@ pub fn run(root: &str) {
 }
 
 fn run_validation_quiet(dir: &Path) -> bool {
-    let root = dir.to_str().unwrap_or(".");
-    let root_path = Path::new(root);
+    let root_path = dir;
 
+    let modules = crate::registry::load_module_table(root_path);
     let mut any_ran = false;
     let mut all_pass = true;
 
-    for (_name, binary, data_dir, expected) in crate::validate::LTEE_MODULES {
-        let data_path = root_path.join(data_dir);
-        let expected_path = root_path.join(expected);
+    for entry in &modules {
+        let data_path = root_path.join(&entry.data_dir);
+        let expected_path = root_path.join(&entry.expected);
         if data_path.exists() && expected_path.exists() {
-            let dispatch: &[(&str, fn(&str, &str, u8) -> litho_core::ModuleResult)] = &[
-                ("ltee-fitness", ltee_fitness::run_validation),
-                ("ltee-mutations", ltee_mutations::run_validation),
-                ("ltee-alleles", ltee_alleles::run_validation),
-                ("ltee-citrate", ltee_citrate::run_validation),
-                ("ltee-biobricks", ltee_biobricks::run_validation),
-                ("ltee-breseq", ltee_breseq::run_validation),
-                ("ltee-anderson", ltee_anderson::run_validation),
-            ];
-            if let Some((_, func)) = dispatch.iter().find(|(n, _)| n == binary) {
-                let result = func(
-                    data_path.to_str().unwrap_or(data_dir),
-                    expected_path.to_str().unwrap_or(expected),
-                    2,
-                );
-                any_ran = true;
-                if result.status != litho_core::ValidationStatus::Pass {
-                    all_pass = false;
-                }
+            let result = crate::registry::dispatch_module(
+                &entry.binary,
+                data_path.to_str().unwrap_or(&entry.data_dir),
+                expected_path.to_str().unwrap_or(&entry.expected),
+                2,
+            );
+            any_ran = true;
+            if result.status != litho_core::ValidationStatus::Pass {
+                all_pass = false;
             }
         }
     }

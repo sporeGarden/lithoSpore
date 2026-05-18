@@ -12,9 +12,11 @@ mod fetch;
 mod grow;
 mod ops;
 mod parity;
+pub(crate) mod registry;
 mod validate;
 mod verify;
 mod visualize;
+mod viz;
 
 use clap::{Parser, Subcommand};
 

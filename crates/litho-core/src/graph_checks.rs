@@ -169,8 +169,10 @@ pub fn check_capabilities_registered(
 mod tests {
     use super::*;
 
-    const GRAPH_TOML: &str = include_str!("../../../graphs/ltee_guidestone.toml");
-    const REGISTRY_TOML: &str = include_str!("../../../config/capability_registry.toml");
+    // LTEE instance fixtures — these are copied from the LTEE guideStone
+    // artifact. A non-LTEE guideStone would have its own graph and registry.
+    const GRAPH_TOML: &str = include_str!("../tests/fixtures/ltee_guidestone.toml");
+    const REGISTRY_TOML: &str = include_str!("../tests/fixtures/capability_registry.toml");
 
     #[test]
     fn graph_parses_valid() {

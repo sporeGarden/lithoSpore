@@ -2,6 +2,8 @@
 
 //! Operational subcommands: refresh, status, spore.
 
+use crate::registry;
+
 pub fn cmd_refresh(root: &str) {
     println!("litho refresh: re-fetching all datasets via litho fetch...");
     crate::fetch::run(root, None, true, false);
@@ -9,20 +11,19 @@ pub fn cmd_refresh(root: &str) {
 
 pub fn cmd_status(root: &str) {
     let root_path = std::path::Path::new(root);
-
-    let scope_name = litho_core::ScopeManifest::load(&root_path.join("artifact/scope.toml"))
-        .map_or_else(|_| "ltee-guidestone".to_string(), |s| s.guidestone.name.clone());
+    let scope_name = registry::load_scope_name(root_path);
+    let modules = registry::load_module_table(root_path);
 
     println!("lithoSpore v{} — {scope_name}", env!("CARGO_PKG_VERSION"));
     println!("  Artifact root: {root}");
 
     let mut live = 0_u32;
-    let total = crate::validate::LTEE_MODULES.len();
-    for (name, _binary, data_dir, expected) in crate::validate::LTEE_MODULES {
-        let has_expected = root_path.join(expected).exists();
-        let has_data = root_path.join(data_dir).exists();
+    let total = modules.len();
+    for entry in &modules {
+        let has_expected = root_path.join(&entry.expected).exists();
+        let has_data = root_path.join(&entry.data_dir).exists();
         if has_expected { live += 1; }
-        println!("  Module {name:<25} expected={has_expected} data={has_data}");
+        println!("  Module {:<25} expected={has_expected} data={has_data}", entry.name);
     }
 
     println!("  Modules: {total} ({live} live, {} scaffold)", total as u32 - live);
@@ -32,8 +33,8 @@ pub fn cmd_status(root: &str) {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn status_module_table_is_seven() {
-        assert_eq!(crate::validate::LTEE_MODULES.len(), 7);
+    fn registry_module_table_is_seven() {
+        assert_eq!(crate::registry::LTEE_MODULES.len(), 7);
     }
 
     #[test]
@@ -46,6 +47,7 @@ mod tests {
 
 pub fn cmd_self_test(root: &str) {
     let root_path = std::path::Path::new(root);
+    let modules = registry::load_module_table(root_path);
     let mut passed = 0u32;
     let mut total = 0u32;
 
@@ -53,11 +55,11 @@ pub fn cmd_self_test(root: &str) {
     println!("  Root: {root}");
     println!();
 
-    for (_name, _binary, _data_dir, expected) in crate::validate::LTEE_MODULES {
+    for entry in &modules {
         total += 1;
-        let exists = root_path.join(expected).exists();
+        let exists = root_path.join(&entry.expected).exists();
         if exists { passed += 1; }
-        println!("  [{}] {expected}", if exists { "OK" } else { "MISSING" });
+        println!("  [{}] {}", if exists { "OK" } else { "MISSING" }, entry.expected);
     }
 
     let artifact_files = [
@@ -85,11 +87,11 @@ pub fn cmd_self_test(root: &str) {
         println!("  [{}] {f}", if exists { "OK" } else { "MISSING" });
     }
 
-    for (_name, _binary, data_dir, _expected) in crate::validate::LTEE_MODULES {
+    for entry in &modules {
         total += 1;
-        let exists = root_path.join(data_dir).exists();
+        let exists = root_path.join(&entry.data_dir).exists();
         if exists { passed += 1; }
-        println!("  [{}] {data_dir}/", if exists { "OK" } else { "MISSING" });
+        println!("  [{}] {}/", if exists { "OK" } else { "MISSING" }, entry.data_dir);
     }
 
     // Check figures
@@ -117,6 +119,7 @@ pub fn cmd_self_test(root: &str) {
 
 pub fn cmd_tier(root: &str) {
     let root_path = std::path::Path::new(root);
+    let modules = registry::load_module_table(root_path);
 
     println!("lithoSpore — tier detection");
 
@@ -130,18 +133,24 @@ pub fn cmd_tier(root: &str) {
         if has_embedded { "(embedded)" } else if has_python { "(system)" } else { "" });
 
     // Tier 2: Rust binaries
-    let mut tier2_bins: Vec<&str> = crate::validate::LTEE_MODULES.iter().map(|(_, b, _, _)| *b).collect();
+    let mut tier2_bins: Vec<&str> = modules.iter().map(|e| e.binary.as_str()).collect();
     tier2_bins.push("litho");
     let bin_count = tier2_bins.iter()
         .filter(|b| root_path.join(format!("bin/{b}")).exists() || root_path.join(format!("target/release/{b}")).exists())
         .count();
-    let tier2 = bin_count >= crate::validate::LTEE_MODULES.len();
-    println!("  Tier 2 (Rust):     {} ({bin_count}/8 binaries)", if tier2 { "AVAILABLE" } else { "PARTIAL" });
+    let tier2 = bin_count >= modules.len();
+    println!("  Tier 2 (Rust):     {} ({bin_count}/{} binaries)", if tier2 { "AVAILABLE" } else { "PARTIAL" }, modules.len() + 1);
 
     // Tier 3: Primals (NUCLEUS)
     let has_nucleus = std::env::var("NUCLEUS_ROOT").is_ok()
         || std::env::var("CAPABILITY_PORT").is_ok();
-    let has_graph = root_path.join("graphs/ltee_guidestone.toml").exists();
+    let graph_file = registry::load_scope(root_path)
+        .and_then(|s| {
+            let f = &s.guidestone.graph_file;
+            if f.is_empty() { None } else { Some(f.clone()) }
+        })
+        .unwrap_or_else(|| "graphs/ltee_guidestone.toml".to_string());
+    let has_graph = root_path.join(&graph_file).exists();
     println!("  Tier 3 (Primals):  {} (graph={has_graph}, nucleus={has_nucleus})",
         if has_nucleus && has_graph { "AVAILABLE" } else { "UNAVAILABLE" });
 
@@ -152,40 +161,36 @@ pub fn cmd_tier(root: &str) {
 
 pub fn cmd_deploy_report(root: &str, pattern: &str) {
     let root_path = std::path::Path::new(root);
+    let modules = registry::load_module_table(root_path);
     let timestamp = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
 
-    // Self-test: expected module JSONs + artifact files
-    let mut selftest_files: Vec<&str> = crate::validate::LTEE_MODULES
+    let mut selftest_files: Vec<String> = modules
         .iter()
-        .map(|(_, _, _, expected)| *expected)
+        .map(|e| e.expected.clone())
         .collect();
     for extra in ["artifact/scope.toml", "artifact/data.toml", "artifact/tolerances.toml",
                    "papers/registry.toml", ".biomeos-spore"] {
-        selftest_files.push(extra);
+        selftest_files.push(extra.to_string());
     }
     let selftest_passed = selftest_files.iter().filter(|f| root_path.join(f).exists()).count();
     let selftest_total = selftest_files.len();
 
-    // Tier detection
     let has_python = std::process::Command::new("python3").arg("--version").output().is_ok()
         || root_path.join("python/bin/python3").exists();
-    let deploy_bins: Vec<&str> = crate::validate::LTEE_MODULES.iter().map(|(_, b, _, _)| *b).chain(std::iter::once("litho")).collect();
+    let deploy_bins: Vec<&str> = modules.iter().map(|e| e.binary.as_str()).chain(std::iter::once("litho")).collect();
     let bin_count = deploy_bins.iter()
         .filter(|b| root_path.join(format!("bin/{b}")).exists() || root_path.join(format!("target/release/{b}")).exists())
         .count();
-    let max_tier = if bin_count >= crate::validate::LTEE_MODULES.len() { 2 } else if has_python { 1 } else { 0 };
+    let max_tier = if bin_count >= modules.len() { 2 } else if has_python { 1 } else { 0 };
 
-    // Data bundles
-    let data_count = crate::validate::LTEE_MODULES.iter()
-        .filter(|(_, _, data_dir, _)| root_path.join(data_dir).exists())
+    let data_count = modules.iter()
+        .filter(|e| root_path.join(&e.data_dir).exists())
         .count();
 
-    // Figures
     let fig_count = std::fs::read_dir(root_path.join("figures"))
         .map(|rd| rd.filter(|e| e.as_ref().map(|e| e.path().extension().map_or(false, |ext| ext == "svg")).unwrap_or(false)).count())
         .unwrap_or(0);
 
-    // Manifest hash count
     let manifest_path = root_path.join("data_manifest.toml");
     let hash_count = std::fs::read_to_string(&manifest_path)
         .map(|c| c.matches("[[file]]").count())
@@ -219,65 +224,51 @@ pub fn cmd_deploy_report(root: &str, pattern: &str) {
     println!("manifest_files = {hash_count}");
     println!();
 
-    // Run inline validation via in-process module calls
-    let dispatch: &[(&str, fn(&str, &str, u8) -> litho_core::ModuleResult)] = &[
-        ("ltee-fitness", ltee_fitness::run_validation),
-        ("ltee-mutations", ltee_mutations::run_validation),
-        ("ltee-alleles", ltee_alleles::run_validation),
-        ("ltee-citrate", ltee_citrate::run_validation),
-        ("ltee-biobricks", ltee_biobricks::run_validation),
-        ("ltee-breseq", ltee_breseq::run_validation),
-        ("ltee-anderson", ltee_anderson::run_validation),
-    ];
     let mut modules_results = Vec::new();
-    for (_name, binary, data_dir, expected) in crate::validate::LTEE_MODULES {
-        let data_path = root_path.join(data_dir);
-        let expected_path = root_path.join(expected);
+    for entry in &modules {
+        let data_path = root_path.join(&entry.data_dir);
+        let expected_path = root_path.join(&entry.expected);
 
         if data_path.exists() && expected_path.exists() {
-            if let Some((_, func)) = dispatch.iter().find(|(n, _)| n == binary) {
-                let result = func(
-                    data_path.to_str().unwrap_or(data_dir),
-                    expected_path.to_str().unwrap_or(expected),
-                    2,
-                );
-                modules_results.push(result);
-            }
+            let result = registry::dispatch_module(
+                &entry.binary,
+                data_path.to_str().unwrap_or(&entry.data_dir),
+                expected_path.to_str().unwrap_or(&entry.expected),
+                2,
+            );
+            modules_results.push(result);
         }
     }
 
     if !modules_results.is_empty() {
-        {
-            let report = &modules_results;
-            let passed = report.iter().filter(|m| m.status == litho_core::ValidationStatus::Pass).count();
-            let failed = report.iter().filter(|m| m.status == litho_core::ValidationStatus::Fail).count();
-            let total_checks: u32 = report.iter().map(|m| m.checks).sum();
-            let passed_checks: u32 = report.iter().map(|m| m.checks_passed).sum();
+        let passed = modules_results.iter().filter(|m| m.status == litho_core::ValidationStatus::Pass).count();
+        let failed = modules_results.iter().filter(|m| m.status == litho_core::ValidationStatus::Fail).count();
+        let total_checks: u32 = modules_results.iter().map(|m| m.checks).sum();
+        let passed_checks: u32 = modules_results.iter().map(|m| m.checks_passed).sum();
 
-            println!("[validation]");
-            println!("tier_reached = {max_tier}");
-            println!("modules_total = {}", report.len());
-            println!("modules_passed = {passed}");
-            println!("modules_failed = {failed}");
-            println!("checks_total = {total_checks}");
-            println!("checks_passed = {passed_checks}");
-            println!("status = \"{}\"", if failed == 0 { "PASS" } else { "FAIL" });
+        println!("[validation]");
+        println!("tier_reached = {max_tier}");
+        println!("modules_total = {}", modules_results.len());
+        println!("modules_passed = {passed}");
+        println!("modules_failed = {failed}");
+        println!("checks_total = {total_checks}");
+        println!("checks_passed = {passed_checks}");
+        println!("status = \"{}\"", if failed == 0 { "PASS" } else { "FAIL" });
+        println!();
+
+        for m in &modules_results {
+            let status = match m.status {
+                litho_core::ValidationStatus::Pass => "PASS",
+                litho_core::ValidationStatus::Fail => "FAIL",
+                litho_core::ValidationStatus::Skip => "SKIP",
+            };
+            println!("[[module]]");
+            println!("name = \"{}\"", m.name);
+            println!("status = \"{status}\"");
+            println!("checks = {}", m.checks);
+            println!("checks_passed = {}", m.checks_passed);
+            println!("runtime_ms = {}", m.runtime_ms);
             println!();
-
-            for m in report {
-                let status = match m.status {
-                    litho_core::ValidationStatus::Pass => "PASS",
-                    litho_core::ValidationStatus::Fail => "FAIL",
-                    litho_core::ValidationStatus::Skip => "SKIP",
-                };
-                println!("[[module]]");
-                println!("name = \"{}\"", m.name);
-                println!("status = \"{status}\"");
-                println!("checks = {}", m.checks);
-                println!("checks_passed = {}", m.checks_passed);
-                println!("runtime_ms = {}", m.runtime_ms);
-                println!();
-            }
         }
     } else {
         println!("[validation]");

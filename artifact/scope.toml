@@ -9,6 +9,8 @@ version = "0.1.0"
 target = "Barrick Lab — Long-Term Evolution Experiment"
 created = "2026-05-11"
 standard = "TARGETED_GUIDESTONE_STANDARD v1.0"
+targets_file = "data/targets/ltee_validation_targets.toml"
+graph_file = "graphs/ltee_guidestone.toml"
 
 # --- Contributing Springs ---
 
@@ -74,6 +76,59 @@ contributes = [
 ]
 modules = []
 papers = ["E3"]
+
+# --- Module Registry ---
+# Per-module metadata for chassis-driven dispatch, parity, and assembly.
+# The chassis reads these instead of compiled LTEE constants.
+
+[[module]]
+name = "power_law_fitness"
+binary = "ltee-fitness"
+data_dir = "artifact/data/wiser_2013"
+expected = "validation/expected/module1_fitness.json"
+tier1_notebook = "notebooks/module1_fitness/power_law_fitness.py"
+
+[[module]]
+name = "mutation_accumulation"
+binary = "ltee-mutations"
+data_dir = "artifact/data/barrick_2009"
+expected = "validation/expected/module2_mutations.json"
+tier1_notebook = "notebooks/module2_mutations/mutation_accumulation.py"
+
+[[module]]
+name = "allele_trajectories"
+binary = "ltee-alleles"
+data_dir = "artifact/data/good_2017"
+expected = "validation/expected/module3_alleles.json"
+tier1_notebook = "notebooks/module3_alleles/allele_trajectories.py"
+
+[[module]]
+name = "citrate_innovation"
+binary = "ltee-citrate"
+data_dir = "artifact/data/blount_2012"
+expected = "validation/expected/module4_citrate.json"
+tier1_notebook = "notebooks/module4_citrate/citrate_innovation.py"
+
+[[module]]
+name = "biobrick_burden"
+binary = "ltee-biobricks"
+data_dir = "artifact/data/biobricks_2024"
+expected = "validation/expected/module5_biobricks.json"
+tier1_notebook = "notebooks/module5_biobricks/biobrick_burden.py"
+
+[[module]]
+name = "breseq_264_genomes"
+binary = "ltee-breseq"
+data_dir = "artifact/data/tenaillon_2016"
+expected = "validation/expected/module6_breseq.json"
+tier1_notebook = "notebooks/module6_breseq/breseq_comparison.py"
+
+[[module]]
+name = "anderson_qs_predictions"
+binary = "ltee-anderson"
+data_dir = "artifact/data/anderson_predictions"
+expected = "validation/expected/module7_anderson.json"
+tier1_notebook = "notebooks/module7_anderson/anderson_predictions.py"
 
 # --- Primals (Tier 3 only, optional) ---
 

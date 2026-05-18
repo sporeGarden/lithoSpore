@@ -1,6 +1,6 @@
 # lithoSpore Upstream Gap Registry
 
-**Last Updated**: May 17, 2026 PM (75/75 checks, Tier 3 wired, cross-tier parity, 119 tests)
+**Last Updated**: May 17, 2026 PM (75/75 checks, Tier 3 wired, cross-tier parity, 125 tests, 2 live braids)
 **Phase**: Stadial (lithoSpore is a dedicated workstream, post-CATHEDRAL split)
 **Scope**: lithoSpore verification chassis (LTEE is the first instance; chassis evolving toward domain-agnostic)
 **Geo-delocalization**: Absorbed — discovery chain extended to TURN, liveSpore.json provenance updated
@@ -112,28 +112,32 @@ all bash fetch scripts. `litho assemble` replaces `assemble-usb.sh`.
 | PARITY-TYPES | No parity report types | Added `ParityResult`, `ParityStatus`, `ParityReport` to `litho-core::validation` |
 | PROV-DIR | No projectFOUNDATION Thread 10 output | Added `--provenance-dir` flag: writes `results.json` + `provenance.toml` to dated folder |
 
-### Chassis Abstraction Status (May 17, 2026)
+### Chassis Abstraction Evolution (May 17, 2026 — completed)
 
-| Coupling Point | Status | Notes |
-|----------------|--------|-------|
-| `MODULE_DISPATCH` (validate.rs) | **Instance-coupled** | Compile-time table mapping `ltee-*` → `run_validation()` |
-| `MODULE_DISPATCH` (parity.rs) | **Instance-coupled** | Duplicates validate dispatch for cross-tier comparison |
-| `LTEE_MODULES` constant | **Superseded** | `load_module_table()` reads from `scope.toml` + `data.toml` at runtime, falls back to constant |
-| `LTEE_NOTEBOOKS` constant | **Instance-coupled** | Maps module names → Python notebook paths |
-| `module_name_matches()` | **Instance-coupled** | LTEE-specific name mapping for target coverage |
-| `ltee-cli` naming | **Instance-coupled** | Crate named for LTEE, not chassis |
-| `litho-core` | **Agnostic** | No LTEE-specific code; all domain concepts via scope/manifest/tolerance |
-| `scope.toml` loader | **Agnostic** | Module table constructed from scope + data TOMLs at runtime |
-| `data.toml` manifest | **Agnostic** | Dataset registry with BLAKE3, source URIs, licenses |
-| `tolerance.toml` | **Agnostic** | Named tolerances with scientific justification |
-| `discovery.rs` | **Agnostic** | Capability strings, not primal names |
-| `provenance.rs` | **Agnostic** | JSON-RPC to capability-discovered endpoints |
+All 7 coupling points from the original inventory have been resolved:
+
+| Coupling Point | Status | Resolution |
+|----------------|--------|------------|
+| `MODULE_DISPATCH` (validate/parity/chaos/deploy) | **RESOLVED** | Centralized in `registry.rs` — scope.toml `[[module]]` entries primary, compiled LTEE fallback |
+| `LTEE_MODULES` constant (6 files) | **RESOLVED** | All 6 consumers (validate, parity, ops, chaos, deploy_test, visualize) import from `registry.rs` |
+| `LTEE_NOTEBOOKS` constant | **RESOLVED** | scope.toml `[[module]]` `tier1_notebook` field primary; `registry.rs` LTEE fallback |
+| `module_name_matches()` | **RESOLVED** | `registry::module_name_matches()` does registry lookup via `derive_logical_name()` |
+| `strip_prefix("ltee-")` assumption | **RESOLVED** | `derive_logical_name()` handles `ltee-`, `milc-`, `lattice-` prefixes generically |
+| `.biomeos-spore` hardcoded template | **RESOLVED** | `generate_biomeos_spore()` derives from scope.toml during `litho assemble` |
+| `viz/` in litho-core | **RESOLVED** | Moved to `ltee-cli/src/viz/` (instance layer) — `litho-core` is 100% chassis |
+| Hardcoded graph/target paths | **RESOLVED** | `guidestone.graph_file` + `guidestone.targets_file` in scope.toml |
+| Hardcoded braid accessions | **RESOLVED** | Derived from `data.toml` `sra_accession` fields at runtime |
+| `litho-core` | **Agnostic** | 11 modules, zero LTEE-specific code |
+| `scope.toml` loader | **Agnostic** | `ScopeModule` struct + `[[module]]` table + `module_binaries()` |
+| `data.toml` manifest | **Agnostic** | Dataset registry with BLAKE3, source URIs, licenses, SRA accessions |
+| `discovery.rs` / `provenance.rs` | **Agnostic** | Capability strings, JSON-RPC to capability-discovered endpoints |
 | `liveSpore.json` | **Agnostic** | Append-only, PII-hashed, platform-detected |
 
-**Evolution path**: The lithoSpore repo will evolve to be domain-agnostic.
-Future instances (hotQCD, pharmacometrics, etc.) will be workspace members
-in the same repo, not forks. The `ltee-cli` → `litho-cli` rename and
-trait-based dispatch registry are the key remaining abstraction steps.
+**Remaining (cosmetic / future)**:
+- `ltee-cli` → `litho-cli` rename (cosmetic)
+- `ltee-*` Cargo deps → feature flags per instance (future)
+- Dynamic module loading / plugin architecture (future)
+- `litho init` scaffolder for non-LTEE instances (future)
 
 ### guideStone Five-Property Audit (May 17, 2026)
 
@@ -318,6 +322,16 @@ currently embed (standalone CLI pattern).
 
 ## Changelog
 
+- **2026-05-17 PM**: Chassis Abstraction Evolution — all 7 coupling points resolved.
+  `scope.toml` `[[module]]` entries carry name/binary/data_dir/expected/tier1_notebook.
+  New `registry.rs` centralizes module resolution for all 6 consumer files. `.biomeos-spore`
+  generated from scope.toml. Braid accessions from data.toml. `viz/` moved from litho-core
+  to ltee-cli (instance layer). `litho-core` 11 modules, 100% chassis. Graph/target paths
+  parameterized. Test fixtures isolated. 125 tests, zero clippy warnings.
+- **2026-05-17 PM**: wetSpring braid ingestion — `litho-core::braid` module (4 tests),
+  sovereign + breseq baseline braids parsed, accession validated (SRP001569 PASS),
+  braids displayed in `litho validate` output. URI fixes: gzip/zip content-type
+  ordering bug, Dryad API auth handled, tar.gz/zip unpacking. 123 total tests.
 - **2026-05-17 PM**: Wave 21 absorption — canonical `primal.list` / `capability.list`
   envelope types and `query_primal_list()` added. Method stability tiers annotated
   on all registry domains (stable/evolving/internal). `try_record_tier3()` evolved

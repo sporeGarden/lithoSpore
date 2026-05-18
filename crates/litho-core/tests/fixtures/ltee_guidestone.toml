@@ -1,0 +1,99 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Deploy graph for LTEE guideStone Tier 3 composition.
+# Requires NUCLEUS — primals come from plasmidBin, not bundled.
+#
+# Aligned with primalSpring graph envelope:
+# - Dark Forest metadata (secure_by_default, btsp_enforced, uds_only)
+# - by_capability routing on every node
+# - Capability method strings from canonical registry
+
+[graph]
+name = "ltee_guidestone"
+id = "ltee-guidestone-tier3"
+description = "LTEE Targeted GuideStone — Tier 3 primal composition for full provenance"
+version = "0.3.0"
+coordination = "sequential"
+
+[graph.metadata]
+base = "nest_atomic"
+security_model = "btsp_enforced"
+transport = "uds_only"
+secure_by_default = true
+purpose = "scientific_validation"
+tier = 3
+artifact = "ltee-guidestone"
+fragments = ["tower_atomic", "nest_atomic"]
+resolve = true
+
+# Signal mapping: the provenance phase (nodes 1-3) maps to the
+# nest.store atomic signal. When biomeOS supports signal dispatch,
+# ctx.dispatch("nest.store", ...) collapses nodes 1-3 into one call.
+signals = ["nest.store", "nest.commit"]
+
+[graph.bonding_policy]
+type = "covalent"
+shared_seed = true
+
+# Phase 0: Trust boundary (Tower Atomic root)
+[[graph.nodes]]
+name = "beardog"
+binary = "beardog"
+source = "plasmidBin"
+order = 0
+required = true
+spawn = false
+by_capability = "crypto"
+capabilities = ["crypto.hash", "crypto.verify", "crypto.sign"]
+health_method = "health.liveness"
+purpose = "BLAKE3 hashing and BTSP verification"
+
+# Phase 1: Provenance trio (Nest Atomic)
+[[graph.nodes]]
+name = "rhizocrypt"
+binary = "rhizocrypt"
+source = "plasmidBin"
+order = 1
+required = true
+depends_on = ["beardog"]
+by_capability = "dag"
+capabilities = ["dag.session.create", "dag.event.append", "dag.session.complete"]
+health_method = "health.liveness"
+purpose = "DAG provenance chain"
+
+[[graph.nodes]]
+name = "loamspine"
+binary = "loamspine"
+source = "plasmidBin"
+order = 2
+required = true
+depends_on = ["beardog", "rhizocrypt"]
+by_capability = "spine"
+capabilities = ["spine.create", "entry.append"]
+health_method = "health.liveness"
+purpose = "Certificate chain for immutable provenance"
+
+[[graph.nodes]]
+name = "sweetgrass"
+binary = "sweetgrass"
+source = "plasmidBin"
+order = 3
+required = true
+depends_on = ["beardog", "rhizocrypt", "loamspine"]
+by_capability = "braid"
+capabilities = ["braid.create", "braid.commit"]
+health_method = "health.liveness"
+purpose = "Attribution braid integrity"
+
+# Phase 2: Compute dispatch (optional — GPU acceleration)
+[[graph.nodes]]
+name = "toadstool"
+binary = "toadstool"
+source = "plasmidBin"
+order = 4
+required = false
+depends_on = ["beardog"]
+by_capability = "compute"
+capabilities = ["compute.dispatch", "compute.status"]
+health_method = "health.liveness"
+purpose = "GPU compute dispatch for accelerated validation"

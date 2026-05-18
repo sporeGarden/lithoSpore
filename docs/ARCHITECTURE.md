@@ -38,20 +38,18 @@ A guideStone-grade artifact satisfies five properties (per primals.eco):
 ## Crate Architecture
 
 ```
-litho-core          ← shared library (CHASSIS — domain-agnostic)
+litho-core          ← shared library (CHASSIS — 100% domain-agnostic, 11 modules)
   ├── validation/     ModuleResult, ValidationReport, Tier3Session, ParityReport
   ├── tolerance/      named tolerances with scientific justification
   ├── provenance/     ProvenanceChain + JSON-RPC client for trio (dag/spine/braid)
   ├── discovery/      capability-based primal resolution (env → UDS → TURN → standalone)
   ├── spore/          liveSpore tracking, BLAKE3 anchoring, hostname hashing
-  ├── scope/          ScopeManifest parser (scope.toml → module table)
+  ├── scope/          ScopeManifest + ScopeModule parser (scope.toml → module table)
+  ├── braid/          upstream ferment transcript braid ingestion + validation
   ├── manifest/       DataManifest (data.toml → BLAKE3 verification)
   ├── stats/          shared statistics (pearson_r)
   ├── harness/        module skip/load/dispatch helpers
-  ├── graph_checks/   deploy graph validation (registry alignment, Dark Forest invariants)
-  └── viz/            petalTongue DataBinding adapters
-      ├── modules.rs    m1–m7 LTEE module bindings
-      └── baselines.rs  Barrick Lab baseline tool bindings
+  └── graph_checks/   deploy graph validation (registry alignment, Dark Forest invariants)
   ↑
   ├── ltee-fitness   ← Module 1: power-law fitness (INSTANCE)
   ├── ltee-mutations ← Module 2: mutation accumulation
@@ -60,18 +58,22 @@ litho-core          ← shared library (CHASSIS — domain-agnostic)
   ├── ltee-biobricks ← Module 5: BioBrick burden
   ├── ltee-breseq    ← Module 6: 264 genomes
   ├── ltee-anderson  ← Module 7: Anderson-QS predictions
-  └── ltee-cli       ← Unified CLI (15 subcommands)
+  └── ltee-cli       ← Unified CLI (INSTANCE + CHASSIS GLUE)
       ├── main.rs         thin wiring (arg parse + argv[0] dispatch)
+      ├── registry.rs     scope-driven module registry (replaces LTEE_MODULES constants)
       ├── validate.rs     litho validate — in-process module execution + Tier 3 branch
       ├── parity.rs       litho parity — cross-tier numerical parity check
       ├── verify.rs       litho verify — BLAKE3 integrity
       ├── fetch.rs        litho fetch — data pipeline (ureq + blake3)
-      ├── assemble.rs     litho assemble — USB artifact assembly
+      ├── assemble.rs     litho assemble — USB artifact assembly + .biomeos-spore generation
       ├── grow.rs         litho grow — self-bootstrap from USB
       ├── visualize.rs    litho visualize — petalTongue IPC
       ├── chaos.rs        litho chaos-test — 10 fault injection tests
       ├── deploy_test.rs  litho deploy-test — local deployment cycle
-      └── ops.rs          refresh / status / spore / self-test / deploy-report / tier
+      ├── ops.rs          refresh / status / spore / self-test / deploy-report / tier
+      └── viz/            petalTongue DataBinding adapters (INSTANCE — LTEE-specific)
+          ├── modules.rs    m1–m7 LTEE module bindings
+          └── baselines.rs  Barrick Lab baseline tool bindings
 ```
 
 Each module crate exposes `lib.rs::run_validation()` for in-process execution.
@@ -85,26 +87,28 @@ to the corresponding subcommand without requiring explicit `litho <subcommand>` 
 
 ## Chassis vs Instance
 
-lithoSpore is evolving toward a fully agnostic chassis. The LTEE is the
-first instance — the same repository will evolve to support arbitrary
-guideStone instances (e.g., hotQCD, pharmacometrics) by decoupling the
-instance-specific dispatch from the chassis infrastructure.
+lithoSpore separates the domain-agnostic chassis from the LTEE instance.
+`litho-core` is 100% chassis — zero LTEE-specific code. The LTEE is the
+first instance; creating a new guideStone (e.g., Chuna, Bazavov) requires
+only `scope.toml` + `data.toml` + module crates. No changes to `litho-core`.
 
 | Layer | What | Current Files | Agnostic? |
 |-------|------|---------------|-----------|
-| **Chassis** | Validation pipeline, data integrity, provenance, discovery, deployment | `litho-core`, `scope.toml`, `data.toml`, `tolerances.toml`, `liveSpore.json` | **Yes** |
-| **Instance** | Science modules, expected values, datasets, tolerances, papers | `crates/ltee-*`, `validation/expected/`, `artifact/data/`, `papers/` | LTEE-specific |
-| **CLI Glue** | Module dispatch table, target wiring, parity module list | `ltee-cli/validate.rs` `MODULE_DISPATCH`, `parity.rs` | **Evolving** — currently hardcoded to LTEE crates |
+| **Chassis** | Validation pipeline, data integrity, provenance, discovery, deployment | `litho-core` (11 modules), `scope.toml`, `data.toml`, `tolerances.toml`, `liveSpore.json` | **Yes** |
+| **Registry** | Scope-driven module resolution, dispatch, name mapping | `ltee-cli/registry.rs` — reads `[[module]]` from scope.toml, falls back to compiled LTEE defaults | **Yes** (data-driven from scope.toml) |
+| **Instance** | Science modules, expected values, datasets, viz, papers | `crates/ltee-*`, `ltee-cli/viz/`, `validation/expected/`, `artifact/data/`, `papers/` | LTEE-specific |
 
 ### Chassis evolution roadmap
 
-The explicit goal is that lithoSpore becomes agnostic — not a fork per domain,
-but a single evolving repo where instances are workspace members:
-
-1. **Current**: `MODULE_DISPATCH` is a compile-time table of `ltee-*` entry points.
-   `parity.rs` iterates `LTEE_MODULES` directly. CLI crate is named `ltee-cli`.
-2. **Next**: Extract dispatch into a trait/registry loaded from `scope.toml` at
-   compile time via feature flags. Rename `ltee-cli` to `litho-cli`.
+1. **DONE**: Scope-driven module registry. `[[module]]` entries in `scope.toml`
+   carry name, binary, data_dir, expected, and tier1_notebook. All 6 consumer
+   files (validate, parity, ops, chaos, deploy_test, visualize) import from
+   `registry.rs`. `.biomeos-spore` generated from scope.toml during assembly.
+   Braid accessions derived from `data.toml`. Target coverage and graph paths
+   parameterized. viz/ moved from `litho-core` to `ltee-cli` instance layer.
+   `litho-core` is 100% chassis.
+2. **Next**: Rename `ltee-cli` to `litho-cli`. Feature flags per instance.
+   Dynamic module loading or plugin architecture.
 3. **Target**: Any guideStone instance is a set of workspace member crates +
    `scope.toml` + `data.toml` + `papers/registry.toml`. `litho-core` and
    `litho-cli` are unchanged. `litho parity` and `litho validate` work
@@ -221,16 +225,22 @@ fermentation (processing raw data into validated results), and
 lithoSpore carries the transcript — the ingredients, the maps,
 and the paths taken, allowing full audit and reproduction.
 
-Each dataset in `data.toml` can optionally reference an upstream braid:
+Each dataset in `data.toml` can reference upstream braids:
 
 ```toml
 [[dataset]]
-id = "tenaillon_2016_genomes"
+id = "barrick_2009_mutations"
 data_tier = "summary"
-upstream_braid = ""           # populated when wetSpring hands off
+upstream_braid = "braid-sovereign-barrick2009"
 upstream_spring = "wetSpring"
-upstream_dag_session = ""     # DAG session ID from the full computation
+upstream_dag_session = "dag-wetspring-sovereign-1779053983605"
+upstream_braids = ["provenance/braids/barrick_2009_sovereign.json",
+                   "provenance/braids/barrick_2009_breseq.json"]
 ```
+
+The `braid` module in `litho-core` loads all `*.json` from `provenance/braids/`,
+parses both sovereign (full `computation` block) and baseline (flat breseq)
+wire formats, and validates SRA accessions automatically during `litho validate`.
 
 When a braid is present, `litho verify` can validate the chain:
 summary stats → braid → spine → DAG → raw data. The spore is

@@ -18,6 +18,9 @@
   "provenance": "liveSpore.json",
   "manifest": "data_manifest.toml",
   "papers": "papers/registry.toml",
+  "readme": "README.md",
+  "prototype": "PROTOTYPE.md",
   "getting_started": "GETTING_STARTED.md",
+  "science": "SCIENCE.md",
   "license": "AGPL-3.0-or-later"
 }

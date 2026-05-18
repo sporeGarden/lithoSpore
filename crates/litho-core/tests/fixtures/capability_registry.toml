@@ -1,0 +1,177 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Capability Registry — lithoSpore
+#
+# Every JSON-RPC method string used in lithoSpore source code and
+# referenced in graph TOML files must appear here. Mirrors the
+# primalSpring canonical registry (452 methods, Wave 20).
+#
+# Structure: [domain] with `methods = [...]` and `owner` naming the
+# primal that serves them. lithoSpore itself consumes these methods
+# as a client — it never serves them.
+#
+# Method Stability Tiers (per primalSpring Wave 20, May 17 2026):
+#   stable    — wire name frozen; safe to hardcode in dispatch maps
+#   evolving  — may change between major waves; document dependency
+#   internal  — test fixture or internal-only; no stability guarantee
+#
+# Signal tiers: Where applicable, `signal` names the atomic signal
+# that collapses the method sequence (per SIGNAL_ADOPTION_STANDARD).
+#
+# CI: cargo test validates that discovery.rs method strings match
+# this registry (Tier 1 structural check).
+
+# ─── Health triad (Deployment Validation Standard v1.1) ──────────────
+
+[health]
+owner = "all"
+stability = "stable"
+consumed_by = "litho-core::discovery"
+methods = [
+    "health.liveness",
+    "health.readiness",
+    "health.check",
+]
+
+# ─── Lifecycle / registration (Wave 17 signal elevation) ─────────────
+
+[lifecycle]
+owner = "biomeos"
+stability = "stable"
+consumed_by = "litho-core::discovery"
+methods = [
+    "primal.announce",
+    "primal.info",
+    "primal.list",
+]
+
+# ─── Capability discovery ────────────────────────────────────────────
+
+[capabilities]
+owner = "all"
+stability = "stable"
+consumed_by = "litho-core::discovery"
+methods = [
+    "capability.discover",
+    "capability.list",
+]
+
+[discovery]
+owner = "songbird"
+stability = "stable"
+consumed_by = "litho-core::discovery"
+methods = [
+    "discovery.discover",
+    "discovery.find_primals",
+]
+
+[ipc]
+owner = "songbird"
+stability = "stable"
+consumed_by = "litho-core::discovery"
+methods = [
+    "ipc.resolve",
+]
+
+# ─── Visualization ───────────────────────────────────────────────────
+
+[visualization]
+owner = "petaltongue"
+stability = "stable"
+consumed_by = "ltee-cli::visualize"
+methods = [
+    "visualization.render",
+    "visualization.render.dashboard",
+    "visualization.render.stream",
+    "visualization.session.create",
+]
+
+# ─── Provenance trio ─────────────────────────────────────────────────
+# Signal: nest.store collapses dag + spine + braid + storage into one
+# Signal: nest.commit finalizes a provenance session
+
+[dag]
+owner = "rhizocrypt"
+stability = "stable"
+consumed_by = "litho-core::provenance"
+signal = "nest.store"
+methods = [
+    "dag.event.append",
+    "dag.session.complete",
+    "dag.session.create",
+]
+
+[spine]
+owner = "loamspine"
+stability = "stable"
+consumed_by = "litho-core::provenance"
+signal = "nest.store"
+methods = [
+    "spine.create",
+    "entry.append",
+]
+
+[braid]
+owner = "sweetgrass"
+stability = "stable"
+consumed_by = "litho-core::provenance"
+signal = "nest.store"
+methods = [
+    "braid.create",
+    "braid.commit",
+]
+
+[storage]
+owner = "nestgate"
+stability = "stable"
+consumed_by = "ltee-cli::verify"
+signal = "nest.store"
+methods = [
+    "storage.store",
+]
+
+# ─── Security ────────────────────────────────────────────────────────
+
+[crypto]
+owner = "beardog"
+stability = "stable"
+consumed_by = "litho-core::provenance"
+methods = [
+    "crypto.hash",
+    "crypto.sign",
+    "crypto.verify",
+]
+
+# ─── Compute (graph references) ─────────────────────────────────────
+
+[compute]
+owner = "toadstool"
+stability = "evolving"
+consumed_by = "graphs/ltee_guidestone.toml"
+signal = "node.compute"
+methods = [
+    "compute.dispatch",
+    "compute.status",
+]
+
+# ─── Test fixtures ───────────────────────────────────────────────────
+
+[test_fixtures]
+owner = "tests"
+stability = "internal"
+methods = [
+    "test.method",
+    "health.test",
+]
+
+# ─── False positives (dotted strings that are not methods) ────────────
+
+[false_positives]
+owner = "none"
+methods = [
+    "index.html",
+    "data.toml",
+    "scope.toml",
+    "tolerances.toml",
+    "liveSpore.json",
+]

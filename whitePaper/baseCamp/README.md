@@ -2,11 +2,13 @@
 
 # baseCamp — Python → Rust (uniBin) → Primal (NUCLEUS Composition)
 
-**Date:** May 17, 2026
+**Date:** May 18, 2026
 **Status:** 7/7 modules validated at Tier 2 (Rust). 7/7 Tier 1 (Python) complete.
            Tier 3 provenance trio wired via JSON-RPC. Cross-tier parity implemented.
            Two-tier data model formalized with upstream braid handoff.
            Chassis abstraction evolved: scope-driven module registry, litho-core 100% agnostic.
+           **First live deployment**: 4 USBs to Barrick Lab (MSU). exFAT cross-platform.
+           3-zone structure. Pre-rendered HTML browse layer. Layer 0-4 model codified.
 
 ---
 
@@ -261,3 +263,28 @@ for the upstream contract.
 1. `../../GETTING_STARTED.md` — quick start
 2. `../../artifact/scope.toml` — scope graph (birth certificate)
 3. `../../Containerfile` — OCI container alternative
+
+---
+
+## Live Deployment (May 18, 2026)
+
+The three-tier pipeline was deployed to external scientists for the first
+time: 4 USB drives to the Barrick Lab (MSU) for an LTEE Research
+Assistant II interview.
+
+**What proved out:**
+- 73/73 science checks on 4+ machines in <100ms
+- exFAT universal filesystem (Windows/macOS/Linux mount)
+- Shell shim for no-exec filesystems (copy → chmod → run → cleanup)
+- Pre-rendered HTML browse layer (science visible without execution)
+- liveSpore.json accumulating validation runs across machines
+- Data courier pattern (5.2G SRA reads for airgapped seeding)
+
+**What the deployment cycle taught:**
+- Filesystem format = first interface (ext4 invisible on Windows)
+- Root clutter kills (41 items → 8 via 3-zone restructure)
+- MANIFEST.toml enables AI navigation of the artifact
+- The binary IS the demo — not slides, not docs, the running validation
+
+**Deployment architecture documented in:**
+`ecoPrimals/infra/whitePaper/gen4/architecture/HYPOGEAL_DEPLOYMENT_EVOLUTION.md`

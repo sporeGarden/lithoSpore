@@ -8,9 +8,10 @@ with quantitative claims, source data, and expected values.
 
 **Organization**: sporeGarden (products built on ecoPrimals)
 **Subsystem of**: projectNUCLEUS
-**First Instance**: Barrick Lab, UT Austin (LTEE continuation)
+**First Instance**: Barrick Lab, MSU (LTEE — 82,500+ generations)
 **License**: AGPL-3.0-or-later (code), CC-BY-SA 4.0 (docs)
 **Standard**: `TARGETED_GUIDESTONE_STANDARD.md` (ecoPrimals/infra/wateringHole)
+**Repo**: [github.com/sporeGarden/lithoSpore](https://github.com/sporeGarden/lithoSpore)
 
 ## Spore Taxonomy
 
@@ -152,20 +153,21 @@ The assembled USB is a self-sufficient hypogeal cotyledon: plug it into
 any Linux machine and run `./validate`. See `artifact/usb-root/` for
 the root file templates.
 
-## Current Status — 7/7 PASS (May 17, 2026 PM)
+## Current Status — 7/7 PASS, Live Deployment (May 18, 2026)
 
 **Pillar 4 EXIT GATE: EXCEEDED** — 7 modules PASS at Tier 2, gate required 2+.
-**Deployment-validated**: USB pipeline tested via agentReagents (VM + container + local) — 75/75 checks, 125 unit/integration tests, 10 chaos/fault-injection tests.
+**First live handoff**: 4 USB drives deployed to Barrick Lab (MSU) for LTEE RA II interview. exFAT cross-platform, 3-zone structure, pre-rendered HTML browse layer.
+**Deployment-validated**: USB pipeline tested on 4+ machines — 73/73 science checks, 125 unit/integration tests, 10 chaos/fault-injection tests.
 **Tier 3**: Provenance trio wired via JSON-RPC with partial completion support (requires NUCLEUS primals at runtime).
 **Cross-tier parity**: `litho parity` validates math stability between Python and Rust.
-**Upstream braids**: 2 live braids from wetSpring (sovereign Rust+GPU pipeline + breseq baseline for Barrick 2009). Accession validated (SRP001569 PASS). Tenaillon 2016 braid pending (42/312 accessions downloaded).
+**Upstream braids**: 3 live braids from wetSpring (sovereign GPU pipeline + breseq baseline + Tenaillon expected values). Known: braid accession normalization (SRP001569 vs PRJNA29543) evolving upstream.
 
 | Module | Status | Checks | Source |
 |--------|--------|--------|--------|
 | 1. ltee-fitness | **PASS** Tier 2 | 8/8 | groundSpring B2 Wiser 2013 |
 | 2. ltee-mutations | **PASS** Tier 2 | 7/7 | groundSpring B1 Barrick 2009 |
 | 3. ltee-alleles | **PASS** Tier 2 | 20/20 | groundSpring B3 Good 2017 |
-| 4. ltee-citrate | **PASS** Tier 2 | 11/11 | groundSpring B4 Blount 2008/2012 |
+| 4. ltee-citrate | **PASS** Tier 2 | 9/9 | groundSpring B4 Blount 2008/2012 |
 | 5. ltee-biobricks | **PASS** Tier 2 | 6/6 | Burden 2024 BioBrick metabolic burden |
 | 6. ltee-breseq | **PASS** Tier 2 | 16/16 | wetSpring B7 Tenaillon 2016 |
 | 7. ltee-anderson | **PASS** Tier 2 | 7/7 | hotSpring B2 Anderson disorder |

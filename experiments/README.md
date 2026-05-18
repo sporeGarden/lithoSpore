@@ -138,3 +138,25 @@ Graph and target staging paths parameterized from scope.toml.
 **Phase 4**: `viz/` moved from litho-core to ltee-cli (instance layer).
 LTEE test fixtures isolated in `tests/fixtures/`. `litho-core` reaches
 100% chassis — 11 modules, zero LTEE-specific code. 125 tests pass.
+
+### 012 — Hypogeal Deployment to Barrick Lab (May 18)
+
+First live guideStone handoff to external scientists. 4 USB drives
+deployed to the Barrick Lab (MSU) for the LTEE Research Assistant II
+interview.
+
+**Deployment cycle**:
+1. ext4 deploy (4 USBs) — all pass 73/73 science checks
+2. Field test: ext4 invisible on Windows → lesson learned
+3. exFAT reformat (showcase USB, 58G) — universal mount
+4. Shim pattern: copy-to-tmpdir + chmod for no-exec filesystems
+5. Surface audit: 41 root items → 8 (3-zone restructure)
+6. Layer 0-4 model codified
+7. Pre-rendered HTML browse layer (science/index.html)
+8. MANIFEST.toml for AI agent navigation
+9. Data courier: 5.2G SRA reads for airgapped seeding
+
+**Key metrics**: 73 checks, 7 modules, <100ms, 6.3MB binary, exFAT
+cross-platform, 10+ validated liveSpore.json entries.
+
+**Documented**: gen4/architecture/HYPOGEAL_DEPLOYMENT_EVOLUTION.md

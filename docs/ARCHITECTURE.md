@@ -306,6 +306,44 @@ lithoSpore data.toml (upstream_braid, upstream_dag_session)
 No containers in the artifact. Primals self-container via genomeBin if needed.
 Cross-OS deployment via `Containerfile` + `litho grow --container`.
 
+## Deployment Architecture (Hypogeal Cotyledon)
+
+The USB artifact uses a 3-zone structure with a 5-layer cross-platform model:
+
+```
+Root (5-8 items max)
+├── README.md          Layer 1 (Browse)
+├── validate           Layer 2 (Launch) — shell shim for exFAT
+├── ltee.bat           Layer 2 (Launch) — Windows entry
+├── MANIFEST.toml      Machine-readable artifact map
+├── science/           Layer 1 (Browse) + Layer 4 (Validate)
+│   ├── index.html     Pre-rendered module gallery
+│   ├── modules/       Per-module HTML + Python scripts
+│   ├── artifact/      scope.toml, data.toml, data/
+│   ├── provenance/    Upstream braids
+│   └── validation/    Expected values
+├── docs/              Full documentation
+├── runtime/           Layer 3 (Execute)
+│   ├── bin/litho      musl-static binary (6.3 MB)
+│   ├── python/        CPython runtime
+│   ├── container/     OCI image tar
+│   ├── vm/            Cloud image
+│   └── source/        Full source tree (seedable)
+└── data/              Live project data (SRA reads, experiment results)
+```
+
+| Layer | What | Works On |
+|-------|------|----------|
+| 0 — Media | exFAT filesystem | Every OS mounts |
+| 1 — Browse | HTML, docs, figures | Every OS reads |
+| 2 — Launch | validate / ltee.bat | Platform shim |
+| 3 — Execute | tmpdir + chmod (exFAT workaround) | Linux/macOS |
+| 4 — Validate | Rust binary, 73 checks, <100ms | Full output |
+
+The shim pattern handles exFAT's lack of Unix permissions:
+`validate` copies `runtime/bin/litho` to `/tmp`, `chmod +x`, executes,
+cleans up. Windows uses WSL2 or opens `science/index.html`.
+
 ## projectNUCLEUS Integration
 
 lithoSpore is a projectNUCLEUS subsystem:

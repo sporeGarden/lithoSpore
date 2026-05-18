@@ -1,0 +1,20 @@
+{
+  "braid_id": "",
+  "computation": {
+    "input_accession": "SRP001569",
+    "input_blake3": "aggregate",
+    "node_count": 7,
+    "output_blake3": "2b46f86f5ef103490d8926723974c5efe84b09e31e5ed0e35f76399017a16b34",
+    "tool": "wetspring-sovereign-pipeline",
+    "tool_version": "0.1.0",
+    "wall_time_seconds": 10956
+  },
+  "dag_merkle_root": "",
+  "dag_session_id": "local-wetspring-1779065595796",
+  "dataset_id": "barrick_2009_sovereign_resequencing",
+  "spine_id": "",
+  "spring": "wetSpring",
+  "spring_version": "0.1.0",
+  "summary_blake3": "2b46f86f5ef103490d8926723974c5efe84b09e31e5ed0e35f76399017a16b34",
+  "timestamp": "1779076551"
+}

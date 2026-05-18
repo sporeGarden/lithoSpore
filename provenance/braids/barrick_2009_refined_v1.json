@@ -1,0 +1,64 @@
+{
+  "braid_id": "barrick-2009-refined-v1",
+  "dataset_id": "barrick_2009_sovereign_resequencing",
+  "spring": "wetSpring",
+  "spring_version": "0.1.0",
+  "evolution": "caller_refinement_v1",
+  "parent_braid": "barrick_2009_sovereign.json",
+  "status": "partial",
+  "clones_sealed": 1,
+  "clones_total": 7,
+  "caller_config": {
+    "min_depth": 8,
+    "min_alt_frequency": 0.75,
+    "min_quality": 20.0,
+    "min_alt_count": 3,
+    "min_indel_fraction": 0.3,
+    "min_strand_balance": 0.10,
+    "quality_weighted": true,
+    "derivation": "frequency threshold raised from 0.1→0.75 for haploid fixed-mutation calling; quality-weighted base frequencies using per-base Phred scores (P_correct = 1 - 10^(-Q/10)); strand bias filter requiring ≥10% reads on minor strand; pileup base quality filter at Q20 excluding bases with >1% error probability"
+  },
+  "pileup_config": {
+    "min_base_quality": 20,
+    "derivation": "Phred Q20 = 1% error rate. Bases below this threshold excluded from counts before variant calling. Matches breseq default base quality trimming."
+  },
+  "results": {
+    "REL1164M": {
+      "generation": 2000,
+      "reads": 7516281,
+      "mapped": 3672315,
+      "coverage_fraction": 0.985,
+      "mean_depth": 27.3,
+      "sovereign_variants": 78,
+      "breseq_variants": 4,
+      "position_matches": 0,
+      "wall_seconds": 1626.7,
+      "note": "78 vs previous 34000 (99.8% FP reduction). 0 position overlap with breseq — remaining 78 likely mapping artifacts in repetitive regions. breseq 4 are true fixed mutations not yet recovered."
+    }
+  },
+  "parity_evolution": [
+    {
+      "version": "v0_permissive",
+      "config": "min_depth=5, min_alt_freq=0.10, quality_weighted=false, min_bq=0",
+      "REL1164M_variants": 34000,
+      "breseq_REL1164M": 4,
+      "ratio": 8500
+    },
+    {
+      "version": "v1_refined",
+      "config": "min_depth=8, min_alt_freq=0.75, quality_weighted=true, strand_balance=0.10, min_bq=20",
+      "REL1164M_variants": 78,
+      "breseq_REL1164M": 4,
+      "ratio": 19.5
+    }
+  ],
+  "computation": {
+    "tool": "wetspring-sovereign-pipeline",
+    "tool_version": "0.1.0",
+    "input_accession": "SRP001569",
+    "gpu": "NVIDIA GeForce RTX 4060",
+    "gpu_primitives": ["SmithWatermanGpu", "Tensor::scan", "SnpCallingF64"],
+    "substrate": "CPU mapping + GPU pileup scan + GPU SNP calling"
+  },
+  "timestamp": "2026-05-18T08:35:00Z"
+}

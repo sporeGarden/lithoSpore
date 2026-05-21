@@ -227,7 +227,7 @@ is 100% chassis — zero LTEE-specific code.
 - VM: `agentReagents/scripts/validate-lithoSpore.sh` — libvirt, full airgap simulation
 - Chaos: `litho chaos-test` — fault injection (10 tests: drift, corruption, missing files)
 
-**Ecosystem posture** (Wave 21): primalSpring registry at 452 methods (stable),
+**Ecosystem posture** (Wave 21): primalSpring registry at 445 methods (stable),
 delta spring tests 9,539+, all 8 springs at zero debt, wetSpring producing first
 ferment transcript braids (Barrick 2009, 3/7 clones done). Method stability tiers
 annotated in `config/capability_registry.toml`. Partial provenance supported

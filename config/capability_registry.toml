@@ -4,7 +4,7 @@
 #
 # Every JSON-RPC method string used in lithoSpore source code and
 # referenced in graph TOML files must appear here. Mirrors the
-# primalSpring canonical registry (452 methods, Wave 20).
+# primalSpring canonical registry (445 methods, Wave 35).
 #
 # Structure: [domain] with `methods = [...]` and `owner` naming the
 # primal that serves them. lithoSpore itself consumes these methods

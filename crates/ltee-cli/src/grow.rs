@@ -509,7 +509,10 @@ fn stage_vm(root: &Path) {
             }
         }
     }
-    let cloud_image = cloud_image_candidates.iter().find(|p| p.exists()).unwrap();
+    let Some(cloud_image) = cloud_image_candidates.iter().find(|p| p.exists()) else {
+        eprintln!("  ERROR: No cloud image found after download attempt.");
+        return;
+    };
 
     let vm_name = "litho-grow-vm";
     let vm_disk = format!("/var/lib/libvirt/images/{vm_name}.qcow2");

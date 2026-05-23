@@ -1,9 +1,10 @@
 # lithoSpore Upstream Gap Registry
 
-**Last Updated**: May 17, 2026 PM (75/75 checks, Tier 3 wired, cross-tier parity, 125 tests, 2 live braids)
-**Phase**: Stadial (lithoSpore is a dedicated workstream, post-CATHEDRAL split)
-**Scope**: lithoSpore verification chassis (LTEE is the first instance; chassis evolving toward domain-agnostic)
-**Geo-delocalization**: Absorbed — discovery chain extended to TURN, liveSpore.json provenance updated
+**Last Updated**: May 23, 2026 (73/73 checks, 7/7 modules, Tier 3 wired, 125 tests, 3 live braids)
+**Phase**: Post-deployment (first live handoff to Barrick Lab May 18)
+**Scope**: lithoSpore verification chassis (LTEE first instance; chassis 100% agnostic)
+**Geo-delocalization**: Absorbed — discovery chain env → UDS → TURN → standalone
+**Deployment**: exFAT cross-platform, 3-zone structure, Layer 0-4 model
 
 ---
 
@@ -371,6 +372,22 @@ currently embed (standalone CLI pattern).
   Specs updated: ARCHITECTURE.md (chassis evolution roadmap, guideStone five-property
   assessment), MODULES.md (tier support matrix, coupling inventory), UPSTREAM_GAPS.md
   (Tier 3, parity, chassis abstraction status, guideStone audit), README.md, SCIENCE.md.
+- **2026-05-23**: Wave 46 audit absorption — reviewed primalSpring downstream
+  pattern guide, confirmed: Dark Forest gate compliance (deploy graph has
+  secure_by_default + btsp_enforced + uds_only + by_capability on all nodes),
+  signal adoption annotations present (nest.store/nest.commit mapped in graph),
+  TURN discovery wired (env → UDS → TURN → standalone chain operational),
+  production unwrap() in grow.rs replaced with graceful error handling.
+  Updated all check counts to 73/73 (citrate refined to 9 checks).
+  Upstream items: braid accession normalization (SRP→PRJNA), songbird-turn-client
+  integration (enhancement over current raw TCP), aarch64 binary for Apple Silicon.
+- **2026-05-18**: First live deployment — 4 USBs to Barrick Lab (MSU). exFAT
+  evolution (ext4 invisible on Windows). 3-zone restructure (41→8 root items).
+  Layer 0-4 model. Pre-rendered HTML browse layer. MANIFEST.toml. Data courier
+  (5.2G SRA reads). Documented in gen4/architecture/HYPOGEAL_DEPLOYMENT_EVOLUTION.md.
+- **2026-05-17**: Chassis abstraction complete — scope-driven module registry,
+  viz moved to instance layer, litho-core 100% agnostic. Braid sync from wetSpring
+  (3 braids). Documented as Exp 011 + 012.
 - **2026-05-16**: Deep debt pass: viz/baselines.rs (637→376 LOC) and viz/modules.rs
   (367→178 LOC) refactored via 9 extracted DataBinding builder helpers. Discovery
   evolved to capability-generic env vars ($RELAY_SERVER, $VISUALIZATION_SOCKET) with

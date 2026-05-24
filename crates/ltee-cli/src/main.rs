@@ -8,8 +8,10 @@
 mod assemble;
 mod chaos;
 mod deploy_test;
+mod emit_pseudospore;
 mod fetch;
 mod grow;
+mod ingest_pseudospore;
 mod ops;
 mod parity;
 pub(crate) mod registry;
@@ -208,6 +210,50 @@ enum Commands {
         #[arg(long)]
         skip_fetch: bool,
     },
+
+    /// Ingest a pseudoSpore: validate structure, import braids, register
+    IngestPseudospore {
+        /// Path to the pseudoSpore directory
+        path: String,
+
+        #[arg(long, default_value = ".")]
+        artifact_root: String,
+
+        /// Verify BLAKE3 checksums after structural validation
+        #[arg(long)]
+        verify: bool,
+    },
+
+    /// Emit a pseudoSpore: assemble standard directory structure from module outputs
+    EmitPseudospore {
+        /// Artifact name
+        #[arg(long)]
+        name: String,
+
+        /// Artifact version (semver)
+        #[arg(long)]
+        version: String,
+
+        /// Origin spring/repo path
+        #[arg(long, default_value = "")]
+        origin: String,
+
+        /// Output directory (pseudoSpore dir created inside)
+        #[arg(long, default_value = ".")]
+        output: String,
+
+        /// Directory containing output files to include
+        #[arg(long)]
+        outputs: Option<String>,
+
+        /// Directory containing config files to include
+        #[arg(long)]
+        configs: Option<String>,
+
+        /// Directory containing braid JSON files to include
+        #[arg(long)]
+        braids: Option<String>,
+    },
 }
 
 fn main() {
@@ -309,6 +355,10 @@ fn main() {
         Commands::DeployReport { artifact_root, pattern } => ops::cmd_deploy_report(&artifact_root, &pattern),
         Commands::Grow { artifact_root, target, vm, container, ecosystem, skip_build, skip_fetch } =>
             grow::run(&artifact_root, &target, vm, container, ecosystem, skip_build, skip_fetch),
+        Commands::IngestPseudospore { path, artifact_root, verify } =>
+            ingest_pseudospore::run(&path, &artifact_root, verify),
+        Commands::EmitPseudospore { name, version, origin, output, outputs, configs, braids } =>
+            emit_pseudospore::run(&name, &version, &origin, &output, outputs.as_deref(), configs.as_deref(), braids.as_deref()),
     }
 }
 

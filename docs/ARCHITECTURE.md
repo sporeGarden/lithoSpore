@@ -94,7 +94,7 @@ only `scope.toml` + `data.toml` + module crates. No changes to `litho-core`.
 
 | Layer | What | Current Files | Agnostic? |
 |-------|------|---------------|-----------|
-| **Chassis** | Validation pipeline, data integrity, provenance, discovery, deployment | `litho-core` (11 modules), `scope.toml`, `data.toml`, `tolerances.toml`, `liveSpore.json` | **Yes** |
+| **Chassis** | Validation pipeline, data integrity, provenance, discovery, deployment, pseudoSpore | `litho-core` (12 modules), `scope.toml`, `data.toml`, `tolerances.toml`, `liveSpore.json` | **Yes** |
 | **Registry** | Scope-driven module resolution, dispatch, name mapping | `ltee-cli/registry.rs` — reads `[[module]]` from scope.toml, falls back to compiled LTEE defaults | **Yes** (data-driven from scope.toml) |
 | **Instance** | Science modules, expected values, datasets, viz, papers | `crates/ltee-*`, `ltee-cli/viz/`, `validation/expected/`, `artifact/data/`, `papers/` | LTEE-specific |
 
@@ -107,12 +107,43 @@ only `scope.toml` + `data.toml` + module crates. No changes to `litho-core`.
    Braid accessions derived from `data.toml`. Target coverage and graph paths
    parameterized. viz/ moved from `litho-core` to `ltee-cli` instance layer.
    `litho-core` is 100% chassis.
-2. **Next**: Rename `ltee-cli` to `litho-cli`. Feature flags per instance.
+2. **DONE**: pseudoSpore standard. `litho-core/src/pseudospore.rs` provides
+   parsing, validation, and checksum verification for lightweight braid-first
+   artifacts. `litho ingest-pseudospore` and `litho emit-pseudospore` CLI
+   subcommands handle the full lifecycle. `pseudospores/registry.toml` tracks
+   ingested artifacts. See `specs/PSEUDOSPORE_STANDARD.md`.
+3. **Next**: Rename `ltee-cli` to `litho-cli`. Feature flags per instance.
    Dynamic module loading or plugin architecture.
-3. **Target**: Any guideStone instance is a set of workspace member crates +
+4. **Target**: Any guideStone instance is a set of workspace member crates +
    `scope.toml` + `data.toml` + `papers/registry.toml`. `litho-core` and
    `litho-cli` are unchanged. `litho parity` and `litho validate` work
    against whatever modules `scope.toml` declares.
+
+## pseudoSpore: Lightweight Braid-First Deployments
+
+A pseudoSpore sits between LiveSpore and full lithoSpore in the spore taxonomy.
+It carries braids, compute receipts, data outputs, and reproducibility configs —
+but no runtime or raw input data. It proves a computation happened without
+carrying the tools to re-execute it.
+
+```
+ColdSpore → LiveSpore → pseudoSpore → lithoSpore (full)
+                          ↑
+                     braids + receipts + outputs
+                     (no binaries, no runtime, no raw data)
+```
+
+**Structure**: `scope.toml` + `validation.json` + `receipts/` + `provenance/` + optional `outputs/` and `configs/`.
+
+**CLI**: `litho emit-pseudospore` (create) and `litho ingest-pseudospore` (consume).
+
+**Promotion**: A pseudoSpore that gains Python + Rust implementations becomes a full lithoSpore module candidate.
+
+**Use case**: Any computation-heavy spring producing quantitative results can ship a pseudoSpore instead of waiting for full lithoSpore module integration. The braid carries the provenance, the receipts carry the proof, the configs carry reproducibility.
+
+**Chassis support**: `litho_core::pseudospore` (12th module in litho-core) — `PseudoSporeManifest`, `load_pseudospore()`, `verify_checksums()`, `check_completeness()`, `compute_checksums()`.
+
+See `specs/PSEUDOSPORE_STANDARD.md` for the complete specification.
 
 ## Three-Tier Validation
 

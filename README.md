@@ -19,11 +19,17 @@ lithoSpore is a **hypogeal cotyledon** — a self-sufficient spore that
 carries its own food supply. The botanical metaphor: a seed leaf that
 stays underground, nourishing the seedling until it can photosynthesize.
 
-| Class | What | Self-Sufficient? |
-|-------|------|-----------------|
-| ColdSpore | Static artifact, `.biomeos-spore` marker, frozen data | No (needs host) |
-| LiveSpore | + `liveSpore.json` provenance + `./refresh` self-update | Partially |
-| **lithoSpore** (Hypogeal Cotyledon) | + Python runtime + 7 LTEE data bundles + litho-core Rust ecoBins | **Yes** |
+| Class | What | Self-Sufficient? | Size |
+|-------|------|-----------------|------|
+| ColdSpore | Static artifact, `.biomeos-spore` marker, frozen data | No (needs host) | < 1 KB |
+| LiveSpore | + `liveSpore.json` provenance + `./refresh` self-update | Partially | ~ KB |
+| **pseudoSpore** | + braids + compute receipts + data outputs + reproducibility configs | No (proves, doesn't execute) | KB–MB |
+| **lithoSpore** (Hypogeal Cotyledon) | + Python runtime + 7 LTEE data bundles + litho-core Rust ecoBins | **Yes** | MB–GB |
+
+**pseudoSpore** is a lightweight braid-first deployment for computation-heavy springs.
+It proves the mountain was climbed and shows the view from the top — without carrying
+the mountain. See `specs/PSEUDOSPORE_STANDARD.md` for the format specification and
+`litho ingest-pseudospore` / `litho emit-pseudospore` for CLI tooling.
 
 See `ecoPrimals/infra/wateringHole/LITHOSPORE_USB_DEPLOYMENT.md` for the full deployment standard.
 
@@ -92,7 +98,7 @@ lithoSpore/
 │   ├── ltee-biobricks/           # Module 5: BioBrick burden
 │   ├── ltee-breseq/              # Module 6: 264-genome comparison
 │   ├── ltee-anderson/            # Module 7: Anderson-QS predictions
-│   └── ltee-cli/                 # Unified CLI: 15 subcommands + module registry + viz (instance layer)
+│   └── ltee-cli/                 # Unified CLI: 17 subcommands + module registry + viz (instance layer)
 │
 ├── artifact/                     # The deployable artifact
 │   ├── usb-root/                 # USB root templates (.biomeos-spore, biomeOS/)
@@ -115,6 +121,7 @@ lithoSpore/
 ├── lineage/                      # Foundation thread linkage
 ├── papers/                       # Paper registry (16 DOIs) + READING_ORDER.md
 ├── figures/                      # Publication-quality SVG figures (7 modules)
+├── pseudospores/                 # Ingested pseudoSpore registry (lightweight braid-first artifacts)
 ├── provenance/braids/            # Upstream ferment transcript braids (from springs)
 ├── whitePaper/baseCamp/          # Python → Rust → Primal pipeline docs
 ├── experiments/                  # Experiment index (chronological log)
@@ -186,7 +193,8 @@ for trio, braid ingestion with dual wire format support, tolerance framework, sp
 tracking, capability-based discovery with `announce_self()`/`query_capabilities()`,
 scope parser with `[[module]]` registry, data manifest, graph checks, shared stats,
 harness). `ltee-cli` adds instance layer: unified module registry (`registry.rs`),
-viz DataBinding adapters, 15 subcommands. 125 unit/integration tests + 10
+viz DataBinding adapters, 17 subcommands (+ `ingest-pseudospore`, `emit-pseudospore`).
+125 unit/integration tests + 10
 chaos/fault-injection tests, zero clippy warnings, `#![forbid(unsafe_code)]`
 workspace-wide, pure Rust BLAKE3 (ecoBin compliant), `liveSpore.json` operational
 with corruption resilience and backup.

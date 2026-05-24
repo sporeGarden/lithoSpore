@@ -1,0 +1,11 @@
+# pseudoSpore Registry
+#
+# Tracks ingested pseudoSpore artifacts. Each entry represents a lightweight
+# braid-first deployment that has been validated and registered with lithoSpore.
+#
+# Added automatically by `litho ingest-pseudospore <path>`.
+# See specs/PSEUDOSPORE_STANDARD.md for the pseudoSpore format.
+
+[meta]
+last_updated = "2026-05-24"
+total_ingested = 0

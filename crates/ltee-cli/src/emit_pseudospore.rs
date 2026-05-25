@@ -126,6 +126,19 @@ pub fn run(
     // 13. Auto-generate figures if Python + matplotlib available
     try_generate_figures(&root);
 
+    // 14. Re-seal checksums (include figures/ if generated)
+    let final_checksums = pseudospore::compute_checksums(
+        &root,
+        &["outputs", "provenance", "data", "configs", "figures"],
+    );
+    let final_cksum_content = pseudospore::format_checksums(&final_checksums);
+    std::fs::write(root.join("receipts/checksums.blake3"), &final_cksum_content)
+        .expect("Failed to write final receipts/checksums.blake3");
+    if final_checksums.len() > checksums.len() {
+        println!("  [+] receipts/checksums.blake3 re-sealed ({} entries, +{} from figures)",
+            final_checksums.len(), final_checksums.len() - checksums.len());
+    }
+
     println!();
     println!("Done. pseudoSpore emitted to: {}", root.display());
     println!();
@@ -624,21 +637,21 @@ fn extract_ring_atoms_from_gro(path: &Path) -> Option<Vec<(String, usize)>> {
     // GRO format: columns are fixed-width
     // %5d%-5s%5s%5d ...
     // residue_number(5) residue_name(5) atom_name(5) atom_number(5)
-    for line in &lines[2..] {
+    // Use 1-indexed line position as the GROMACS/PLUMED atom index
+    // (GRO serial numbers can wrap at 99999 or restart per molecule)
+    for (line_pos, line) in lines[2..].iter().enumerate() {
+        let atom_idx = line_pos + 1; // 1-indexed (GROMACS convention)
         if line.len() < 20 {
             continue;
         }
 
         let res_name = line.get(5..10).unwrap_or("").trim();
         let atom_name = line.get(10..15).unwrap_or("").trim();
-        let atom_num_str = line.get(15..20).unwrap_or("").trim();
 
         if sugar_residues.iter().any(|s| res_name == *s) {
             if ring_atom_names.iter().any(|a| atom_name == *a) {
-                if let Ok(num) = atom_num_str.parse::<usize>() {
-                    if !found.iter().any(|(n, _)| n == atom_name) {
-                        found.push((atom_name.to_string(), num));
-                    }
+                if !found.iter().any(|(n, _)| n == atom_name) {
+                    found.push((atom_name.to_string(), atom_idx));
                 }
             }
         }

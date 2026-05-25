@@ -751,7 +751,9 @@ fn check_domain_vs_topology(root: &Path, findings: &mut Vec<Finding>) {
             None => continue,
         };
 
-        // Build lookup: gromacs_index → atom_name from .gro
+        // Build lookup: GROMACS/PLUMED 1-indexed atom position → atom_name from .gro
+        // GROMACS atom indices are 1-indexed line positions (line 1 = first atom after header).
+        // GRO serial numbers (col 15-20) can wrap at 99999 or restart per molecule — unreliable for lookup.
         let gro_lines: Vec<&str> = gro_content.lines().collect();
 
         for (atom_name, atom_val) in ring {
@@ -764,17 +766,13 @@ fn check_domain_vs_topology(root: &Path, findings: &mut Vec<Finding>) {
                 None => continue,
             };
 
-            // In GRO format, atom number is at columns 15-20 (0-indexed)
-            // Find the line with this atom number
+            // comp_idx is 1-indexed: atom 1 = gro_lines[2], atom N = gro_lines[N+1]
+            let line_idx = comp_idx + 1; // +1 for title line, natom already at index 1
             let mut found_name = None;
-            for line in &gro_lines[2..] {
-                if line.len() < 20 { continue; }
-                let atom_num_str = line.get(15..20).unwrap_or("").trim();
-                if let Ok(num) = atom_num_str.parse::<usize>() {
-                    if num == comp_idx {
-                        found_name = Some(line.get(10..15).unwrap_or("").trim().to_string());
-                        break;
-                    }
+            if line_idx < gro_lines.len() {
+                let line = gro_lines[line_idx];
+                if line.len() >= 15 {
+                    found_name = Some(line.get(10..15).unwrap_or("").trim().to_string());
                 }
             }
 

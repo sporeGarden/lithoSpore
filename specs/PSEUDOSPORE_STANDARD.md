@@ -41,6 +41,8 @@ pseudoSpore_<name>_v<X.Y.Z>/
 
 ```
 pseudoSpore_<name>_v<X.Y.Z>/
+├── index_map.toml                # RECOMMENDED — domain ↔ computation translation
+├── TRANSLATE.md                  # RECOMMENDED — human-readable legend
 ├── receipts/
 │   └── compute_log.toml          # OPTIONAL — wall time, commands, GPU hours
 ├── provenance/
@@ -54,6 +56,9 @@ pseudoSpore_<name>_v<X.Y.Z>/
 ├── configs/                      # OPTIONAL — reproducibility chain
 │   └── <module_name>/
 │       └── <input_configs>
+├── data/                         # RECOMMENDED — raw compute outputs (derivation proof)
+│   └── <module_name>/
+│       └── <raw_outputs>         # e.g. HILLS, trajectories, topology
 ├── AUDIT.md                      # OPTIONAL — verification audit trail
 └── RELEASE.md                    # OPTIONAL — release notes / caveats
 ```
@@ -303,6 +308,59 @@ Assembles a pseudoSpore from current module state:
 - Computes BLAKE3 checksums
 - Captures environment
 - Generates README from scope metadata
+
+---
+
+## Schema: index_map.toml (recommended)
+
+Machine-readable translation between domain-standard identifiers (what a domain expert uses)
+and computation-layer identifiers (what the runtime requires). Eliminates "reindexing as
+mental effort" — the artifact handles the translation, not the reader.
+
+```toml
+[meta]
+pdb = "2D24"                           # Domain reference structure
+ring_order = ["C1", "C2", "C3", "C4", "C5", "O5"]
+
+[systems.<system_name>]
+description = "Human-readable system description"
+structure_source = "Where the structure came from"
+total_atoms = 92745
+rosetta_stone = "data/<module>/npt.gro"  # File that maps between layers
+
+[systems.<system_name>.ring]
+C1 = { domain = 6599, computation = 6278 }
+C2 = { domain = 6600, computation = 6286 }
+# ...
+```
+
+**Principle**: `configs/*/plumed.dat` uses computation indices (runtime requirement)
+but carries inline `# INDEX TRANSLATION` comments with domain equivalents.
+The `index_map.toml` is the machine-parseable version for tooling.
+
+**Future (lithoSpore chassis)**: The `litho` CLI reads `index_map.toml` and can
+generate configs in EITHER frame — domain-expert inputs PDB numbering,
+lithoSpore handles the reindexing internally.
+
+---
+
+## Schema: data/ (recommended)
+
+Raw compute outputs that prove derivation. Each file in `outputs/` should be
+derivable from corresponding files in `data/` using the command in `TRANSLATE.md`.
+
+```
+data/
+├── <module_name>/
+│   ├── HILLS[_2d]        # Metadynamics: raw Gaussian depositions
+│   └── npt.gro           # Topology: atom index Rosetta stone
+```
+
+**Verification contract**: `sum_hills(data/HILLS) == outputs/fes.dat`
+
+Without `data/`, the pseudoSpore requires trust. With `data/`, anyone can
+re-derive outputs independently. This is the difference between "trust me"
+and "verify yourself."
 
 ---
 

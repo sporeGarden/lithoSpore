@@ -15,6 +15,7 @@ mod ingest_pseudospore;
 mod ops;
 mod parity;
 pub(crate) mod registry;
+mod translate_config;
 mod validate;
 mod verify;
 mod visualize;
@@ -254,6 +255,25 @@ enum Commands {
         #[arg(long)]
         braids: Option<String>,
     },
+
+    /// Translate config file indices between domain and computation frames
+    TranslateConfig {
+        /// Path to index_map.toml
+        #[arg(long)]
+        index_map: String,
+
+        /// Path to the config file to translate (e.g. plumed.dat)
+        #[arg(long)]
+        config: String,
+
+        /// Target frame: 'domain' (PDB numbering) or 'computation' (runtime indices)
+        #[arg(long, default_value = "domain")]
+        frame: String,
+
+        /// Output file path (prints to stdout if not specified)
+        #[arg(long)]
+        output: Option<String>,
+    },
 }
 
 fn main() {
@@ -359,6 +379,8 @@ fn main() {
             ingest_pseudospore::run(&path, &artifact_root, verify),
         Commands::EmitPseudospore { name, version, origin, output, outputs, configs, braids } =>
             emit_pseudospore::run(&name, &version, &origin, &output, outputs.as_deref(), configs.as_deref(), braids.as_deref()),
+        Commands::TranslateConfig { index_map, config, frame, output } =>
+            translate_config::run(&index_map, &config, &frame, output.as_deref()),
     }
 }
 

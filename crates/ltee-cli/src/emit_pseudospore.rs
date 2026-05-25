@@ -16,6 +16,7 @@ pub fn run(
     outputs_dir: Option<&str>,
     configs_dir: Option<&str>,
     braids_dir: Option<&str>,
+    data_dir: Option<&str>,
 ) {
     let out = Path::new(output_dir);
     let dir_name = format!("pseudoSpore_{name}_v{version}");
@@ -78,23 +79,48 @@ pub fn run(
         }
     }
 
-    // 7. Generate ferment transcript stub
+    // 7. Copy data if provided
+    if let Some(src) = data_dir {
+        let src_path = Path::new(src);
+        if src_path.exists() {
+            std::fs::create_dir_all(root.join("data")).expect("Failed to create data/");
+            copy_tree(src_path, &root.join("data"));
+            println!("  [+] data/ (copied from {src})");
+        }
+    }
+
+    // 8. Auto-generate index_map.toml from topology files in data/
+    let data_root = root.join("data");
+    if data_root.exists() {
+        if let Some(index_map) = auto_generate_index_map(&data_root) {
+            std::fs::write(root.join("index_map.toml"), &index_map)
+                .expect("Failed to write index_map.toml");
+            println!("  [+] index_map.toml (auto-generated from topology files)");
+        }
+    }
+
+    // 9. Generate ferment transcript stub
     let ferment_content = generate_ferment_stub(name, version, origin);
     std::fs::write(root.join("provenance/ferment_transcript.json"), &ferment_content)
         .expect("Failed to write provenance/ferment_transcript.json");
     println!("  [+] provenance/ferment_transcript.json (stub)");
 
-    // 8. Compute checksums for outputs/ and provenance/
-    let checksums = pseudospore::compute_checksums(&root, &["outputs", "provenance"]);
+    // 10. Compute checksums for outputs/, provenance/, and data/
+    let checksums = pseudospore::compute_checksums(&root, &["outputs", "provenance", "data", "configs"]);
     let cksum_content = pseudospore::format_checksums(&checksums);
     std::fs::write(root.join("receipts/checksums.blake3"), &cksum_content)
         .expect("Failed to write receipts/checksums.blake3");
     println!("  [+] receipts/checksums.blake3 ({} entries)", checksums.len());
 
-    // 9. Generate README
+    // 11. Generate README
     let readme = generate_readme(name, version, origin);
     std::fs::write(root.join("README.md"), &readme).expect("Failed to write README.md");
     println!("  [+] README.md");
+
+    // 12. Generate TRANSLATE.md stub
+    let translate = generate_translate_stub();
+    std::fs::write(root.join("TRANSLATE.md"), &translate).expect("Failed to write TRANSLATE.md");
+    println!("  [+] TRANSLATE.md (stub — populate with derivation commands)");
 
     println!();
     println!("Done. pseudoSpore emitted to: {}", root.display());
@@ -103,8 +129,10 @@ pub fn run(
     println!("  1. Populate validation.json with actual module results");
     println!("  2. Add outputs/<module>/ result files if not already copied");
     println!("  3. Update provenance/ferment_transcript.json with real braid data");
-    println!("  4. Re-run `litho emit-pseudospore` or manually update checksums");
-    println!("  5. Run `litho ingest-pseudospore {}` to validate", root.display());
+    println!("  4. Populate TRANSLATE.md with derivation commands");
+    println!("  5. Review/edit index_map.toml if auto-generated mappings need refinement");
+    println!("  6. Re-run `litho emit-pseudospore` or manually update checksums");
+    println!("  7. Run `litho ingest-pseudospore {}` to validate", root.display());
 }
 
 fn generate_scope(name: &str, version: &str, origin: &str) -> String {
@@ -249,6 +277,143 @@ This pseudoSpore can be promoted to a full lithoSpore module by adding:
 See `docs/LITHOSPORE_PROMOTION.md` in the origin repo for the full path.
 "#
     )
+}
+
+fn generate_translate_stub() -> String {
+    r#"# Translation: Domain ↔ Computation
+
+## Atom Indices
+
+See `index_map.toml` for the machine-readable mapping.
+
+| Ring atom | Domain (PDB serial) | Computation (runtime index) |
+|-----------|--------------------|-----------------------------|
+| ... | ... | ... |
+
+Rosetta stone: `data/<module>/npt.gro` (topology file)
+
+## Conventions
+
+| | Domain standard | This artifact |
+|--|----------------|---------------|
+| Numbering | PDB serial | Runtime topology (mapped in index_map.toml) |
+| Checksums | — | BLAKE3 |
+
+## Derivations
+
+| Output | Data | Command |
+|--------|------|---------|
+| `outputs/<module>/...` | `data/<module>/...` | `<tool> <args>` |
+"#
+    .to_string()
+}
+
+/// Auto-generate index_map.toml by scanning data/ for .gro topology files.
+/// Parses GROMACS .gro format to extract atom names and indices for ring atoms
+/// commonly found in carbohydrate residues (C1-C5, O5).
+fn auto_generate_index_map(data_root: &Path) -> Option<String> {
+    let mut systems: Vec<(String, String, Vec<(String, usize)>)> = Vec::new();
+
+    // Walk data/ subdirectories looking for .gro files
+    if let Ok(entries) = std::fs::read_dir(data_root) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if !path.is_dir() {
+                continue;
+            }
+            let module_name = entry.file_name().to_string_lossy().to_string();
+
+            // Look for .gro files in this module
+            if let Ok(files) = std::fs::read_dir(&path) {
+                for file in files.flatten() {
+                    let fpath = file.path();
+                    if fpath.extension().map(|e| e == "gro").unwrap_or(false) {
+                        if let Some(ring_atoms) = extract_ring_atoms_from_gro(&fpath) {
+                            let rosetta = format!("data/{}/{}", module_name, file.file_name().to_string_lossy());
+                            systems.push((module_name.clone(), rosetta, ring_atoms));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if systems.is_empty() {
+        return None;
+    }
+
+    let mut output = String::new();
+    output.push_str("# Auto-generated domain ↔ computation index mapping\n");
+    output.push_str("# Generated by `litho emit-pseudospore`\n");
+    output.push_str("# Review and correct domain indices manually if needed\n\n");
+    output.push_str("[meta]\n");
+    output.push_str("ring_order = [\"C1\", \"C2\", \"C3\", \"C4\", \"C5\", \"O5\"]\n\n");
+
+    for (module, rosetta, atoms) in &systems {
+        let _safe_name = module.replace('-', "_");
+        output.push_str(&format!("[systems.\"{}\"]\n", module));
+        output.push_str(&format!("description = \"Auto-detected from {}\"\n", rosetta));
+        output.push_str(&format!("rosetta_stone = \"{}\"\n\n", rosetta));
+        output.push_str(&format!("[systems.\"{}\".ring]\n", module));
+        for (name, idx) in atoms {
+            output.push_str(&format!(
+                "{} = {{ domain = \"?\", computation = {} }}\n",
+                name, idx
+            ));
+        }
+        output.push_str(&format!(
+            "\n[systems.\"{}\"._note]\n",
+            module
+        ));
+        output.push_str("value = \"Domain indices need manual assignment from PDB source. Computation indices auto-extracted from topology.\"\n\n");
+    }
+
+    Some(output)
+}
+
+/// Parse a GROMACS .gro file to extract ring atom indices (C1-C5, O5) from
+/// carbohydrate residues (XYS, BXYL, GLC, etc.).
+fn extract_ring_atoms_from_gro(path: &Path) -> Option<Vec<(String, usize)>> {
+    let content = std::fs::read_to_string(path).ok()?;
+    let lines: Vec<&str> = content.lines().collect();
+
+    if lines.len() < 3 {
+        return None;
+    }
+
+    let sugar_residues = ["XYS", "BXYL", "BXY", "GLC", "GAL", "MAN", "FUC", "XYL"];
+    let ring_atom_names = ["C1", "C2", "C3", "C4", "C5", "O5"];
+
+    let mut found: Vec<(String, usize)> = Vec::new();
+
+    // GRO format: columns are fixed-width
+    // %5d%-5s%5s%5d ...
+    // residue_number(5) residue_name(5) atom_name(5) atom_number(5)
+    for line in &lines[2..] {
+        if line.len() < 20 {
+            continue;
+        }
+
+        let res_name = line.get(5..10).unwrap_or("").trim();
+        let atom_name = line.get(10..15).unwrap_or("").trim();
+        let atom_num_str = line.get(15..20).unwrap_or("").trim();
+
+        if sugar_residues.iter().any(|s| res_name == *s) {
+            if ring_atom_names.iter().any(|a| atom_name == *a) {
+                if let Ok(num) = atom_num_str.parse::<usize>() {
+                    if !found.iter().any(|(n, _)| n == atom_name) {
+                        found.push((atom_name.to_string(), num));
+                    }
+                }
+            }
+        }
+    }
+
+    if found.is_empty() {
+        None
+    } else {
+        Some(found)
+    }
 }
 
 fn copy_tree(src: &Path, dst: &Path) {

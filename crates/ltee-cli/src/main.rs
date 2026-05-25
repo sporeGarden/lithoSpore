@@ -254,6 +254,10 @@ enum Commands {
         /// Directory containing braid JSON files to include
         #[arg(long)]
         braids: Option<String>,
+
+        /// Directory containing raw data files (HILLS, topology) for zero-trust verification
+        #[arg(long)]
+        data: Option<String>,
     },
 
     /// Translate config file indices between domain and computation frames
@@ -377,8 +381,8 @@ fn main() {
             grow::run(&artifact_root, &target, vm, container, ecosystem, skip_build, skip_fetch),
         Commands::IngestPseudospore { path, artifact_root, verify } =>
             ingest_pseudospore::run(&path, &artifact_root, verify),
-        Commands::EmitPseudospore { name, version, origin, output, outputs, configs, braids } =>
-            emit_pseudospore::run(&name, &version, &origin, &output, outputs.as_deref(), configs.as_deref(), braids.as_deref()),
+        Commands::EmitPseudospore { name, version, origin, output, outputs, configs, braids, data } =>
+            emit_pseudospore::run(&name, &version, &origin, &output, outputs.as_deref(), configs.as_deref(), braids.as_deref(), data.as_deref()),
         Commands::TranslateConfig { index_map, config, frame, output } =>
             translate_config::run(&index_map, &config, &frame, output.as_deref()),
     }

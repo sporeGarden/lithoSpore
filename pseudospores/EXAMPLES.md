@@ -1,98 +1,131 @@
 # pseudoSpore Examples
 
-## Canonical Example: hotSpring CAZyme FEL (v0.7.0)
+## Canonical Example: hotSpring CAZyme FEL (v0.9.0)
 
 The first pseudoSpore deployed in the ecosystem. Produced by hotSpring Experiment 220
 (CAZyme conformational free energy landscapes via well-tempered metadynamics).
 
-**Location:** `ecoPrimals/springs/hotSpring/control/gromacs_fel/lithoSpore_handoff/`
+**Tarball:** `~/Desktop/pseudoSpore_hotSpring-CAZyme-FEL_v0.9.0.tar.gz` (6.6 MB)  
+**Source:** `ecoPrimals/springs/hotSpring/control/gromacs_fel/`
 
-### v0.7.0 Corrections (from Alistaire's review of v0.6.0)
+### Version History
 
-| Issue | v0.6.0 | v0.7.0 |
-|-------|--------|--------|
-| Module 2 input | RDKit β-D-Lyxose (wrong!) | PDB 2D24 crystal β-D-Xylose |
-| Module 3 status | IN_FLIGHT | COMPLETE (sum_hills run) |
-| Atom index docs | None | ATOM_INDEX_MAP.md |
-| Solvation proof | Unverifiable | SYSTEM_SETUP.md |
-| All modules pass | 2/3 | 3/3 |
+| Version | Key Change |
+|---------|-----------|
+| v0.6.0 | Initial prototype (had lyxose/xylose error, missing PDBs) |
+| v0.7.0 | Alistaire review: correct structure, complete Module 3, atom index docs |
+| v0.8.0 | Overnight expansion: 2D FELs, raw data included, zero-trust derivation |
+| v0.9.0 | Machine-readable `index_map.toml`, chassis-ready translation layer |
 
-**Lesson**: Domain expert review caught critical errors that automated checks missed.
-RDKit SMILES→3D should never be trusted for carbohydrate stereochemistry without
-crystallographic verification.
+### Zero-Trust Features (v0.9.0)
 
-### Mapping to Standard
+```
+index_map.toml — machine-readable domain ↔ computation translation
+TRANSLATE.md   — human-readable derivation legend
+configs/       — plumed.dat with inline INDEX TRANSLATION comments
+data/          — raw HILLS + topology (re-derive outputs independently)
+outputs/       — derived FES surfaces (verifiable from data/)
+receipts/      — BLAKE3 checksums (integrity seal)
+provenance/    — FermentBraid (who/what/when/how)
+validation.json — 5 modules, all PASS, Tier 1+2 parity verified
+```
 
-| Standard Path | Existing File | Notes |
-|---------------|--------------|-------|
-| `scope.toml` | `scope.toml` | Uses `type = "pseudoSpore"` ✓ (updated in v0.7.0) |
-| `validation.json` | `validation.json` | Conforms to spec (modules array with checks + errata) |
-| `receipts/environment.toml` | `provenance/environment.toml` | Move to `receipts/` |
-| `receipts/checksums.blake3` | — | Generate with `litho emit-pseudospore` |
-| `receipts/compute_log.toml` | — | Optional — compute parameters are in environment.toml |
-| `provenance/ferment_transcript.json` | `provenance/ferment_transcript.json` | Conforms (has dataset_id, spring, braid_id, dag, spine) |
-| `provenance/dag.json` | `provenance/dag.json` | Conforms (11-event DAG with Merkle root) |
-| `provenance/spine.json` | `provenance/spine.json` | Conforms (3 ledger entries) |
-| `provenance/braids/` | `provenance/braids/` | Conforms (live_braid.json, cazyme_fel_v0.6.0.json, provo_export.jsonld) |
-| `outputs/` | `modules/` | Rename to `outputs/` for standard alignment |
-| `configs/` | (within modules/) | Extract .mdp and plumed.dat to `configs/` |
-| `README.md` | `README.md` | Conforms |
-| `AUDIT.md` | `AUDIT.md` | Optional — present and conformant |
-| `RELEASE.md` | `RELEASE.md` | Optional — present and conformant |
-
-### Migration Steps
-
-To align the existing CAZyme handoff with the pseudoSpore standard:
-
-1. ~~Rename type~~ — Done in v0.7.0 (`type = "pseudoSpore"`)
-2. Move `provenance/environment.toml` to `receipts/environment.toml`
-3. Generate `receipts/checksums.blake3` via `litho emit-pseudospore` or manually
-4. Rename `modules/` to `outputs/`
-5. Extract config files (.mdp, plumed.dat) from outputs into `configs/`
-
-Or generate a fresh pseudoSpore using the CLI:
+### CLI Verification
 
 ```bash
-litho emit-pseudospore \
-  --name hotSpring-CAZyme-FEL \
-  --version 0.7.1 \
-  --origin ecoPrimals/springs/hotSpring \
-  --output ~/Desktop/ \
-  --outputs control/gromacs_fel/lithoSpore_handoff/modules \
-  --braids control/gromacs_fel/lithoSpore_handoff/provenance/braids
+# Ingest and verify
+litho ingest-pseudospore pseudoSpore_hotSpring-CAZyme-FEL_v0.9.0/ --verify
+
+# Translate configs to domain frame (PDB numbering)
+litho translate-config \
+  --index-map pseudoSpore_hotSpring-CAZyme-FEL_v0.9.0/index_map.toml \
+  --config pseudoSpore_hotSpring-CAZyme-FEL_v0.9.0/configs/enzyme-bound-puckering/plumed.dat \
+  --frame domain
+
+# Manual derivation check
+cd pseudoSpore_hotSpring-CAZyme-FEL_v0.9.0/
+plumed sum_hills --hills data/xylose-puckering-fel/HILLS --mintozero --outfile /tmp/v.dat
+diff outputs/xylose-puckering-fel/fes_theta.dat /tmp/v.dat
 ```
+
+### Modules (5 total, all PASS)
+
+| Module | CV | Duration | Tier 1 RMSD | Tier 2 RMSD |
+|--------|-----|----------|-------------|-------------|
+| ala-dipeptide-fel | φ/ψ 2D | 10 ns | 0.52 kJ/mol | — |
+| xylose-puckering-fel | θ 1D | 10 ns | 0.73 kJ/mol | 0.79 kJ/mol |
+| enzyme-bound-puckering | θ 1D | 10 ns | 0.76 kJ/mol | 0.77 kJ/mol |
+| free-xylose-2d | qx,qy 2D | 20 ns | 1.71 kJ/mol | 1.71 kJ/mol |
+| enzyme-bound-2d | qx,qy 2D | 20 ns | 1.72 kJ/mol | 1.72 kJ/mol |
+
+### Promotion Path
+
+```
+pseudoSpore v0.9.0 (current — proof complete)
+  → litho promote --add-runtime
+lithoSpore v1.0.0 (deployment chassis)
+  ├── proof/   ← pseudoSpore contents verbatim
+  ├── runtime/ ← litho CLI + cazyme-fel binary + puckering_fel.py
+  └── expected/ ← validation targets from proof/outputs/
+```
+
+See `specs/CHASSIS.md` for the full lithoSpore deployment layout.
 
 ### Key Design Patterns Demonstrated
 
-1. **Three-module validation ladder**: benchmark (alanine dipeptide) → substrate (free xylose) → target system (enzyme-bound). Each module produces independent FES outputs.
+1. **Translation as first-class data.** `index_map.toml` maps PDB serial (domain)
+   to GROMACS topology (computation). The artifact handles reindexing — not the reader.
 
-2. **Errata as first-class data**: The `errata` field in both scope.toml `[[module]]` entries and validation.json module entries captures known limitations honestly.
+2. **Zero-trust derivation.** Every output file has a corresponding data file + command
+   in TRANSLATE.md. Nothing requires trusting the producer.
 
-3. **IN_FLIGHT → COMPLETE lifecycle**: Module 3 was originally IN_FLIGHT in v0.6.0 (production running). In v0.7.0 all modules are COMPLETE. The pseudoSpore standard supports shipping intermediate checkpoints with honest status labels.
+3. **Three-module validation ladder.** Benchmark (alanine dipeptide) → substrate
+   (free xylose) → target system (enzyme-bound). Each module independent.
 
-4. **Live sweetGrass braid**: The provenance includes a live IPC braid (not just pseudo). This demonstrates the sweetGrass → pseudoSpore integration path.
+4. **Multi-dimensional expansion.** 1D (θ) and 2D (qx,qy) FELs for both systems.
+   Tier 1 (Python) and Tier 2 (Rust) parity for all.
 
-5. **Tiered evolution**: scope.toml `[evolution]` section documents the Python and Rust implementations that exist alongside the GROMACS control — showing the promotion path to full lithoSpore module.
+5. **Errata-driven evolution.** v0.6.0 → v0.7.0 → v0.8.0 → v0.9.0 each addressed
+   specific reviewer feedback (Alistaire). The `supersedes` chain in provenance braids
+   makes this lineage machine-readable.
 
 ---
 
 ## Template: Minimal pseudoSpore
-
-For a new spring creating its first pseudoSpore:
 
 ```bash
 litho emit-pseudospore \
   --name mySpring-experiment-name \
   --version 0.1.0 \
   --origin ecoPrimals/springs/mySpring \
-  --output ./
+  --output ./ \
+  --data ./raw-simulation-data/ \
+  --configs ./input-configs/ \
+  --outputs ./derived-results/
 
 # Then:
 # 1. Edit scope.toml — add [target] paper info and [[module]] entries
-# 2. Copy result files to outputs/<module>/
-# 3. Copy input configs to configs/<module>/
-# 4. Replace the ferment transcript stub with real braid data
+# 2. Review/edit auto-generated index_map.toml (domain indices need manual assignment)
+# 3. Populate TRANSLATE.md with derivation commands
+# 4. Replace ferment_transcript.json stub with real braid data
 # 5. Populate validation.json with actual results
-# 6. Regenerate checksums: update receipts/checksums.blake3
-# 7. Validate: litho ingest-pseudospore pseudoSpore_mySpring-experiment-name_v0.1.0/
+# 6. Regenerate checksums: find . -type f ! -name "checksums.blake3" | sort | xargs b3sum > receipts/checksums.blake3
+# 7. Validate: litho ingest-pseudospore pseudoSpore_mySpring-experiment-name_v0.1.0/ --verify
+```
+
+## Template: Promote to lithoSpore (future)
+
+```bash
+litho promote \
+  --pseudospore pseudoSpore_mySpring-experiment-name_v0.1.0/ \
+  --tier2-crate staging/my-validator/ \
+  --output lithoSpore_my-experiment_v1.0.0/
+
+# Generates:
+# - proof/ (verbatim pseudoSpore)
+# - runtime/bin/ (compiled Tier 2 binary + litho CLI)
+# - runtime/env/ (Python requirements)
+# - expected/ (validation targets)
+# - tolerances.toml (acceptance criteria)
+# - guidestone.toml (lithoSpore identity)
 ```

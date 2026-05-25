@@ -69,6 +69,30 @@ pub fn run(pseudospore_path: &str, artifact_root: &str, verify: bool) {
     }
     println!();
 
+    // 3b. Validate index_map.toml if present
+    let index_map_path = ps_root.join("index_map.toml");
+    if index_map_path.exists() {
+        print!("  Validating index_map.toml... ");
+        match validate_index_map(&index_map_path) {
+            Ok(system_count) => println!("OK ({system_count} systems mapped)"),
+            Err(e) => println!("WARNING: {e}"),
+        }
+    } else {
+        println!("  index_map.toml: not present (optional, recommended for domain translation)");
+    }
+
+    // 3c. Check data/ directory for zero-trust verification
+    let data_dir = ps_root.join("data");
+    if data_dir.exists() {
+        let data_modules = std::fs::read_dir(&data_dir)
+            .map(|entries| entries.flatten().filter(|e| e.path().is_dir()).count())
+            .unwrap_or(0);
+        println!("  data/: present ({data_modules} modules — zero-trust derivation enabled)");
+    } else {
+        println!("  data/: not present (trust-required mode)");
+    }
+    println!();
+
     // 4. Import braids
     let braids_src = ps_root.join("provenance/braids");
     let braids_dst = litho_root.join("provenance/braids");
@@ -158,6 +182,39 @@ modules_total = {modules_total}
         modules_pass = modules_pass,
         modules_total = modules_total,
     )
+}
+
+/// Validate an index_map.toml file: parseable TOML with [meta] and [systems.*].
+fn validate_index_map(path: &Path) -> Result<usize, String> {
+    let content = std::fs::read_to_string(path)
+        .map_err(|e| format!("cannot read: {e}"))?;
+    let table: toml::Table = content.parse()
+        .map_err(|e| format!("parse error: {e}"))?;
+
+    if !table.contains_key("meta") {
+        return Err("[meta] section missing".to_string());
+    }
+
+    let systems = table.get("systems")
+        .and_then(|v| v.as_table())
+        .ok_or_else(|| "[systems] section missing or not a table".to_string())?;
+
+    let mut count = 0;
+    for (name, val) in systems {
+        if let Some(sys) = val.as_table() {
+            if sys.contains_key("ring") || sys.contains_key("atoms") {
+                count += 1;
+            } else {
+                return Err(format!("systems.{name} has no ring/atoms mapping"));
+            }
+        }
+    }
+
+    if count == 0 {
+        return Err("no systems with atom mappings found".to_string());
+    }
+
+    Ok(count)
 }
 
 /// Print a structured summary of checksum entries (for --verbose).

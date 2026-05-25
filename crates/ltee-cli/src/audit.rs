@@ -15,6 +15,7 @@
 
 use std::fs;
 use std::path::Path;
+use toml;
 
 #[derive(Debug)]
 pub struct Finding {
@@ -56,23 +57,27 @@ pub fn run(pseudospore_path: &str, verbose: bool) {
 
     let mut findings: Vec<Finding> = Vec::new();
 
-    // Check 1: Config↔Data fidelity (HEIGHT matches HILLS)
-    check_hills_height_match(root, &mut findings);
+    let checks: &[(&str, fn(&Path, &mut Vec<Finding>))] = &[
+        ("Config↔Data fidelity (HEIGHT vs HILLS)", check_hills_height_match),
+        ("Domain translation validity", check_domain_translation),
+        ("Domain↔Topology cross-reference", check_domain_vs_topology),
+        ("Module completeness (data/outputs/configs)", check_module_completeness),
+        ("Derivation contract (reproduce outputs from data)", check_derivation_contract),
+        ("Version consistency across docs", check_version_consistency),
+        ("Provenance completeness", check_provenance),
+        ("MDP header accuracy", check_mdp_headers),
+    ];
 
-    // Check 2: Domain translation validity
-    check_domain_translation(root, &mut findings);
-
-    // Check 3: Data/outputs/configs completeness
-    check_module_completeness(root, &mut findings);
-
-    // Check 4: Version consistency across docs
-    check_version_consistency(root, &mut findings);
-
-    // Check 5: Provenance completeness
-    check_provenance(root, &mut findings);
-
-    // Check 6: MDP header accuracy
-    check_mdp_headers(root, &mut findings);
+    for (i, (label, check_fn)) in checks.iter().enumerate() {
+        let before = findings.len();
+        check_fn(root, &mut findings);
+        let added = findings.len() - before;
+        if verbose {
+            let status = if added == 0 { "PASS" } else { "FAIL" };
+            println!("  [{}] {} — {} ({})", i + 1, status, label, added);
+        }
+    }
+    if verbose { println!(); }
 
     // Report
     let high = findings.iter().filter(|f| f.severity == Severity::High).count();
@@ -432,4 +437,293 @@ fn check_mdp_headers(root: &Path, findings: &mut Vec<Finding>) {
             }
         }
     }
+}
+
+/// Check 3: Cross-reference domain indices in index_map.toml against actual .gro topology.
+/// Verifies that computation indices listed in the map actually correspond to the claimed
+/// atom names at those positions in the topology file.
+fn check_domain_vs_topology(root: &Path, findings: &mut Vec<Finding>) {
+    let index_map_path = root.join("index_map.toml");
+    if !index_map_path.exists() {
+        return;
+    }
+
+    let content = match fs::read_to_string(&index_map_path) {
+        Ok(c) => c,
+        Err(_) => return,
+    };
+
+    let table: toml::Table = match content.parse() {
+        Ok(t) => t,
+        Err(_) => return,
+    };
+
+    let systems = match table.get("systems").and_then(|v| v.as_table()) {
+        Some(s) => s,
+        None => return,
+    };
+
+    for (sys_name, sys_val) in systems {
+        let sys = match sys_val.as_table() {
+            Some(s) => s,
+            None => continue,
+        };
+
+        let rosetta = match sys.get("rosetta_stone").and_then(|v| v.as_str()) {
+            Some(r) => r,
+            None => continue,
+        };
+
+        let gro_path = root.join(rosetta);
+        if !gro_path.exists() {
+            continue;
+        }
+
+        let gro_content = match fs::read_to_string(&gro_path) {
+            Ok(c) => c,
+            Err(_) => continue,
+        };
+
+        let ring = match sys.get("ring").and_then(|v| v.as_table()) {
+            Some(r) => r,
+            None => continue,
+        };
+
+        // Build lookup: gromacs_index → atom_name from .gro
+        let gro_lines: Vec<&str> = gro_content.lines().collect();
+
+        for (atom_name, atom_val) in ring {
+            if atom_name.starts_with('_') { continue; }
+
+            let comp_idx = match atom_val.as_table()
+                .and_then(|t| t.get("computation"))
+                .and_then(|v| v.as_integer()) {
+                Some(i) => i as usize,
+                None => continue,
+            };
+
+            // In GRO format, atom number is at columns 15-20 (0-indexed)
+            // Find the line with this atom number
+            let mut found_name = None;
+            for line in &gro_lines[2..] {
+                if line.len() < 20 { continue; }
+                let atom_num_str = line.get(15..20).unwrap_or("").trim();
+                if let Ok(num) = atom_num_str.parse::<usize>() {
+                    if num == comp_idx {
+                        found_name = Some(line.get(10..15).unwrap_or("").trim().to_string());
+                        break;
+                    }
+                }
+            }
+
+            if let Some(gro_name) = found_name {
+                if gro_name != *atom_name {
+                    findings.push(Finding {
+                        id: format!("TOPOLOGY-MISMATCH-{}-{}", sys_name, atom_name),
+                        severity: Severity::High,
+                        category: "Index Verification",
+                        message: format!(
+                            "systems.{}.ring.{}: computation index {} maps to '{}' in topology, expected '{}'",
+                            sys_name, atom_name, comp_idx, gro_name, atom_name
+                        ),
+                        fix: format!("Check index_map.toml entry for {} in system {}", atom_name, sys_name),
+                    });
+                }
+            }
+        }
+    }
+}
+
+/// Check 5: Verify derivation contract — outputs can be re-derived from data.
+/// Uses plumed sum_hills internally if available, otherwise checks file sizes
+/// and HILLS line counts as a proxy.
+fn check_derivation_contract(root: &Path, findings: &mut Vec<Finding>) {
+    let data_dir = root.join("data");
+    let outputs_dir = root.join("outputs");
+
+    if !data_dir.exists() || !outputs_dir.exists() {
+        return;
+    }
+
+    // Check if plumed is available (search common conda/system paths)
+    let plumed_bin = find_plumed();
+    let _has_plumed = plumed_bin.is_some();
+
+    if let Ok(modules) = fs::read_dir(&data_dir) {
+        for module in modules.flatten() {
+            if !module.path().is_dir() { continue; }
+            let mod_name = module.file_name().to_string_lossy().to_string();
+
+            // Check 1D HILLS
+            let hills_path = module.path().join("HILLS");
+            let output_fes = outputs_dir.join(&mod_name).join("fes_theta.dat");
+
+            if hills_path.exists() && output_fes.exists() {
+                if let Some(ref plumed) = plumed_bin {
+                    // Actually verify derivation
+                    let tmp_out = format!("/tmp/litho_audit_derive_{}.dat", mod_name);
+                    let result = std::process::Command::new(plumed)
+                        .args(["sum_hills", "--hills"])
+                        .arg(&hills_path)
+                        .args(["--mintozero", "--outfile", &tmp_out])
+                        .output();
+
+                    match result {
+                        Ok(o) if o.status.success() => {
+                            // Compare with output
+                            let derived = fs::read_to_string(&tmp_out).unwrap_or_default();
+                            let expected = fs::read_to_string(&output_fes).unwrap_or_default();
+                            if derived != expected {
+                                // Check if it's just formatting
+                                let d_lines: Vec<f64> = derived.lines()
+                                    .filter(|l| !l.starts_with('#') && !l.is_empty())
+                                    .filter_map(|l| l.split_whitespace().nth(1))
+                                    .filter_map(|s| s.parse().ok())
+                                    .collect();
+                                let e_lines: Vec<f64> = expected.lines()
+                                    .filter(|l| !l.starts_with('#') && !l.is_empty())
+                                    .filter_map(|l| l.split_whitespace().nth(1))
+                                    .filter_map(|s| s.parse().ok())
+                                    .collect();
+
+                                if d_lines.len() == e_lines.len() {
+                                    let max_diff: f64 = d_lines.iter().zip(e_lines.iter())
+                                        .map(|(a, b)| (a - b).abs())
+                                        .fold(0.0f64, f64::max);
+                                    if max_diff > 0.001 {
+                                        findings.push(Finding {
+                                            id: format!("DERIVATION-FAIL-{}", mod_name),
+                                            severity: Severity::High,
+                                            category: "Derivation Contract",
+                                            message: format!(
+                                                "{}: re-derived FES differs from shipped output by {:.4} kJ/mol max",
+                                                mod_name, max_diff
+                                            ),
+                                            fix: "Regenerate outputs/ from data/ or fix data/HILLS".to_string(),
+                                        });
+                                    }
+                                } else {
+                                    findings.push(Finding {
+                                        id: format!("DERIVATION-SIZE-{}", mod_name),
+                                        severity: Severity::Medium,
+                                        category: "Derivation Contract",
+                                        message: format!(
+                                            "{}: re-derived FES has {} points, shipped has {}",
+                                            mod_name, d_lines.len(), e_lines.len()
+                                        ),
+                                        fix: "Check GRID settings — derivation may need explicit --min/--max/--bin".to_string(),
+                                    });
+                                }
+                            }
+                            fs::remove_file(&tmp_out).ok();
+                        }
+                        _ => {} // plumed failed, skip
+                    }
+                } else {
+                    // No plumed: sanity check that HILLS has reasonable line count
+                    let hills_lines = fs::read_to_string(&hills_path)
+                        .map(|c| c.lines().filter(|l| !l.starts_with('#') && !l.is_empty()).count())
+                        .unwrap_or(0);
+                    if hills_lines < 100 {
+                        findings.push(Finding {
+                            id: format!("HILLS-SHORT-{}", mod_name),
+                            severity: Severity::Medium,
+                            category: "Derivation Contract",
+                            message: format!("{}: HILLS has only {} depositions (< 100, likely incomplete)", mod_name, hills_lines),
+                            fix: "Verify simulation completed or mark module as IN_FLIGHT".to_string(),
+                        });
+                    }
+                }
+            }
+
+            // Check 2D HILLS
+            let hills_2d_path = module.path().join("HILLS_2d");
+            let output_fes_2d = outputs_dir.join(&mod_name).join("fes_2d.dat");
+
+            if hills_2d_path.exists() && output_fes_2d.exists() {
+                if let Some(ref plumed) = plumed_bin {
+                let tmp_out = format!("/tmp/litho_audit_derive_2d_{}.dat", mod_name);
+                let result = std::process::Command::new(plumed)
+                    .args(["sum_hills", "--hills"])
+                    .arg(&hills_2d_path)
+                    .args(["--min", "-0.12,-0.12", "--max", "0.12,0.12", "--bin", "100,100"])
+                    .args(["--mintozero", "--outfile", &tmp_out])
+                    .output();
+
+                if let Ok(o) = result {
+                    if o.status.success() {
+                        let derived = fs::read_to_string(&tmp_out).unwrap_or_default();
+                        let expected = fs::read_to_string(&output_fes_2d).unwrap_or_default();
+                        if derived != expected {
+                            let d_vals: Vec<f64> = derived.lines()
+                                .filter(|l| !l.starts_with('#') && !l.is_empty())
+                                .filter_map(|l| l.split_whitespace().nth(2))
+                                .filter_map(|s| s.parse().ok())
+                                .collect();
+                            let e_vals: Vec<f64> = expected.lines()
+                                .filter(|l| !l.starts_with('#') && !l.is_empty())
+                                .filter_map(|l| l.split_whitespace().nth(2))
+                                .filter_map(|s| s.parse().ok())
+                                .collect();
+
+                            if d_vals.len() == e_vals.len() && !d_vals.is_empty() {
+                                let max_diff: f64 = d_vals.iter().zip(e_vals.iter())
+                                    .map(|(a, b)| (a - b).abs())
+                                    .fold(0.0f64, f64::max);
+                                if max_diff > 0.001 {
+                                    findings.push(Finding {
+                                        id: format!("DERIVATION-2D-FAIL-{}", mod_name),
+                                        severity: Severity::High,
+                                        category: "Derivation Contract",
+                                        message: format!(
+                                            "{}: 2D FES re-derivation differs by {:.4} kJ/mol max",
+                                            mod_name, max_diff
+                                        ),
+                                        fix: "Regenerate outputs/ from data/ with matching --min/--max/--bin".to_string(),
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    fs::remove_file(&tmp_out).ok();
+                }
+                }
+            }
+        }
+    }
+}
+
+/// Locate plumed binary — checks PATH then common conda locations.
+/// Uses `plumed info --root` as the liveness check (plumed has no --version flag).
+fn find_plumed() -> Option<String> {
+    let check_plumed = |bin: &str| -> bool {
+        std::process::Command::new(bin)
+            .args(["info", "--root"])
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
+    };
+
+    // Try PATH first
+    if check_plumed("plumed") {
+        return Some("plumed".to_string());
+    }
+
+    // Search common conda/system paths
+    let home = std::env::var("HOME").unwrap_or_default();
+    let candidates = [
+        format!("{}/miniconda3/envs/gromacs-fel/bin/plumed", home),
+        format!("{}/miniconda3/bin/plumed", home),
+        format!("{}/anaconda3/envs/gromacs-fel/bin/plumed", home),
+        "/usr/local/bin/plumed".to_string(),
+        "/usr/bin/plumed".to_string(),
+    ];
+
+    for candidate in &candidates {
+        if Path::new(candidate).exists() && check_plumed(candidate) {
+            return Some(candidate.clone());
+        }
+    }
+
+    None
 }

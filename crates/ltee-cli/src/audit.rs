@@ -15,6 +15,7 @@
 
 use std::fs;
 use std::path::Path;
+use blake3;
 use toml;
 
 #[derive(Debug)]
@@ -58,11 +59,13 @@ pub fn run(pseudospore_path: &str, verbose: bool) {
     let mut findings: Vec<Finding> = Vec::new();
 
     let checks: &[(&str, fn(&Path, &mut Vec<Finding>))] = &[
+        ("BLAKE3 checksum integrity", check_blake3_integrity),
         ("Config↔Data fidelity (HEIGHT vs HILLS)", check_hills_height_match),
         ("Domain translation validity", check_domain_translation),
         ("Domain↔Topology cross-reference", check_domain_vs_topology),
         ("Module completeness (data/outputs/configs)", check_module_completeness),
         ("Derivation contract (reproduce outputs from data)", check_derivation_contract),
+        ("Visual evidence layer (figures/)", check_figures_layer),
         ("Version consistency across docs", check_version_consistency),
         ("Provenance completeness", check_provenance),
         ("MDP header accuracy", check_mdp_headers),
@@ -110,6 +113,134 @@ pub fn run(pseudospore_path: &str, verbose: bool) {
 
     println!();
     std::process::exit(if high > 0 { 1 } else { 0 });
+}
+
+/// Check 0: Verify BLAKE3 checksums actually match file contents.
+fn check_blake3_integrity(root: &Path, findings: &mut Vec<Finding>) {
+    let cksum_path = root.join("receipts/checksums.blake3");
+    if !cksum_path.exists() {
+        findings.push(Finding {
+            id: "BLAKE3-MISSING".to_string(),
+            severity: Severity::High,
+            category: "Integrity",
+            message: "receipts/checksums.blake3 not found".to_string(),
+            fix: "Regenerate checksums with b3sum".to_string(),
+        });
+        return;
+    }
+
+    let content = match fs::read_to_string(&cksum_path) {
+        Ok(c) => c,
+        Err(_) => return,
+    };
+
+    let mut failures = 0;
+    let mut checked = 0;
+
+    for line in content.lines() {
+        if line.is_empty() { continue; }
+        // Format: <hash>  <path>
+        let parts: Vec<&str> = line.splitn(2, "  ").collect();
+        if parts.len() != 2 { continue; }
+
+        let expected_hash = parts[0].trim();
+        let rel_path = parts[1].trim();
+        let file_path = root.join(rel_path.trim_start_matches("./"));
+
+        if !file_path.exists() {
+            failures += 1;
+            continue;
+        }
+
+        let file_bytes = match fs::read(&file_path) {
+            Ok(b) => b,
+            Err(_) => { failures += 1; continue; }
+        };
+
+        let actual_hash = blake3::hash(&file_bytes).to_hex().to_string();
+        if actual_hash != expected_hash {
+            failures += 1;
+            if failures <= 3 {
+                findings.push(Finding {
+                    id: format!("BLAKE3-MISMATCH-{}", rel_path.replace('/', "-")),
+                    severity: Severity::High,
+                    category: "Integrity",
+                    message: format!("{}: checksum mismatch (file modified after sealing?)", rel_path),
+                    fix: "Regenerate checksums or restore original file".to_string(),
+                });
+            }
+        }
+        checked += 1;
+    }
+
+    if failures > 3 {
+        findings.push(Finding {
+            id: "BLAKE3-MULTI-FAIL".to_string(),
+            severity: Severity::High,
+            category: "Integrity",
+            message: format!("{} of {} files have checksum mismatches", failures, checked + failures),
+            fix: "Regenerate all checksums: find . -type f | xargs b3sum > receipts/checksums.blake3".to_string(),
+        });
+    }
+}
+
+/// Check: Visual evidence layer — figures exist and correspond to outputs.
+fn check_figures_layer(root: &Path, findings: &mut Vec<Finding>) {
+    let figures_dir = root.join("figures");
+    let outputs_dir = root.join("outputs");
+
+    if !outputs_dir.exists() {
+        return;
+    }
+
+    // Count output modules that have FES data
+    let mut fes_modules = 0;
+    if let Ok(entries) = fs::read_dir(&outputs_dir) {
+        for entry in entries.flatten() {
+            if !entry.path().is_dir() { continue; }
+            let has_fes = fs::read_dir(entry.path())
+                .into_iter()
+                .flatten()
+                .flatten()
+                .any(|f| {
+                    let name = f.file_name().to_string_lossy().to_string();
+                    name.starts_with("fes_") && name.ends_with(".dat")
+                });
+            if has_fes { fes_modules += 1; }
+        }
+    }
+
+    if fes_modules == 0 {
+        return;
+    }
+
+    if !figures_dir.exists() {
+        findings.push(Finding {
+            id: "FIGURES-MISSING".to_string(),
+            severity: Severity::Low,
+            category: "Visual Evidence",
+            message: format!("{} modules have FES data but no figures/ directory exists", fes_modules),
+            fix: "Generate figures: python generate_figures.py --pseudospore <path>".to_string(),
+        });
+        return;
+    }
+
+    let png_count = fs::read_dir(&figures_dir)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter(|e| e.path().extension().map(|x| x == "png").unwrap_or(false))
+        .count();
+
+    if png_count == 0 {
+        findings.push(Finding {
+            id: "FIGURES-EMPTY".to_string(),
+            severity: Severity::Low,
+            category: "Visual Evidence",
+            message: "figures/ directory exists but contains no PNG files".to_string(),
+            fix: "Generate figures: python generate_figures.py --pseudospore <path>".to_string(),
+        });
+    }
 }
 
 fn check_hills_height_match(root: &Path, findings: &mut Vec<Finding>) {

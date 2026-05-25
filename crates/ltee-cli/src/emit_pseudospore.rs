@@ -123,6 +123,9 @@ pub fn run(
     std::fs::write(root.join("TRANSLATE.md"), &translate).expect("Failed to write TRANSLATE.md");
     println!("  [+] TRANSLATE.md (stub — populate with derivation commands)");
 
+    // 13. Auto-generate figures if Python + matplotlib available
+    try_generate_figures(&root);
+
     println!();
     println!("Done. pseudoSpore emitted to: {}", root.display());
     println!();
@@ -134,6 +137,124 @@ pub fn run(
     println!("  5. Review/edit index_map.toml if auto-generated mappings need refinement");
     println!("  6. Re-run `litho emit-pseudospore` or manually update checksums");
     println!("  7. Run `litho ingest-pseudospore {}` to validate", root.display());
+}
+
+/// Try to generate figures from outputs/ using Python + matplotlib.
+/// Embeds a minimal figure-generation script and runs it if matplotlib is importable.
+fn try_generate_figures(root: &Path) {
+    let outputs_dir = root.join("outputs");
+    if !outputs_dir.exists() {
+        return;
+    }
+
+    // Check if Python + matplotlib are available
+    let check = std::process::Command::new("python3")
+        .args(["-c", "import matplotlib; import numpy"])
+        .output();
+
+    let has_deps = check.map(|o| o.status.success()).unwrap_or(false);
+    if !has_deps {
+        println!("  [~] figures/ skipped (matplotlib/numpy not available)");
+        return;
+    }
+
+    let figures_dir = root.join("figures");
+    fs::create_dir_all(&figures_dir).ok();
+
+    // Inline minimal figure generation script
+    let script = r#"
+import sys, numpy as np
+from pathlib import Path
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
+
+root = Path(sys.argv[1])
+outputs = root / 'outputs'
+figures = root / 'figures'
+figures.mkdir(exist_ok=True)
+
+def parse_fes_1d(path):
+    xs, ys = [], []
+    for line in open(path):
+        if line.startswith('#') or not line.strip(): continue
+        p = line.split()
+        if len(p) >= 2: xs.append(float(p[0])); ys.append(float(p[1]))
+    return np.array(xs), np.array(ys)
+
+def parse_fes_2d(path):
+    xs, ys, zs = [], [], []
+    for line in open(path):
+        if line.startswith('#') or not line.strip(): continue
+        p = line.split()
+        if len(p) >= 3: xs.append(float(p[0])); ys.append(float(p[1])); zs.append(float(p[2]))
+    xs, ys, zs = np.array(xs), np.array(ys), np.array(zs)
+    uy = len(set(np.round(ys, 8)))
+    ux = len(xs) // uy if uy > 0 else 1
+    return xs.reshape(uy, ux), ys.reshape(uy, ux), zs.reshape(uy, ux)
+
+count = 0
+
+# 1D comparison
+fes_files_1d = list(outputs.glob('*/fes_theta.dat'))
+if len(fes_files_1d) >= 2:
+    fig, ax = plt.subplots(figsize=(8,5))
+    for f in sorted(fes_files_1d):
+        x, y = parse_fes_1d(f)
+        label = f.parent.name.replace('-', ' ').replace('_', ' ')
+        ax.plot(np.degrees(x), y, linewidth=2, label=label)
+    ax.set_xlabel('Cremer-Pople θ (degrees)')
+    ax.set_ylabel('Free energy (kJ/mol)')
+    ax.set_title('1D Puckering Free Energy Landscapes')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+    fig.savefig(figures / 'fel_1d_comparison.png', dpi=300)
+    plt.close()
+    count += 1
+
+# 2D heatmaps
+for fes_2d in sorted(outputs.glob('*/fes_2d.dat')):
+    try:
+        X, Y, Z = parse_fes_2d(fes_2d)
+        fig, ax = plt.subplots(figsize=(7,6))
+        Z_viz = np.clip(Z, 0, min(Z.max(), 60))
+        cmap = LinearSegmentedColormap.from_list('fel',
+            ['#000033','#0000aa','#0066ff','#00cccc','#66ff66','#ffff00','#ff6600','#ff0000','#ffffff'])
+        im = ax.pcolormesh(X*10, Y*10, Z_viz, cmap=cmap, shading='auto')
+        plt.colorbar(im, ax=ax, label='Free energy (kJ/mol)')
+        name = fes_2d.parent.name.replace('-',' ')
+        ax.set_title(f'2D FEL — {name}')
+        ax.set_xlabel('qx'); ax.set_ylabel('qy')
+        ax.set_aspect('equal')
+        plt.tight_layout()
+        fig.savefig(figures / f'fel_2d_{fes_2d.parent.name}.png', dpi=300)
+        plt.close()
+        count += 1
+    except: pass
+
+print(count)
+"#;
+
+    let result = std::process::Command::new("python3")
+        .args(["-c", script, root.to_str().unwrap_or(".")])
+        .output();
+
+    match result {
+        Ok(o) if o.status.success() => {
+            let count = String::from_utf8_lossy(&o.stdout).trim().to_string();
+            let n: usize = count.parse().unwrap_or(0);
+            if n > 0 {
+                println!("  [+] figures/ ({} plots generated)", n);
+            } else {
+                println!("  [~] figures/ (no plottable outputs found)");
+            }
+        }
+        _ => {
+            println!("  [~] figures/ skipped (generation failed)");
+        }
+    }
 }
 
 fn generate_scope(name: &str, version: &str, origin: &str) -> String {
@@ -389,12 +510,16 @@ fn auto_generate_index_map(data_root: &Path) -> Option<String> {
 }
 
 /// Scan data/ for .pdb files and extract ring atom serials from carbohydrate residues.
+/// Returns ALL sugar residue ring atom sets found, keyed by (residue_name, residue_number).
+/// Uses the LAST (highest serial) sugar residue found as the default — this heuristic
+/// works well for enzyme-bound systems where the ligand is at the end of the PDB.
 fn scan_pdb_for_ring_serials(data_root: &Path) -> Vec<(String, u64)> {
     let ring_atom_names = ["C1", "C2", "C3", "C4", "C5", "O5"];
     let sugar_residues = ["XYS", "BXYL", "BXY", "GLC", "GAL", "MAN", "FUC", "XYL"];
-    let mut results: Vec<(String, u64)> = Vec::new();
 
-    // Walk data_root and parent for .pdb files
+    // Collect ALL sugar ring atom sets keyed by (res_name, res_num)
+    let mut all_residues: Vec<(String, String, Vec<(String, u64)>)> = Vec::new();
+
     let search_dirs = [data_root.to_path_buf(), data_root.parent().unwrap_or(data_root).to_path_buf()];
 
     for search_dir in &search_dirs {
@@ -418,6 +543,9 @@ fn scan_pdb_for_ring_serials(data_root: &Path) -> Vec<(String, u64)> {
 
                 for pdb_path in &pdb_paths {
                     if let Ok(content) = fs::read_to_string(pdb_path) {
+                        let mut current_res: Option<(String, String)> = None;
+                        let mut current_atoms: Vec<(String, u64)> = Vec::new();
+
                         for line in content.lines() {
                             if !line.starts_with("HETATM") && !line.starts_with("ATOM  ") {
                                 continue;
@@ -426,30 +554,56 @@ fn scan_pdb_for_ring_serials(data_root: &Path) -> Vec<(String, u64)> {
 
                             let atom_name = line.get(12..16).unwrap_or("").trim();
                             let res_name = line.get(17..20).unwrap_or("").trim();
+                            let res_num = line.get(22..26).unwrap_or("").trim();
                             let serial_str = line.get(6..11).unwrap_or("").trim();
 
-                            if sugar_residues.iter().any(|s| res_name == *s)
-                                && ring_atom_names.iter().any(|a| atom_name == *a) {
-                                if let Ok(serial) = serial_str.parse::<u64>() {
-                                    if !results.iter().any(|(n, _)| n == atom_name) {
-                                        results.push((atom_name.to_string(), serial));
+                            if !sugar_residues.iter().any(|s| res_name == *s) { continue; }
+                            if !ring_atom_names.iter().any(|a| atom_name == *a) { continue; }
+
+                            let this_res = (res_name.to_string(), res_num.to_string());
+
+                            if current_res.as_ref() != Some(&this_res) {
+                                // Save previous residue if complete
+                                if current_atoms.len() >= 5 {
+                                    if let Some(ref cr) = current_res {
+                                        all_residues.push((cr.0.clone(), cr.1.clone(), current_atoms.clone()));
                                     }
+                                }
+                                current_res = Some(this_res);
+                                current_atoms.clear();
+                            }
+
+                            if let Ok(serial) = serial_str.parse::<u64>() {
+                                if !current_atoms.iter().any(|(n, _)| n == atom_name) {
+                                    current_atoms.push((atom_name.to_string(), serial));
                                 }
                             }
                         }
-                    }
-                    if results.len() >= 6 {
-                        return results;
+
+                        // Don't forget the last residue
+                        if current_atoms.len() >= 5 {
+                            if let Some(ref cr) = current_res {
+                                all_residues.push((cr.0.clone(), cr.1.clone(), current_atoms));
+                            }
+                        }
                     }
                 }
             }
         }
-        if results.len() >= 6 {
-            break;
-        }
+        if !all_residues.is_empty() { break; }
     }
 
-    results
+    if all_residues.is_empty() {
+        return Vec::new();
+    }
+
+    // Prefer BXYL (enzyme-bound ligand), then XYS, then last found
+    let chosen = all_residues.iter()
+        .find(|(rn, _, _)| rn == "BXYL")
+        .or_else(|| all_residues.iter().find(|(rn, _, _)| rn == "XYS"))
+        .or_else(|| all_residues.last());
+
+    chosen.map(|(_, _, atoms)| atoms.clone()).unwrap_or_default()
 }
 
 /// Parse a GROMACS .gro file to extract ring atom indices (C1-C5, O5) from

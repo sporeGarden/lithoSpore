@@ -59,6 +59,8 @@ pseudoSpore_<name>_v<X.Y.Z>/
 ├── data/                         # RECOMMENDED — raw compute outputs (derivation proof)
 │   └── <module_name>/
 │       └── <raw_outputs>         # e.g. HILLS, trajectories, topology
+├── figures/                       # RECOMMENDED — visual evidence layer
+│   └── <name>.png                # Publication-quality plots (PNG, ≤ 500KB each)
 ├── AUDIT.md                      # OPTIONAL — verification audit trail
 └── RELEASE.md                    # OPTIONAL — release notes / caveats
 ```
@@ -244,6 +246,29 @@ FermentBraid wire format (already defined in lithoSpore ecosystem):
   }
 }
 ```
+
+---
+
+## Visual Evidence Layer (`figures/`)
+
+A pseudoSpore SHOULD include a `figures/` directory with publication-quality
+visualizations that make the science self-evident. Think of the pseudoSpore as
+a **poster presentation** — the data proves it, the figures sell it.
+
+**Requirements**:
+- PNG format, 300 DPI, ≤ 500KB per image (keep tarball lean)
+- SVG optional for vector reproduction
+- Figures MUST be derivable from `outputs/` data (no external sources)
+- Comparison panels preferred (e.g., free vs enzyme-bound side-by-side)
+
+**Recommended figures for FEL studies**:
+- 1D energy profile comparison (all systems overlaid)
+- 2D heatmaps (one per system)
+- Combined comparison panel (side-by-side with shared colorbar)
+
+**Generation**: `python generate_figures.py --pseudospore <path>` should
+reproduce all figures from `outputs/` data. The script itself SHOULD live in
+the lithoSpore `runtime/` or be referenced by `TRANSLATE.md`.
 
 ---
 

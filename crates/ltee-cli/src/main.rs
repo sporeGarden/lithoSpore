@@ -6,6 +6,7 @@
 //! spore, visualize, self-test, tier, chaos-test, deploy-test, deploy-report
 
 mod assemble;
+mod audit;
 mod chaos;
 mod deploy_test;
 mod emit_pseudospore;
@@ -261,6 +262,17 @@ enum Commands {
         data: Option<String>,
     },
 
+    /// Pre-handoff audit: check config fidelity, translation, completeness, versioning
+    Audit {
+        /// Path to the pseudoSpore or lithoSpore proof/ directory
+        #[arg(long, default_value = ".")]
+        path: String,
+
+        /// Show fix suggestions for each finding
+        #[arg(long)]
+        verbose: bool,
+    },
+
     /// Promote a pseudoSpore to a lithoSpore deployment chassis
     Promote {
         /// Path to the pseudoSpore directory
@@ -405,6 +417,7 @@ fn main() {
             grow::run(&artifact_root, &target, vm, container, ecosystem, skip_build, skip_fetch),
         Commands::IngestPseudospore { path, artifact_root, verify } =>
             ingest_pseudospore::run(&path, &artifact_root, verify),
+        Commands::Audit { path, verbose } => audit::run(&path, verbose),
         Commands::EmitPseudospore { name, version, origin, output, outputs, configs, braids, data } =>
             emit_pseudospore::run(&name, &version, &origin, &output, outputs.as_deref(), configs.as_deref(), braids.as_deref(), data.as_deref()),
         Commands::Promote { pseudospore, output, tier2_crate, tier1_script, version } =>

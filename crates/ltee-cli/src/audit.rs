@@ -16,6 +16,7 @@
 use std::fs;
 use std::path::Path;
 use blake3;
+use serde_json;
 use toml;
 
 #[derive(Debug)]
@@ -65,6 +66,8 @@ pub fn run(pseudospore_path: &str, verbose: bool) {
         ("Domain↔Topology cross-reference", check_domain_vs_topology),
         ("Module completeness (data/outputs/configs)", check_module_completeness),
         ("Derivation contract (reproduce outputs from data)", check_derivation_contract),
+        ("Validation claims vs FES data", check_validation_claims),
+        ("Simulation time consistency (MDP vs scope.toml)", check_simulation_times),
         ("Visual evidence layer (figures/)", check_figures_layer),
         ("Version consistency across docs", check_version_consistency),
         ("Provenance completeness", check_provenance),
@@ -185,6 +188,234 @@ fn check_blake3_integrity(root: &Path, findings: &mut Vec<Finding>) {
 }
 
 /// Check: Visual evidence layer — figures exist and correspond to outputs.
+/// Verify validation.json claims against actual FES output data.
+/// Catches the "θ≈5° (4C1)" claim when actual global minimum is at θ≈172° (1C4).
+fn check_validation_claims(root: &Path, findings: &mut Vec<Finding>) {
+    let val_path = root.join("validation.json");
+    if !val_path.exists() { return; }
+
+    let val_content = match fs::read_to_string(&val_path) {
+        Ok(c) => c,
+        Err(_) => return,
+    };
+
+    let val: serde_json::Value = match serde_json::from_str(&val_content) {
+        Ok(v) => v,
+        Err(_) => return,
+    };
+
+    let modules = match val.get("modules").and_then(|m| m.as_array()) {
+        Some(m) => m,
+        None => return,
+    };
+
+    for module in modules {
+        let name = module.get("name").and_then(|n| n.as_str()).unwrap_or("");
+
+        // Check 1D FES theta modules — verify ground state claim against data
+        let fes_path = root.join(format!("outputs/{}/fes_theta.dat", name));
+        if !fes_path.exists() { continue; }
+
+        let fes_content = match fs::read_to_string(&fes_path) {
+            Ok(c) => c,
+            Err(_) => continue,
+        };
+
+        // Find global minimum theta value
+        let mut min_energy = f64::MAX;
+        let mut min_theta = 0.0_f64;
+        for line in fes_content.lines() {
+            if line.starts_with('#') || line.trim().is_empty() { continue; }
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() < 2 { continue; }
+            let theta: f64 = match parts[0].parse() { Ok(v) => v, Err(_) => continue };
+            let energy: f64 = match parts[1].parse() { Ok(v) => v, Err(_) => continue };
+            if energy < min_energy {
+                min_energy = energy;
+                min_theta = theta;
+            }
+        }
+
+        if min_energy == f64::MAX { continue; }
+
+        // Convert to degrees if in radians
+        let theta_deg = if min_theta.abs() < 7.0 { min_theta.to_degrees() } else { min_theta };
+
+        // Check validation.json claims about ground state
+        let details = module.get("details").and_then(|d| d.as_object());
+        if let Some(det) = details {
+            for (key, val_str) in det {
+                let claim = val_str.as_str().unwrap_or("");
+                // Look for ground state claims (key = "ground_state*")
+                if !key.contains("ground_state") { continue; }
+
+                // Determine what the claim says is the ground state.
+                // Look for pattern "global min" followed by a conformer name.
+                // "global min θ≈172° (1C4)" → claims 1C4
+                // "global min θ≈5° (4C1)" → claims 4C1
+                let claim_says_4c1_ground = claim.contains("global min") &&
+                    claim.find("global min").map(|pos| {
+                        let after = &claim[pos..];
+                        let has_4c1 = after.find("4C1").or(after.find("4c1"));
+                        let has_1c4 = after.find("1C4").or(after.find("1c4"));
+                        match (has_4c1, has_1c4) {
+                            (Some(a), Some(b)) => a < b,
+                            (Some(_), None) => true,
+                            _ => false,
+                        }
+                    }).unwrap_or(false);
+
+                let claim_says_1c4_ground = claim.contains("global min") &&
+                    claim.find("global min").map(|pos| {
+                        let after = &claim[pos..];
+                        let has_4c1 = after.find("4C1").or(after.find("4c1"));
+                        let has_1c4 = after.find("1C4").or(after.find("1c4"));
+                        match (has_4c1, has_1c4) {
+                            (Some(a), Some(b)) => b < a,
+                            (None, Some(_)) => true,
+                            _ => false,
+                        }
+                    }).unwrap_or(false);
+
+                // 4C1 is θ≈0-30°, 1C4 is θ≈150-180°
+                let actual_is_4c1 = theta_deg < 60.0;
+                let actual_is_1c4 = theta_deg > 120.0;
+
+                if claim_says_4c1_ground && actual_is_1c4 {
+                    findings.push(Finding {
+                        id: format!("VALIDATION-CLAIM-{}", name),
+                        severity: Severity::High,
+                        category: "Scientific Claims",
+                        message: format!(
+                            "{}: claims 4C1 ground state but FES global minimum is at θ={:.1}° (1C4)",
+                            name, theta_deg
+                        ),
+                        fix: "Update validation.json to reflect actual FES ground state".to_string(),
+                    });
+                } else if claim_says_1c4_ground && actual_is_4c1 {
+                    findings.push(Finding {
+                        id: format!("VALIDATION-CLAIM-{}", name),
+                        severity: Severity::High,
+                        category: "Scientific Claims",
+                        message: format!(
+                            "{}: claims 1C4 ground state but FES global minimum is at θ={:.1}° (4C1)",
+                            name, theta_deg
+                        ),
+                        fix: "Update validation.json to reflect actual FES ground state".to_string(),
+                    });
+                }
+            }
+        }
+    }
+}
+
+/// Cross-check scope.toml simulation_time_ns against MDP nsteps*dt
+fn check_simulation_times(root: &Path, findings: &mut Vec<Finding>) {
+    let scope_path = root.join("scope.toml");
+    if !scope_path.exists() { return; }
+
+    let scope_content = match fs::read_to_string(&scope_path) {
+        Ok(c) => c,
+        Err(_) => return,
+    };
+
+    let scope: toml::Table = match scope_content.parse() {
+        Ok(t) => t,
+        Err(_) => return,
+    };
+
+    // Parse modules from scope.toml
+    let modules = match scope.get("module") {
+        Some(toml::Value::Array(arr)) => arr,
+        _ => return,
+    };
+
+    let mut scope_total_ns: f64 = 0.0;
+
+    for module in modules {
+        let name = module.get("name").and_then(|n| n.as_str()).unwrap_or("");
+        let claimed_ns = module.get("simulation_time_ns")
+            .and_then(|v| v.as_integer())
+            .unwrap_or(0) as f64;
+
+        scope_total_ns += claimed_ns;
+
+        // Try to find matching MDP
+        let configs_dir = root.join(format!("configs/{}", name));
+        if !configs_dir.exists() { continue; }
+
+        let mut mdp_ns: Option<f64> = None;
+        if let Ok(entries) = fs::read_dir(&configs_dir) {
+            for entry in entries.flatten() {
+                let p = entry.path();
+                if p.extension().map(|e| e == "mdp").unwrap_or(false) {
+                    if let Ok(content) = fs::read_to_string(&p) {
+                        let mut nsteps: Option<f64> = None;
+                        let mut dt: Option<f64> = None;
+                        for line in content.lines() {
+                            let line = line.split(';').next().unwrap_or("").trim();
+                            if line.starts_with("nsteps") {
+                                nsteps = line.split('=').nth(1)
+                                    .and_then(|v| v.trim().parse().ok());
+                            } else if line.starts_with("dt") && !line.starts_with("dt_") {
+                                dt = line.split('=').nth(1)
+                                    .and_then(|v| v.trim().parse().ok());
+                            }
+                        }
+                        if let (Some(n), Some(d)) = (nsteps, dt) {
+                            // nsteps * dt(ps) / 1000 = time in ns
+                            mdp_ns = Some(n * d / 1000.0);
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
+        if let Some(actual_ns) = mdp_ns {
+            let diff = (claimed_ns - actual_ns).abs();
+            if diff > 1.0 {
+                findings.push(Finding {
+                    id: format!("SIMTIME-MISMATCH-{}", name),
+                    severity: Severity::High,
+                    category: "Simulation Time",
+                    message: format!(
+                        "{}: scope.toml claims {} ns but MDP nsteps*dt = {} ns",
+                        name, claimed_ns, actual_ns
+                    ),
+                    fix: "Update scope.toml simulation_time_ns to match MDP parameters".to_string(),
+                });
+            }
+        }
+    }
+
+    // Cross-check environment.toml total
+    let env_path = root.join("receipts/environment.toml");
+    if let Ok(env_content) = fs::read_to_string(&env_path) {
+        if let Ok(env_table) = env_content.parse::<toml::Table>() {
+            if let Some(total) = env_table.get("production")
+                .and_then(|p| p.as_table())
+                .and_then(|p| p.get("total_production_ns"))
+                .and_then(|v| v.as_integer())
+            {
+                let diff = (total as f64 - scope_total_ns).abs();
+                if diff > 1.0 {
+                    findings.push(Finding {
+                        id: "SIMTIME-TOTAL-MISMATCH".to_string(),
+                        severity: Severity::High,
+                        category: "Simulation Time",
+                        message: format!(
+                            "environment.toml total_production_ns={} but scope.toml modules sum to {} ns",
+                            total, scope_total_ns
+                        ),
+                        fix: "Update environment.toml to match sum of module simulation times".to_string(),
+                    });
+                }
+            }
+        }
+    }
+}
+
 fn check_figures_layer(root: &Path, findings: &mut Vec<Finding>) {
     let figures_dir = root.join("figures");
     let outputs_dir = root.join("outputs");

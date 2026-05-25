@@ -556,20 +556,23 @@ fn generate_release_from_braids(provenance_dir: &Path, name: &str, version: &str
     let date = chrono::Utc::now().format("%Y-%m-%d").to_string();
     let mut versions: Vec<(String, Vec<String>)> = Vec::new();
 
-    // Scan provenance for braid JSONs with supersedes chains
-    if let Ok(entries) = fs::read_dir(provenance_dir) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.extension().map(|e| e == "json").unwrap_or(false) {
-                if let Ok(content) = fs::read_to_string(&path) {
-                    if let Ok(v) = serde_json::from_str::<serde_json::Value>(&content) {
-                        let dataset_id = v.get("dataset_id").and_then(|d| d.as_str()).unwrap_or("");
-                        let changes: Vec<String> = v.get("what_changed")
-                            .and_then(|w| w.as_array())
-                            .map(|arr| arr.iter().filter_map(|s| s.as_str().map(|s| s.to_string())).collect())
-                            .unwrap_or_default();
-                        if !dataset_id.is_empty() && !changes.is_empty() {
-                            versions.push((dataset_id.to_string(), changes));
+    // Scan provenance for braid JSONs — check both flat and braids/ subdir
+    let scan_dirs = [provenance_dir.to_path_buf(), provenance_dir.join("braids")];
+    for scan_dir in &scan_dirs {
+        if let Ok(entries) = fs::read_dir(scan_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.extension().map(|e| e == "json").unwrap_or(false) {
+                    if let Ok(content) = fs::read_to_string(&path) {
+                        if let Ok(v) = serde_json::from_str::<serde_json::Value>(&content) {
+                            let dataset_id = v.get("dataset_id").and_then(|d| d.as_str()).unwrap_or("");
+                            let changes: Vec<String> = v.get("what_changed")
+                                .and_then(|w| w.as_array())
+                                .map(|arr| arr.iter().filter_map(|s| s.as_str().map(|s| s.to_string())).collect())
+                                .unwrap_or_default();
+                            if !dataset_id.is_empty() && !changes.is_empty() {
+                                versions.push((dataset_id.to_string(), changes));
+                            }
                         }
                     }
                 }

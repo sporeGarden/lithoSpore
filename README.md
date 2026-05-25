@@ -98,7 +98,7 @@ lithoSpore/
 │   ├── ltee-biobricks/           # Module 5: BioBrick burden
 │   ├── ltee-breseq/              # Module 6: 264-genome comparison
 │   ├── ltee-anderson/            # Module 7: Anderson-QS predictions
-│   └── ltee-cli/                 # Unified CLI: 17 subcommands + module registry + viz (instance layer)
+│   └── ltee-cli/                 # Unified CLI: 20 subcommands + module registry + viz (instance layer)
 │
 ├── artifact/                     # The deployable artifact
 │   ├── usb-root/                 # USB root templates (.biomeos-spore, biomeOS/)
@@ -193,7 +193,12 @@ for trio, braid ingestion with dual wire format support, tolerance framework, sp
 tracking, capability-based discovery with `announce_self()`/`query_capabilities()`,
 scope parser with `[[module]]` registry, data manifest, graph checks, shared stats,
 harness). `ltee-cli` adds instance layer: unified module registry (`registry.rs`),
-viz DataBinding adapters, 17 subcommands (+ `ingest-pseudospore`, `emit-pseudospore`).
+viz DataBinding adapters, 20 subcommands. pseudoSpore pipeline: `emit-pseudospore`
+(auto-figures, PDB serial extraction, BLAKE3 sealing), `ingest-pseudospore`,
+`audit` (10-check pre-handoff validation — BLAKE3 integrity, config↔data, topology
+cross-ref, derivation contract, version consistency, provenance, visual evidence),
+`promote` (pseudoSpore → lithoSpore chassis with stripped binaries, auto RELEASE.md),
+`translate-config` (domain↔computation index translation).
 125 unit/integration tests + 10
 chaos/fault-injection tests, zero clippy warnings, `#![forbid(unsafe_code)]`
 workspace-wide, pure Rust BLAKE3 (ecoBin compliant), `liveSpore.json` operational

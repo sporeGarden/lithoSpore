@@ -1,17 +1,31 @@
 # pseudoSpore Examples
 
-## Canonical Example: hotSpring CAZyme FEL (v0.6.0)
+## Canonical Example: hotSpring CAZyme FEL (v0.7.0)
 
 The first pseudoSpore deployed in the ecosystem. Produced by hotSpring Experiment 220
 (CAZyme conformational free energy landscapes via well-tempered metadynamics).
 
 **Location:** `ecoPrimals/springs/hotSpring/control/gromacs_fel/lithoSpore_handoff/`
 
+### v0.7.0 Corrections (from Alistaire's review of v0.6.0)
+
+| Issue | v0.6.0 | v0.7.0 |
+|-------|--------|--------|
+| Module 2 input | RDKit β-D-Lyxose (wrong!) | PDB 2D24 crystal β-D-Xylose |
+| Module 3 status | IN_FLIGHT | COMPLETE (sum_hills run) |
+| Atom index docs | None | ATOM_INDEX_MAP.md |
+| Solvation proof | Unverifiable | SYSTEM_SETUP.md |
+| All modules pass | 2/3 | 3/3 |
+
+**Lesson**: Domain expert review caught critical errors that automated checks missed.
+RDKit SMILES→3D should never be trusted for carbohydrate stereochemistry without
+crystallographic verification.
+
 ### Mapping to Standard
 
 | Standard Path | Existing File | Notes |
 |---------------|--------------|-------|
-| `scope.toml` | `scope.toml` | Already uses `type = "pseudo-lithoSpore"` — upgrade to `"pseudoSpore"` |
+| `scope.toml` | `scope.toml` | Uses `type = "pseudoSpore"` ✓ (updated in v0.7.0) |
 | `validation.json` | `validation.json` | Conforms to spec (modules array with checks + errata) |
 | `receipts/environment.toml` | `provenance/environment.toml` | Move to `receipts/` |
 | `receipts/checksums.blake3` | — | Generate with `litho emit-pseudospore` |
@@ -30,7 +44,7 @@ The first pseudoSpore deployed in the ecosystem. Produced by hotSpring Experimen
 
 To align the existing CAZyme handoff with the pseudoSpore standard:
 
-1. Rename `[artifact]` type from `"pseudo-lithoSpore"` to `"pseudoSpore"` in scope.toml
+1. ~~Rename type~~ — Done in v0.7.0 (`type = "pseudoSpore"`)
 2. Move `provenance/environment.toml` to `receipts/environment.toml`
 3. Generate `receipts/checksums.blake3` via `litho emit-pseudospore` or manually
 4. Rename `modules/` to `outputs/`
@@ -41,7 +55,7 @@ Or generate a fresh pseudoSpore using the CLI:
 ```bash
 litho emit-pseudospore \
   --name hotSpring-CAZyme-FEL \
-  --version 0.7.0 \
+  --version 0.7.1 \
   --origin ecoPrimals/springs/hotSpring \
   --output ~/Desktop/ \
   --outputs control/gromacs_fel/lithoSpore_handoff/modules \
@@ -54,7 +68,7 @@ litho emit-pseudospore \
 
 2. **Errata as first-class data**: The `errata` field in both scope.toml `[[module]]` entries and validation.json module entries captures known limitations honestly.
 
-3. **IN_FLIGHT modules**: Module 3 (enzyme-bound) is marked IN_FLIGHT — the pseudoSpore ships before all modules complete. This is valid: the existing passes prove the pipeline works, the in-flight module is honestly flagged.
+3. **IN_FLIGHT → COMPLETE lifecycle**: Module 3 was originally IN_FLIGHT in v0.6.0 (production running). In v0.7.0 all modules are COMPLETE. The pseudoSpore standard supports shipping intermediate checkpoints with honest status labels.
 
 4. **Live sweetGrass braid**: The provenance includes a live IPC braid (not just pseudo). This demonstrates the sweetGrass → pseudoSpore integration path.
 

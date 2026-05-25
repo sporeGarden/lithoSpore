@@ -14,6 +14,7 @@ mod grow;
 mod ingest_pseudospore;
 mod ops;
 mod parity;
+mod promote;
 pub(crate) mod registry;
 mod translate_config;
 mod validate;
@@ -260,6 +261,29 @@ enum Commands {
         data: Option<String>,
     },
 
+    /// Promote a pseudoSpore to a lithoSpore deployment chassis
+    Promote {
+        /// Path to the pseudoSpore directory
+        #[arg(long)]
+        pseudospore: String,
+
+        /// Output directory (lithoSpore dir created inside)
+        #[arg(long, default_value = ".")]
+        output: String,
+
+        /// Path to Tier 2 Rust crate to compile and include
+        #[arg(long)]
+        tier2_crate: Option<String>,
+
+        /// Path to Tier 1 Python validation script to include
+        #[arg(long)]
+        tier1_script: Option<String>,
+
+        /// Override the lithoSpore version (default: 1.0.0)
+        #[arg(long)]
+        version: Option<String>,
+    },
+
     /// Translate config file indices between domain and computation frames
     TranslateConfig {
         /// Path to index_map.toml
@@ -383,6 +407,8 @@ fn main() {
             ingest_pseudospore::run(&path, &artifact_root, verify),
         Commands::EmitPseudospore { name, version, origin, output, outputs, configs, braids, data } =>
             emit_pseudospore::run(&name, &version, &origin, &output, outputs.as_deref(), configs.as_deref(), braids.as_deref(), data.as_deref()),
+        Commands::Promote { pseudospore, output, tier2_crate, tier1_script, version } =>
+            promote::run(&pseudospore, &output, tier2_crate.as_deref(), tier1_script.as_deref(), version.as_deref()),
         Commands::TranslateConfig { index_map, config, frame, output } =>
             translate_config::run(&index_map, &config, &frame, output.as_deref()),
     }

@@ -52,8 +52,8 @@ lithoSpore_<name>_v<X.Y.Z>/
 │   │   └── cazyme-fel          # Tier 2 Rust validator
 │   ├── env/                    # Python environment snapshot
 │   │   └── requirements.txt    # Pinned versions for Tier 1
-│   ├── forcefields/            # Domain-specific data files
-│   │   └── charmm36m/
+│   ├── forcefields/            # OPTIONAL — domain-specific data files
+│   │   └── charmm36m/          # Omit if bundled with runtime tool (e.g., GROMACS ships CHARMM36)
 │   └── scripts/                # Automation
 │       ├── validate.sh         # Run full validation chain
 │       ├── reproduce.sh        # Re-run from raw inputs

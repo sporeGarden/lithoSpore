@@ -51,7 +51,7 @@ pub(super) fn check_figures_layer(root: &Path, findings: &mut Vec<Finding>) {
             message: format!(
                 "{fes_modules} modules have FES data but no figures/ directory exists"
             ),
-            fix: "Generate figures: python generate_figures.py --pseudospore <path>".to_string(),
+            fix: "Generate figures: run `litho emit-pseudospore` (auto-generates from outputs/) or re-run the module notebooks".to_string(),
         });
         return;
     }
@@ -69,7 +69,7 @@ pub(super) fn check_figures_layer(root: &Path, findings: &mut Vec<Finding>) {
             severity: Severity::Low,
             category: "Visual Evidence",
             message: "figures/ directory exists but contains no PNG files".to_string(),
-            fix: "Generate figures: python generate_figures.py --pseudospore <path>".to_string(),
+            fix: "Generate figures: run `litho emit-pseudospore` (auto-generates from outputs/) or re-run the module notebooks".to_string(),
         });
     }
 }

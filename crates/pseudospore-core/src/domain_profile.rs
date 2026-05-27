@@ -27,6 +27,8 @@ pub struct DomainProfile {
     pub figures: Option<FiguresConfig>,
     pub audit: Option<AuditConfig>,
     pub simulation_time: Option<SimTimeConfig>,
+    /// Optional RMSD acceptance limits for promote / expected stubs.
+    pub tolerances: Option<TolerancesConfig>,
 }
 
 /// A module declared in the domain profile (`[[module]]`).
@@ -157,6 +159,26 @@ pub struct ClaimZone {
     pub name: String,
     pub min: f64,
     pub max: f64,
+}
+
+/// Domain-specific acceptance tolerances (`[tolerances]`).
+///
+/// Defaults to 2.0 kJ for both tiers (generic RMSD acceptance).
+#[derive(Debug, Clone)]
+pub struct TolerancesConfig {
+    pub tier1_rmsd_kj_max: f64,
+    pub tier2_rmsd_kj_max: f64,
+}
+
+const DEFAULT_RMSD_KJ: f64 = 2.0;
+
+impl Default for TolerancesConfig {
+    fn default() -> Self {
+        Self {
+            tier1_rmsd_kj_max: DEFAULT_RMSD_KJ,
+            tier2_rmsd_kj_max: DEFAULT_RMSD_KJ,
+        }
+    }
 }
 
 /// Simulation time field mapping (`[simulation_time]`).
@@ -316,6 +338,7 @@ impl DomainProfile {
         let figures = parse_figures(&table);
         let audit = parse_audit(&table);
         let simulation_time = parse_sim_time(&table);
+        let tolerances = parse_tolerances(table.get("tolerances"));
 
         Ok(Self {
             id,
@@ -329,6 +352,7 @@ impl DomainProfile {
             figures,
             audit,
             simulation_time,
+            tolerances,
         })
     }
 }
@@ -589,6 +613,19 @@ fn parse_audit(table: &toml::Table) -> Option<AuditConfig> {
     })
 }
 
+fn parse_tolerances(section: Option<&toml::Value>) -> Option<TolerancesConfig> {
+    let t = section?.as_table()?;
+    let get = |key| {
+        t.get(key)
+            .and_then(toml::Value::as_float)
+            .unwrap_or(DEFAULT_RMSD_KJ)
+    };
+    Some(TolerancesConfig {
+        tier1_rmsd_kj_max: get("tier1_rmsd_kj_max"),
+        tier2_rmsd_kj_max: get("tier2_rmsd_kj_max"),
+    })
+}
+
 fn parse_sim_time(table: &toml::Table) -> Option<SimTimeConfig> {
     let section = table.get("simulation_time")?.as_table()?;
     let config_format = section
@@ -722,26 +759,17 @@ time_unit = "ns"
     }
 
     #[test]
-    fn try_load_missing_file_returns_none() {
+    fn try_load_returns_none_for_missing_or_invalid() {
         let dir = tempfile::tempdir().expect("tempdir");
-        let path = dir.path().join("missing.toml");
-        assert!(DomainProfile::try_load(&path).is_none());
-    }
-
-    #[test]
-    fn try_load_invalid_file_returns_none() {
-        let dir = tempfile::tempdir().expect("tempdir");
-        let path = dir.path().join("domain_profile.toml");
-        fs::write(&path, "bad {{{").expect("write");
-        assert!(DomainProfile::try_load(&path).is_none());
-    }
-
-    #[test]
-    fn from_spore_root_loads_profile() {
-        let dir = tempfile::tempdir().expect("tempdir");
-        fs::write(dir.path().join("domain_profile.toml"), VALID_PROFILE).expect("write");
-        let profile = DomainProfile::from_spore_root(dir.path()).expect("from_spore_root");
-        assert_eq!(profile.id, "test-domain");
+        assert!(DomainProfile::try_load(&dir.path().join("missing.toml")).is_none());
+        let bad = dir.path().join("domain_profile.toml");
+        fs::write(&bad, "bad {{{").expect("write");
+        assert!(DomainProfile::try_load(&bad).is_none());
+        fs::write(&bad, VALID_PROFILE).expect("write valid");
+        assert_eq!(
+            DomainProfile::from_spore_root(dir.path()).expect("load").id,
+            "test-domain"
+        );
     }
 
     fn load_from_content(content: &str) -> DomainProfile {
@@ -752,46 +780,19 @@ time_unit = "ns"
     }
 
     #[test]
-    fn figures_enabled_defaults_true_when_section_absent() {
-        let profile = load_from_content(
-            r#"
-[profile]
-id = "minimal"
-version = "0.1.0"
-"#,
-        );
-        assert!(
-            profile.figures_enabled(),
-            "figures should default to enabled when [figures] absent"
-        );
-    }
-
-    #[test]
-    fn translation_enabled_defaults_false_when_section_absent() {
-        let profile = load_from_content(
-            r#"
-[profile]
-id = "minimal"
-version = "0.1.0"
-"#,
-        );
+    fn section_defaults() {
+        let profile = load_from_content("[profile]\nid = \"minimal\"\nversion = \"0.1.0\"\n");
+        assert!(profile.figures_enabled(), "figures default to enabled");
         assert!(
             !profile.translation_enabled(),
-            "translation should default to disabled when [translation] absent"
+            "translation default to disabled"
         );
     }
 
     #[test]
-    fn figures_enabled_true_when_section_enabled() {
+    fn figures_enabled_when_section_present() {
         let profile = load_from_content(
-            r#"
-[profile]
-id = "fig"
-version = "0.1.0"
-
-[figures]
-enabled = true
-"#,
+            "[profile]\nid = \"fig\"\nversion = \"0.1.0\"\n\n[figures]\nenabled = true\n",
         );
         assert!(profile.figures_enabled());
     }

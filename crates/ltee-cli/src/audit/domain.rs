@@ -673,7 +673,8 @@ pub(super) fn check_derivation_contract(root: &Path, findings: &mut Vec<Finding>
                             }
                             fs::remove_file(&tmp_out).ok();
                         }
-                        _ => {} // plumed failed, skip
+                        // plumed missing or non-zero exit: derivation check is optional
+                        Ok(_) | Err(_) => {}
                     }
                 } else {
                     // No plumed: sanity check that HILLS has reasonable line count

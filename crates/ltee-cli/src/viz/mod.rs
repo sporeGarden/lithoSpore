@@ -256,7 +256,7 @@ pub(crate) fn track_segment(track: &str, start: f64, end: f64, strand: &str, lab
 }
 
 /// Convert a module's expected JSON into a vec of petalTongue `DataBinding` objects.
-pub fn module_to_bindings(module_name: &str, expected: &Value) -> Vec<Value> {
+pub(crate) fn module_to_bindings(module_name: &str, expected: &Value) -> Vec<Value> {
     match module_name {
         "power_law_fitness" => modules::m1_fitness(expected),
         "mutation_accumulation" => modules::m2_mutations(expected),
@@ -270,7 +270,7 @@ pub fn module_to_bindings(module_name: &str, expected: &Value) -> Vec<Value> {
 }
 
 /// Build a lithoSpore dashboard payload with all module bindings.
-pub fn build_dashboard(modules: &[(&str, &Value)]) -> Value {
+pub(crate) fn build_dashboard(modules: &[(&str, &Value)]) -> Value {
     let mut bindings = Vec::new();
     for (name, expected) in modules {
         bindings.extend(module_to_bindings(name, expected));
@@ -284,7 +284,7 @@ pub fn build_dashboard(modules: &[(&str, &Value)]) -> Value {
 }
 
 /// Convert a baseline tool's `reference_data` JSON into `DataBinding` objects.
-pub fn baseline_to_bindings(tool_name: &str, data: &Value) -> Vec<Value> {
+pub(crate) fn baseline_to_bindings(tool_name: &str, data: &Value) -> Vec<Value> {
     match tool_name {
         "breseq" => baselines::breseq(data),
         "plannotate" => baselines::plannotate(data),
@@ -299,7 +299,7 @@ pub fn baseline_to_bindings(tool_name: &str, data: &Value) -> Vec<Value> {
 
 /// Build a baseline dashboard payload combining all 7 Barrick Lab tool
 /// reference visualizations.
-pub fn build_baseline_dashboard(tools: &[(&str, &Value)]) -> Value {
+pub(crate) fn build_baseline_dashboard(tools: &[(&str, &Value)]) -> Value {
     let mut bindings = Vec::new();
     for (name, data) in tools {
         bindings.extend(baseline_to_bindings(name, data));

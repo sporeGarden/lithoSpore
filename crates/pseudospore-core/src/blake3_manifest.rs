@@ -25,10 +25,12 @@ impl Blake3Manifest {
     /// # Errors
     ///
     /// Returns an error if the file cannot be read or parsed.
-    pub fn load(path: &Path) -> Result<Self, String> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| format!("Failed to read {}: {e}", path.display()))?;
-        Self::parse(&content)
+    pub fn load(path: &Path) -> Result<Self, crate::SporeError> {
+        let content = std::fs::read_to_string(path).map_err(|source| crate::SporeError::Io {
+            path: path.to_path_buf(),
+            source,
+        })?;
+        Self::parse(path, &content)
     }
 
     /// Parse data.toml content.
@@ -36,10 +38,14 @@ impl Blake3Manifest {
     /// # Errors
     ///
     /// Returns an error if the content is not valid TOML.
-    pub fn parse(content: &str) -> Result<Self, String> {
-        let table: toml::Table = content
-            .parse()
-            .map_err(|e| format!("Failed to parse data.toml: {e}"))?;
+    pub fn parse(path: &Path, content: &str) -> Result<Self, crate::SporeError> {
+        let table: toml::Table =
+            content
+                .parse::<toml::Table>()
+                .map_err(|e| crate::SporeError::Parse {
+                    path: path.to_path_buf(),
+                    detail: e.to_string(),
+                })?;
 
         let present = extract_section(&table, "present");
         let external = extract_section(&table, "external");
@@ -168,7 +174,7 @@ mod tests {
 [external]
 "data/big_trajectory.xtc" = "789012"
 "#;
-        let m = Blake3Manifest::parse(content).unwrap();
+        let m = Blake3Manifest::parse(Path::new("data.toml"), content).unwrap();
         assert_eq!(m.present.len(), 2);
         assert_eq!(m.external.len(), 1);
         assert_eq!(m.present["scope.toml"], "abc123");
@@ -180,7 +186,7 @@ mod tests {
         m.present.insert("a.txt".to_string(), "hash_a".to_string());
         m.external.insert("b.xtc".to_string(), "hash_b".to_string());
         let serialized = m.to_toml();
-        let parsed = Blake3Manifest::parse(&serialized).unwrap();
+        let parsed = Blake3Manifest::parse(Path::new("data.toml"), &serialized).unwrap();
         assert_eq!(parsed.present["a.txt"], "hash_a");
         assert_eq!(parsed.external["b.xtc"], "hash_b");
     }
@@ -244,7 +250,10 @@ mod tests {
 
     #[test]
     fn parse_invalid_toml_fails() {
-        let err = Blake3Manifest::parse("not valid {{{").unwrap_err();
-        assert!(err.contains("Failed to parse"), "parse error: {err}");
+        let err = Blake3Manifest::parse(Path::new("data.toml"), "not valid {{{").unwrap_err();
+        assert!(
+            err.to_string().contains("failed to parse"),
+            "parse error: {err}"
+        );
     }
 }

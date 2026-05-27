@@ -5,8 +5,7 @@
 //! Validates the pseudoSpore structure, verifies checksums, imports braids into
 //! `provenance/braids/`, and registers it in `pseudospores/registry.toml`.
 
-use litho_core::pseudospore::{self, PseudoSporeManifest, SporeStatus};
-use pseudospore_core::ChecksumEntry;
+use pseudospore_core::{ChecksumEntry, PseudoSporeEnvelope, ScopeDoc};
 use std::path::Path;
 
 pub fn run(pseudospore_path: &str, artifact_root: &str, verify: bool) {
@@ -22,53 +21,86 @@ pub fn run(pseudospore_path: &str, artifact_root: &str, verify: bool) {
     println!("  Source: {pseudospore_path}");
     println!();
 
-    // 1. Load and validate structure
-    let mut manifest = pseudospore::load_pseudospore(ps_root);
+    // 1. Load envelope via pseudospore-core canonical API
+    let envelope = match PseudoSporeEnvelope::load(ps_root) {
+        Ok(e) => e,
+        Err(err) => {
+            eprintln!("INVALID pseudoSpore — {err}");
+            std::process::exit(1);
+        }
+    };
 
-    if manifest.status == SporeStatus::Invalid {
-        eprintln!("INVALID pseudoSpore — structural errors:");
-        for err in &manifest.errors {
+    let result = envelope.validate();
+    if !result.valid {
+        eprintln!("INVALID pseudoSpore — validation errors:");
+        for err in &result.errors {
             eprintln!("  - {err}");
         }
         std::process::exit(1);
     }
 
+    let scope = envelope
+        .scope
+        .as_ref()
+        .expect("scope guaranteed present after successful load");
+
     println!(
         "  Artifact: {} v{}",
-        manifest.scope.artifact.name, manifest.scope.artifact.version
+        scope.artifact.name, scope.artifact.version
     );
-    println!("  Origin:   {}", manifest.scope.artifact.origin);
-    println!("  Date:     {}", manifest.scope.artifact.date);
-    println!("  Modules:  {}", manifest.scope.module.len());
+    println!("  Origin:   {}", scope.artifact.origin);
+    println!("  Date:     {}", scope.artifact.date);
+    println!("  Modules:  {}", scope.module.len());
+    if !result.warnings.is_empty() {
+        for w in &result.warnings {
+            println!("  [WARN] {w}");
+        }
+    }
     println!();
 
-    // 2. Optionally verify checksums
+    // 2. Optionally verify checksums (already checked by validate, report details)
     if verify {
-        print!("  Verifying checksums... ");
-        if pseudospore::verify_checksums(&mut manifest) {
-            println!("OK ({} files)", manifest.checksums.len());
-            print_checksums(&manifest.checksums);
+        print!("  Checksums: ");
+        if result.checksums_failed == 0 {
+            println!(
+                "OK ({} verified, {} in receipts)",
+                result.checksums_verified,
+                envelope.checksums.len()
+            );
+            print_checksums(&envelope.checksums);
         } else {
-            println!("FAILED");
-            for err in &manifest.errors {
-                if err.contains("Checksum") || err.contains("Missing file") {
+            println!(
+                "FAILED ({} mismatches out of {})",
+                result.checksums_failed,
+                result.checksums_verified + result.checksums_failed
+            );
+            for err in &result.errors {
+                if err.contains("checksum") || err.contains("missing file") {
                     eprintln!("    {err}");
                 }
             }
         }
     }
 
-    // 3. Check completeness
-    let complete = pseudospore::check_completeness(&mut manifest);
-    println!("  Status: {}", manifest.status);
-    if !complete {
-        let in_flight: Vec<_> = manifest
-            .validation
+    // 3. Load validation.json for completeness reporting
+    let validation = &envelope.validation;
+    if let Some(val) = validation {
+        let in_flight: Vec<_> = val
             .modules
             .iter()
-            .filter(|m| m.status.to_uppercase() == "IN_FLIGHT")
+            .filter(|m| m.status.eq_ignore_ascii_case("in_flight"))
             .map(|m| m.name.as_str())
             .collect();
+        let pass_count = val
+            .modules
+            .iter()
+            .filter(|m| m.status.eq_ignore_ascii_case("pass"))
+            .count();
+        println!(
+            "  Validation: {}/{} modules pass",
+            pass_count,
+            val.modules.len()
+        );
         if !in_flight.is_empty() {
             println!("  In-flight modules: {}", in_flight.join(", "));
         }
@@ -127,12 +159,7 @@ pub fn run(pseudospore_path: &str, artifact_root: &str, verify: bool) {
         std::fs::create_dir_all(&braids_dst).ok();
         let ferment_name = format!(
             "{}_ferment.json",
-            manifest
-                .scope
-                .artifact
-                .name
-                .replace(' ', "_")
-                .to_lowercase()
+            scope.artifact.name.replace(' ', "_").to_lowercase()
         );
         let ferment_dst = braids_dst.join(&ferment_name);
         if !ferment_dst.exists()
@@ -150,9 +177,9 @@ pub fn run(pseudospore_path: &str, artifact_root: &str, verify: bool) {
     std::fs::create_dir_all(&registry_dir).ok();
     let registry_path = registry_dir.join("registry.toml");
 
-    let entry = format_registry_entry(&manifest);
+    let entry = format_registry_entry(scope, &envelope);
     let mut registry_content = std::fs::read_to_string(&registry_path).unwrap_or_default();
-    if registry_content.contains(&format!("name = \"{}\"", manifest.scope.artifact.name)) {
+    if registry_content.contains(&format!("name = \"{}\"", scope.artifact.name)) {
         println!("  Already registered (skipped)");
     } else {
         registry_content.push_str(&entry);
@@ -161,20 +188,23 @@ pub fn run(pseudospore_path: &str, artifact_root: &str, verify: bool) {
     }
 
     println!();
-    println!(
-        "Done. pseudoSpore ingested as {} ({})",
-        manifest.scope.artifact.name, manifest.status
-    );
+    println!("Done. pseudoSpore ingested: {}", scope.artifact.name);
 }
 
-fn format_registry_entry(manifest: &PseudoSporeManifest) -> String {
-    let modules_pass = manifest
-        .validation
-        .modules
-        .iter()
-        .filter(|m| m.status.to_uppercase() == "PASS")
-        .count();
-    let modules_total = manifest.validation.modules.len();
+fn format_registry_entry(scope: &ScopeDoc, envelope: &PseudoSporeEnvelope) -> String {
+    let (modules_pass, modules_total) = envelope.validation.as_ref().map_or((0, 0), |v| {
+        let pass = v
+            .modules
+            .iter()
+            .filter(|m| m.status.eq_ignore_ascii_case("pass"))
+            .count();
+        (pass, v.modules.len())
+    });
+
+    let spring = envelope
+        .ferment
+        .as_ref()
+        .map_or("unknown", |f| f.spring.as_str());
 
     format!(
         r#"
@@ -184,18 +214,13 @@ version = "{version}"
 origin = "{origin}"
 date = "{date}"
 spring = "{spring}"
-status = "{status}"
 modules_pass = {modules_pass}
 modules_total = {modules_total}
 "#,
-        name = manifest.scope.artifact.name,
-        version = manifest.scope.artifact.version,
-        origin = manifest.scope.artifact.origin,
-        date = manifest.scope.artifact.date,
-        spring = manifest.ferment.spring,
-        status = manifest.status,
-        modules_pass = modules_pass,
-        modules_total = modules_total,
+        name = scope.artifact.name,
+        version = scope.artifact.version,
+        origin = scope.artifact.origin,
+        date = scope.artifact.date,
     )
 }
 

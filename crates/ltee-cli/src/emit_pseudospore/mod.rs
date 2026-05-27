@@ -17,7 +17,7 @@ use pseudospore_core::receipts;
 use std::fs;
 use std::path::Path;
 
-pub(crate) const LITHOSPORE_VERSION: &str = "2.3.0";
+pub(crate) const LITHOSPORE_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub struct EmitConfig<'a> {
     pub name: &'a str,

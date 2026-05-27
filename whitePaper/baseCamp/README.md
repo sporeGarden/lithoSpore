@@ -183,7 +183,7 @@ NUCLEUS topology without per-module wiring.
 ## Chassis Abstraction
 
 The three-tier pipeline is now domain-agnostic at the infrastructure layer.
-`litho-core` (11 modules) contains zero LTEE-specific code. The LTEE instance
+`litho-core` (12 modules) contains zero LTEE-specific code. The LTEE instance
 is decoupled via:
 
 - **`scope.toml` `[[module]]` entries**: Carry name, binary, data_dir, expected,
@@ -273,7 +273,7 @@ time: 4 USB drives to the Barrick Lab (MSU) for an LTEE Research
 Assistant II interview.
 
 **What proved out:**
-- 73/73 science checks on 4+ machines in <100ms
+- 75/75 science checks on 4+ machines in <100ms
 - exFAT universal filesystem (Windows/macOS/Linux mount)
 - Shell shim for no-exec filesystems (copy → chmod → run → cleanup)
 - Pre-rendered HTML browse layer (science visible without execution)

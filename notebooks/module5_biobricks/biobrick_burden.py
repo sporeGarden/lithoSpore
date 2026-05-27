@@ -87,7 +87,7 @@ def main():
     print(f"  Expected: {EXPECTED_PATH}")
 
     if not DATA_DIR.exists():
-        print("\n  SKIP: Data not yet fetched. Run: scripts/fetch_biobricks_2024.sh")
+        print("\n  SKIP: Data not yet fetched. Run: litho fetch --module biobricks")
         return 2
 
     expected = load_expected()

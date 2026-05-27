@@ -20,7 +20,7 @@ pub struct ModuleEntry {
 }
 
 /// LTEE instance: compiled fallback when scope.toml has no `[[module]]` entries.
-pub const LTEE_MODULES: &[(&str, &str, &str, &str)] = &[
+pub(crate) const LTEE_MODULES: &[(&str, &str, &str, &str)] = &[
     (
         "power_law_fitness",
         "ltee-fitness",
@@ -65,7 +65,7 @@ pub const LTEE_MODULES: &[(&str, &str, &str, &str)] = &[
     ),
 ];
 
-pub const LTEE_NOTEBOOKS: &[(&str, &str)] = &[
+pub(crate) const LTEE_NOTEBOOKS: &[(&str, &str)] = &[
     (
         "power_law_fitness",
         "notebooks/module1_fitness/power_law_fitness.py",
@@ -100,7 +100,7 @@ pub type ModuleFn = fn(&str, &str, u8) -> litho_core::ModuleResult;
 
 /// Compiled dispatch table. Modules are linked at compile time via Cargo deps.
 /// A future evolution would use dynamic loading or feature gates per instance.
-pub const MODULE_DISPATCH: &[(&str, ModuleFn)] = &[
+pub(crate) const MODULE_DISPATCH: &[(&str, ModuleFn)] = &[
     ("ltee-fitness", ltee_fitness::run_validation),
     ("ltee-mutations", ltee_mutations::run_validation),
     ("ltee-alleles", ltee_alleles::run_validation),
@@ -110,28 +110,52 @@ pub const MODULE_DISPATCH: &[(&str, ModuleFn)] = &[
     ("ltee-anderson", ltee_anderson::run_validation),
 ];
 
+/// Load modules from `scope.toml` when present, otherwise the compiled LTEE table.
+pub(crate) fn load_modules(scope_path: Option<&Path>) -> Vec<ModuleEntry> {
+    if let Some(path) = scope_path
+        && let Ok(scope) = litho_core::ScopeManifest::load(path)
+        && !scope.module.is_empty()
+    {
+        return scope
+            .module
+            .iter()
+            .map(|m| ModuleEntry {
+                name: m.name.clone(),
+                binary: m.binary.clone(),
+                data_dir: m.data_dir.clone(),
+                expected: m.expected.clone(),
+                tier1_notebook: m.tier1_notebook.clone(),
+            })
+            .collect();
+    }
+    compiled_module_fallback()
+}
+
+fn compiled_module_fallback() -> Vec<ModuleEntry> {
+    LTEE_MODULES
+        .iter()
+        .map(|(name, binary, data_dir, expected)| ModuleEntry {
+            name: name.to_string(),
+            binary: binary.to_string(),
+            data_dir: data_dir.to_string(),
+            expected: expected.to_string(),
+            tier1_notebook: find_notebook(name),
+        })
+        .collect()
+}
+
 /// Load the module table. Priority:
 ///
 /// 1. `scope.toml` `[[module]]` entries (domain-agnostic)
 /// 2. `scope.toml` springs × `data.toml` datasets (legacy)
 /// 3. Compiled `LTEE_MODULES` fallback
-pub fn load_module_table(root: &Path) -> Vec<ModuleEntry> {
+pub(crate) fn load_module_table(root: &Path) -> Vec<ModuleEntry> {
     let scope_path = root.join("artifact/scope.toml");
 
+    let from_scope = load_modules(Some(&scope_path));
     if let Ok(scope) = litho_core::ScopeManifest::load(&scope_path) {
-        // Priority 1: explicit [[module]] entries in scope.toml
         if !scope.module.is_empty() {
-            return scope
-                .module
-                .iter()
-                .map(|m| ModuleEntry {
-                    name: m.name.clone(),
-                    binary: m.binary.clone(),
-                    data_dir: m.data_dir.clone(),
-                    expected: m.expected.clone(),
-                    tier1_notebook: m.tier1_notebook.clone(),
-                })
-                .collect();
+            return from_scope;
         }
 
         // Priority 2: derive from springs × data.toml
@@ -188,20 +212,11 @@ pub fn load_module_table(root: &Path) -> Vec<ModuleEntry> {
     }
 
     // Priority 3: compiled LTEE fallback
-    LTEE_MODULES
-        .iter()
-        .map(|(name, binary, data_dir, expected)| ModuleEntry {
-            name: name.to_string(),
-            binary: binary.to_string(),
-            data_dir: data_dir.to_string(),
-            expected: expected.to_string(),
-            tier1_notebook: find_notebook(name),
-        })
-        .collect()
+    compiled_module_fallback()
 }
 
 /// Load the guideStone identity name from scope.toml, with fallback.
-pub fn load_scope_name(root: &Path) -> String {
+pub(crate) fn load_scope_name(root: &Path) -> String {
     litho_core::ScopeManifest::load(&root.join("artifact/scope.toml")).map_or_else(
         |_| "ltee-guidestone".to_string(),
         |s| s.guidestone.name.clone(),
@@ -209,14 +224,14 @@ pub fn load_scope_name(root: &Path) -> String {
 }
 
 /// Load the scope manifest (if available).
-pub fn load_scope(root: &Path) -> Option<litho_core::ScopeManifest> {
+pub(crate) fn load_scope(root: &Path) -> Option<litho_core::ScopeManifest> {
     litho_core::ScopeManifest::load(&root.join("artifact/scope.toml")).ok()
 }
 
 /// Domain-agnostic name matching: does a result module name correspond
 /// to a given binary/module identifier? Uses the module registry to
 /// resolve, falling back to the legacy LTEE mapping.
-pub fn module_name_matches(
+pub(crate) fn module_name_matches(
     registry: &[ModuleEntry],
     result_name: &str,
     target_module: &str,
@@ -255,7 +270,7 @@ fn find_notebook(logical_name: &str) -> String {
 }
 
 /// Find the expected JSON file for a module by scanning `validation/expected/`.
-pub fn find_expected_json(root: &Path, module_binary: &str) -> String {
+pub(crate) fn find_expected_json(root: &Path, module_binary: &str) -> String {
     let expected_dir = root.join("validation/expected");
     if !expected_dir.is_dir() {
         return String::new();
@@ -284,7 +299,7 @@ pub fn find_expected_json(root: &Path, module_binary: &str) -> String {
 }
 
 /// Dispatch to a module's in-process validation function by binary name.
-pub fn dispatch_module(
+pub(crate) fn dispatch_module(
     binary: &str,
     data_dir: &str,
     expected: &str,

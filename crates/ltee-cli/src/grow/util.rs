@@ -55,7 +55,7 @@ pub(super) fn run_cmd(cmd: &str, args: &[&str]) {
             eprintln!("  ERROR: Could not run `{cmd}`: {e}");
             std::process::exit(1);
         }
-        _ => {}
+        Ok(_) => {} // success — no further action
     }
 }
 
@@ -74,7 +74,7 @@ pub(super) fn run_cmd_in(cmd: &str, args: &[&str], dir: &Path) {
             eprintln!("  ERROR: Could not run `{cmd}` in {}: {e}", dir.display());
             std::process::exit(1);
         }
-        _ => {}
+        Ok(_) => {} // success — no further action
     }
 }
 

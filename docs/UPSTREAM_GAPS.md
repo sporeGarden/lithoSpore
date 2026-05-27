@@ -1,6 +1,6 @@
 # lithoSpore Upstream Gap Registry
 
-**Last Updated**: May 27, 2026 (75/75 checks, 7/7 modules, Tier 3 wired, 189 tests, 3 live braids)
+**Last Updated**: May 27, 2026 (75/75 checks, 7/7 modules, Tier 3 wired, 198 tests, 3 live braids)
 **Phase**: Post-deployment (first live handoff to Barrick Lab May 18)
 **Scope**: lithoSpore verification chassis (LTEE first instance; chassis 100% agnostic)
 **Geo-delocalization**: Absorbed — discovery chain env → UDS → TURN → standalone
@@ -58,7 +58,7 @@ all bash fetch scripts. `litho assemble` replaces `assemble-usb.sh`.
 | FN-FETCH | `fetch_sources.sh` hardcoded `127.0.0.1` for NestGate | Replaced with `${PRIMAL_HOST:-127.0.0.1}` |
 | FN-GRAPH | `foundation_validation.toml` stale method names | `store.put`→`storage.store`, `dag.session_start`→`dag.session.create`, etc. |
 | FN-GPATH | `graphs/README.md` stale `sporeGarden/` paths | Fixed to `../../projectNUCLEUS/deploy` and direct graph paths |
-| FN-DEAD | `fetch_from_manifest` 54 LOC dead code | Removed from `deploy/fetch_sources.sh` |
+| FN-DEAD | `fetch_from_manifest` 54 LOC dead code | Removed from `deploy/fetch_sources.sh` (replaced by `litho fetch` / projectFOUNDATION) |
 | FN-WK | Workload TOMLs missing SPDX headers | Added `AGPL-3.0-or-later` to all 20 workload TOMLs |
 | FN-CI | Shellcheck in CI was `|| true` (advisory) | Made blocking — removed `|| true` |
 
@@ -75,7 +75,7 @@ all bash fetch scripts. `litho assemble` replaces `assemble-usb.sh`.
 
 | ID | Gap | Resolution |
 |----|-----|-----------|
-| USB-ASM | No USB assembly | `litho assemble` — pure Rust 9-step orchestrator per `LITHOSPORE_USB_DEPLOYMENT.md` (replaces assemble-usb.sh) |
+| USB-ASM | No USB assembly | `litho assemble` — pure Rust 10-step orchestrator per `LITHOSPORE_USB_DEPLOYMENT.md` (replaces assemble-usb.sh) |
 | USB-ROOT | Missing USB root entry points | argv[0] symlink detection — `validate`, `verify`, `refresh`, `spore` are symlinks to `bin/litho` |
 | USB-TOWER | No biomeOS spore composition | `artifact/usb-root/biomeOS/tower.toml` + `graphs/lithoSpore_validation.toml` |
 | USB-FLAT | Build only produced `bin/{arch}/static/` layout | `litho assemble` produces flat `bin/` layout directly |
@@ -87,7 +87,7 @@ all bash fetch scripts. `litho assemble` replaces `assemble-usb.sh`.
 | USB-BIN | `litho` CLI only checked `target/release/` for module binaries | Added `resolve_binary()` — checks `bin/` (USB) first, then `target/release/` (dev) |
 | USB-SPORE | `liveSpore.json` written to `artifact/liveSpore.json` only | Added `resolve_livespore()` — detects USB layout via `.biomeos-spore` marker, writes to root |
 | USB-EXPECTED | `assemble-usb.sh` did not stage `validation/expected/` | Added step 8: copies expected-value JSONs to USB |
-| USB-DATA | Modules 3+4 data not fetched | Ran `fetch_good_2017.sh` + `fetch_blount_2012.sh` with `$ECOPRIMALS_ROOT` — 6/6 data bundles staged |
+| USB-DATA | Modules 3+4 data not fetched | Ran `fetch_good_2017.sh` + `fetch_blount_2012.sh` with `$ECOPRIMALS_ROOT` — 6/6 data bundles staged. Superseded by `litho fetch --all` |
 | USB-VM | No VM validation of USB artifact | Built VM via agentReagents `lithoSpore-validation.yaml`, SSH'd USB, 6/7 PASS (51/51 checks) |
 
 ### Deep Evolution Pass (May 15, 2026)
@@ -128,7 +128,7 @@ All 7 coupling points from the original inventory have been resolved:
 | `viz/` in litho-core | **RESOLVED** | Moved to `ltee-cli/src/viz/` (instance layer) — `litho-core` is 100% chassis |
 | Hardcoded graph/target paths | **RESOLVED** | `guidestone.graph_file` + `guidestone.targets_file` in scope.toml |
 | Hardcoded braid accessions | **RESOLVED** | Derived from `data.toml` `sra_accession` fields at runtime |
-| `litho-core` | **Agnostic** | 11 modules, zero LTEE-specific code |
+| `litho-core` | **Agnostic** | 12 modules, zero LTEE-specific code |
 | `scope.toml` loader | **Agnostic** | `ScopeModule` struct + `[[module]]` table + `module_binaries()` |
 | `data.toml` manifest | **Agnostic** | Dataset registry with BLAKE3, source URIs, licenses, SRA accessions |
 | `discovery.rs` / `provenance.rs` | **Agnostic** | Capability strings, JSON-RPC to capability-discovered endpoints |
@@ -173,7 +173,7 @@ Upstream-blocked (not actionable by CATHEDRAL):
 
 | ID | Priority | Gap | Action |
 |----|----------|-----|--------|
-| FN-1 | HIGH | All `data/sources/*.toml` have `blake3 = ""` and `retrieved = ""` | Run `deploy/fetch_sources.sh --thread all`, capture hashes, backfill TOMLs |
+| FN-1 | HIGH | All `data/sources/*.toml` have `blake3 = ""` and `retrieved = ""` | Run `litho fetch` / projectFOUNDATION (replaces `deploy/fetch_sources.sh --thread all`), capture hashes, backfill TOMLs |
 | FN-5 | MEDIUM | Thread 1 WCM: all 24 targets `validated = false` despite existing logs | Review `validation/wcm-20260509/` results, flip validated where justified |
 | FN-4 | MEDIUM | Thread 5 ML: `thread05_ml_surrogates.toml` has `accessions = []` everywhere | ML sources are internal (neuralSpring models) — document as `source_type = "internal"` |
 | FN-WK2 | LOW | Anderson/enviro workloads embed synthetic actuals=expected | Wire to real spring output or mark `synthetic = true` |
@@ -227,8 +227,10 @@ Remaining 4 papers QUEUED.
 | E4 | Macrocyclic ranking ML | Binder ranking from sequence features |
 | E5 | Antibody pairing ML | VH/VL pairing prediction from single-cell data |
 
-**Status**: All 12 papers QUEUED. ML surrogates are additive to modules 3+4
-(groundSpring B3/B4 validation already works without ML).
+**Status**: All 12 papers QUEUED for lithoSpore integration. neuralSpring
+reports B3 HMM/ESN classifier at 100% accuracy (T06 target met upstream);
+ready for ingest when surrogate model is packaged. ML surrogates are additive
+to modules 3+4 (groundSpring B3/B4 validation already works without ML).
 
 ### wetSpring (10 papers — contributes to modules 1, 6)
 
@@ -327,8 +329,8 @@ currently embed (standalone CLI pattern).
   `scope.toml` `[[module]]` entries carry name/binary/data_dir/expected/tier1_notebook.
   New `registry.rs` centralizes module resolution for all 6 consumer files. `.biomeos-spore`
   generated from scope.toml. Braid accessions from data.toml. `viz/` moved from litho-core
-  to ltee-cli (instance layer). `litho-core` 11 modules, 100% chassis. Graph/target paths
-  parameterized. Test fixtures isolated. 189 tests, zero clippy warnings.
+  to ltee-cli (instance layer). `litho-core` 12 modules, 100% chassis. Graph/target paths
+  parameterized. Test fixtures isolated. 198 tests, zero clippy warnings.
 - **2026-05-17 PM**: wetSpring braid ingestion — `litho-core::braid` module (4 tests),
   sovereign + breseq baseline braids parsed, accession validated (SRP001569 PASS),
   braids displayed in `litho validate` output. URI fixes: gzip/zip content-type

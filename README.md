@@ -167,7 +167,7 @@ the root file templates.
 
 **Pillar 4 EXIT GATE: EXCEEDED** — 7 modules PASS at Tier 2, gate required 2+.
 **First live handoff**: 4 USB drives deployed to Barrick Lab (MSU) for LTEE RA II interview. exFAT cross-platform, 3-zone structure, pre-rendered HTML browse layer.
-**Deployment-validated**: USB pipeline tested on 4+ machines — 75/75 science checks, 189 unit/integration tests, 10 chaos/fault-injection tests.
+**Deployment-validated**: USB pipeline tested on 4+ machines — 75/75 science checks, 198 unit/integration tests, 10 chaos/fault-injection tests.
 **Tier 3**: Provenance trio wired via JSON-RPC with partial completion support (requires NUCLEUS primals at runtime).
 **Cross-tier parity**: `litho parity` validates math stability between Python and Rust.
 **Upstream braids**: 3 live braids from wetSpring (sovereign GPU pipeline + breseq baseline + Tenaillon expected values). Known: braid accession normalization (SRP001569 vs PRJNA29543) evolving upstream.
@@ -191,7 +191,8 @@ the root file templates.
 - **Module 7**: Anderson disorder mapping, GOE/Poisson eigenvalue statistics
 
 **Infrastructure**: `litho-core` crate with 12 modules (chassis — domain-agnostic;
-`pseudospore` re-exports `pseudospore-core` types for backward compatibility —
+`pseudospore` re-exports `pseudospore-core` types for backward compatibility
+(deprecated — use `pseudospore-core` directly) —
 validation types including `Tier3Session`/`ParityReport`, provenance JSON-RPC client
 for trio, braid ingestion with dual wire format support, tolerance framework, spore
 tracking, capability-based discovery with `announce_self()`/`query_capabilities()`,
@@ -203,7 +204,7 @@ viz DataBinding adapters, 20 subcommands. pseudoSpore pipeline: `emit-pseudospor
 cross-ref, derivation contract, version consistency, provenance, visual evidence),
 `promote` (pseudoSpore → lithoSpore chassis with stripped binaries, auto RELEASE.md),
 `translate-config` (domain↔computation index translation).
-189 unit/integration tests + 10
+198 unit/integration tests + 10
 chaos/fault-injection tests, zero clippy warnings, `#![forbid(unsafe_code)]`
 workspace-wide, pure Rust BLAKE3 (ecoBin compliant), `liveSpore.json` operational
 with corruption resilience and backup.
@@ -218,7 +219,7 @@ with corruption resilience and backup.
   `DiscoveryPath` + `turn_relay` recorded in `liveSpore.json` for provenance.
 - `probe_operating_mode()` detects standalone/LAN/geo-delocalized before validation
 - Clippy pedantic clean — scientific casts allowed; all other pedantic lints enforced
-- `litho fetch` pure Rust data pipeline (ureq HTTP + BLAKE3 hashing, replaces 7 bash scripts)
+- `litho fetch` pure Rust data pipeline (ureq HTTP (**rustls** TLS) + BLAKE3 hashing, replaces 7 bash scripts)
 - `litho assemble` pure Rust USB assembly (replaces assemble-usb.sh)
 - `litho deploy-report` structured TOML output for deployment validation
 - `litho self-test` artifact integrity check (23 checks)
@@ -231,8 +232,8 @@ adapters for all 7 LTEE modules and 7 Barrick Lab baseline tools via 9 generic b
 helpers. `litho visualize` pushes live dashboards to visualization primals via
 capability-based IPC discovery.
 
-**Chassis Abstraction**: Scope-driven module registry (`scope.toml` `[[module]]` entries)
-replaces all compiled `LTEE_MODULES`/`LTEE_NOTEBOOKS`/`MODULE_DISPATCH` constants.
+**Chassis Abstraction**: Scope-driven module registry (`scope.toml` `[[module]]` entries).
+`registry::load_modules()` reads scope.toml first; compiled `LTEE_MODULES`/`LTEE_NOTEBOOKS`/`MODULE_DISPATCH` serve as offline fallback.
 Unified `registry.rs` serves validate, parity, ops, chaos, deploy-test, and visualize.
 `.biomeos-spore` generated from scope.toml during assembly. Braid accession expectations
 derived from `data.toml`. Target coverage and graph paths parameterized. `litho-core`

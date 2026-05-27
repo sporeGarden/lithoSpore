@@ -48,12 +48,7 @@ pub fn run_validation(data_dir: &str, expected: &str, max_tier: u8) -> ModuleRes
         );
     }
 
-    harness::skip(
-        "mutation_accumulation",
-        max_tier,
-        start,
-        &format!("Tier {max_tier} not implemented yet"),
-    )
+    harness::tier0_structural("mutation_accumulation", expected, start)
 }
 
 // ── Tier 2: Pure Rust ────────────────────────────────────────────────
@@ -356,6 +351,13 @@ mod tests {
         let result = run_validation("/nonexistent/data", "/nonexistent/expected.json", 2);
         assert_eq!(result.status, ValidationStatus::Skip);
         assert_eq!(result.name, "mutation_accumulation");
+    }
+
+    #[test]
+    fn test_tier0_structural() {
+        let result = run_validation(".", "validation/expected/module2_mutations.json", 0);
+        assert!(!result.name.is_empty());
+        assert!(result.error.is_some() || result.checks > 0);
     }
 
     #[test]

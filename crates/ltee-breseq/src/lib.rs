@@ -41,13 +41,16 @@ pub fn run_validation(data_dir: &str, expected: &str, max_tier: u8) -> ModuleRes
     if max_tier >= 2 {
         return run_tier2_rust(data_dir, expected, start);
     }
+    if max_tier >= 1 {
+        return harness::skip(
+            "breseq_264_genomes",
+            1,
+            start,
+            "Tier 1 is Python-based — invoke via `litho validate --tier 1` (Rust crate handles Tier 2+)",
+        );
+    }
 
-    harness::skip(
-        "breseq_264_genomes",
-        max_tier,
-        start,
-        &format!("Tier {max_tier} not implemented yet"),
-    )
+    harness::tier0_structural("breseq_264_genomes", expected, start)
 }
 
 fn run_tier2_rust(_data_dir: &str, expected_path: &str, start: Instant) -> ModuleResult {
@@ -305,5 +308,31 @@ mod tests {
     fn low_tier_returns_skip() {
         let result = run_validation("/nonexistent", "/nonexistent", 0);
         assert_eq!(result.status, ValidationStatus::Skip);
+    }
+
+    #[test]
+    fn tier1_returns_python_note() {
+        let dir = std::env::temp_dir().join("litho_test_breseq_tier1");
+        let _ = std::fs::create_dir_all(&dir);
+        let expected = dir.join("expected.json");
+        std::fs::write(&expected, r#"{"targets":{}}"#).unwrap();
+        let data = dir.join("data");
+        let _ = std::fs::create_dir_all(&data);
+        let result = run_validation(data.to_str().unwrap(), expected.to_str().unwrap(), 1);
+        assert_eq!(result.status, ValidationStatus::Skip);
+        assert_eq!(result.tier, 1);
+        assert!(
+            result
+                .error
+                .as_deref()
+                .is_some_and(|m| m.contains("litho validate --tier 1"))
+        );
+    }
+
+    #[test]
+    fn test_tier0_structural() {
+        let result = run_validation(".", "validation/expected/module6_breseq.json", 0);
+        assert!(!result.name.is_empty());
+        assert!(result.error.is_some() || result.checks > 0);
     }
 }

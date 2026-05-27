@@ -219,10 +219,11 @@ enum Commands {
 
     /// Ingest a pseudoSpore: validate structure, import braids, register.
     ///
-    /// This is the transitional local ingest path. Once biomeOS lands
-    /// `biomeos nucleus ingest`, that becomes the primary tier and this
-    /// command becomes the offline/airgapped fallback. Both paths validate
-    /// via pseudospore-core; NUCLEUS adds provenance trio registration.
+    /// Prefer `biomeos nucleus ingest` when NUCLEUS is available.
+    /// This command is the offline/airgapped fallback path.
+    ///
+    /// Both paths validate via pseudospore-core; NUCLEUS adds provenance trio
+    /// registration.
     IngestPseudospore {
         /// Path to the pseudoSpore directory
         path: String,
@@ -313,7 +314,7 @@ enum Commands {
         #[arg(long)]
         tier1_script: Option<String>,
 
-        /// Override the lithoSpore version (default: 1.0.0)
+        /// Override the lithoSpore version (default: workspace package version)
         #[arg(long)]
         version: Option<String>,
     },
@@ -420,6 +421,8 @@ fn main() {
                 });
                 return;
             }
+            // Unrecognized symlink basename — fall through to full clap dispatch
+            // (e.g. `litho` binary name or future subcommands not in this fast path).
             _ => {}
         }
     }

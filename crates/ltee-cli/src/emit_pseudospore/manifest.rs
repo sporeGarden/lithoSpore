@@ -50,7 +50,8 @@ pub(super) fn generate_data_manifest(
             let id = rel_name.clone();
             output.push_str("[[dataset]]\n");
             writeln!(output, "id = \"{id}\"").unwrap();
-            writeln!(output, "source_uri = \"urn:hotspring:exp220:{id}\"").unwrap();
+            let spring_lower = spring_name.to_lowercase();
+            writeln!(output, "source_uri = \"urn:{spring_lower}:{id}\"").unwrap();
             output.push_str("license = \"AGPL-3.0-or-later\"\n");
             writeln!(output, "local_path = \"{local_path}/\"").unwrap();
             writeln!(output, "blake3 = \"{hash}\"").unwrap();
@@ -63,7 +64,7 @@ pub(super) fn generate_data_manifest(
             writeln!(output, "upstream_spring = \"{spring_name}\"").unwrap();
             writeln!(
                 output,
-                "upstream_braid = \"urn:sweetgrass:braid:cazyme-fel-v{version}\"\n"
+                "upstream_braid = \"urn:provenance:braid:{spring_lower}-v{version}\"\n"
             )
             .unwrap();
         } else {
@@ -93,7 +94,8 @@ pub(super) fn generate_data_manifest(
                 )
                 .unwrap();
             } else {
-                writeln!(output, "source_uri = \"urn:hotspring:exp220:{id}\"").unwrap();
+                let spring_lower = spring_name.to_lowercase();
+                writeln!(output, "source_uri = \"urn:{spring_lower}:{id}\"").unwrap();
                 output.push_str("license = \"AGPL-3.0-or-later\"\n");
                 output.push_str("refresh_command = \"# Manual: re-obtain from source\"\n");
             }

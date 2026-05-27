@@ -50,8 +50,18 @@ litho-core          ← shared library (CHASSIS — 100% domain-agnostic, 12 mod
   ├── stats/          shared statistics (pearson_r)
   ├── harness/        module skip/load/dispatch helpers
   ├── graph_checks/   deploy graph validation (registry alignment, Dark Forest invariants)
-  └── pseudospore/    deprecated re-export wrapper → `pseudospore-core`
+  └── pseudospore.rs  deprecated re-export wrapper → `pseudospore-core`
 pseudospore-core    ← canonical pseudoSpore parsing, validation, checksums, tarball
+├── blake3_manifest.rs    data.toml read/write/verify
+├── braid_envelope.rs     FermentTranscript wire types
+├── domain_profile.rs     domain_profile.toml parsing + TolerancesConfig
+├── envelope.rs           PseudoSporeEnvelope — unified load+validate consumer API
+├── error.rs              SporeError typed error hierarchy (thiserror)
+├── livespore.rs          liveSpore.json unified schema
+├── receipts.rs           environment.toml, checksums.blake3
+├── scope.rs              scope.toml parsing and validation
+├── tarball.rs            present/external split, tar.gz creation
+└── validation.rs         validation.json read/write
   ↑
   ├── ltee-fitness   ← Module 1: power-law fitness (INSTANCE)
   ├── ltee-mutations ← Module 2: mutation accumulation
@@ -166,7 +176,7 @@ ColdSpore → LiveSpore → pseudoSpore → lithoSpore (full)
 
 **Use case**: Any computation-heavy spring producing quantitative results can ship a pseudoSpore instead of waiting for full lithoSpore module integration. The braid carries the provenance, the receipts carry the proof, the configs carry reproducibility.
 
-**Chassis support**: `pseudospore-core` (canonical) and `litho_core::pseudospore` (12th litho-core module — deprecated re-export wrapper) — `PseudoSporeManifest`, `load_pseudospore()`, `verify_checksums()`, `check_completeness()`, `compute_checksums()`.
+**Chassis support**: Canonical API — `pseudospore_core::PseudoSporeEnvelope::load()` + `validate()` with `SporeError`. Deprecated wrapper — `litho_core::pseudospore` re-exports (`PseudoSporeManifest`, `load_pseudospore()`, `verify_checksums()`, `check_completeness()`, `compute_checksums()`).
 
 See `specs/PSEUDOSPORE_STANDARD.md` for the complete specification.
 
@@ -398,7 +408,7 @@ Root (5-8 items max)
 | 1 — Browse | HTML, docs, figures | Every OS reads |
 | 2 — Launch | validate / ltee.bat | Platform shim |
 | 3 — Execute | tmpdir + chmod (exFAT workaround) | Linux/macOS |
-| 4 — Validate | Rust binary, 73 checks, <100ms | Full output |
+| 4 — Validate | Rust binary, 75 checks, <100ms | Full output |
 
 The shim pattern handles exFAT's lack of Unix permissions:
 `validate` copies `runtime/bin/litho` to `/tmp`, `chmod +x`, executes,
@@ -415,7 +425,7 @@ All ecosystem crypto is anchored from BearDog. lithoSpore does not embed
 signing keys or crypto implementations beyond local BLAKE3 hashing:
 
 - **Tier 2 (standalone)**: Local BLAKE3 checksums via `blake3` crate (`pure` + `std`)
-- **Tier 3 (NUCLEUS)**: Provenance signing delegated to BearDog via `crypto.sign`
+- **Tier 3 (NUCLEUS)**: Provenance signing delegated to BearDog via `crypto.sign_ed25519`
   JSON-RPC, discovered at runtime through capability chain
 - **HTTP/TLS**: `ureq` uses `rustls`/`ring` for science dataset downloads (`litho fetch`).
   `ring` is the accepted ecosystem crypto backend — BearDog itself uses `ring`
@@ -441,9 +451,9 @@ from BearDog via `crypto.sign_ed25519` JSON-RPC. When lithoSpore records
 Tier 3 provenance, the chain is:
 
 ```
-lithoSpore → discover("dag") → rhizoCrypt → BearDog (crypto.sign)
-lithoSpore → discover("spine") → loamSpine → BearDog (crypto.sign)
-lithoSpore → discover("braid") → sweetGrass → BearDog (crypto.sign)
+lithoSpore → discover("dag") → rhizoCrypt → BearDog (crypto.sign_ed25519)
+lithoSpore → discover("spine") → loamSpine → BearDog (crypto.sign_ed25519)
+lithoSpore → discover("braid") → sweetGrass → BearDog (crypto.sign_ed25519)
 ```
 
 lithoSpore never touches key material directly — it delegates signing

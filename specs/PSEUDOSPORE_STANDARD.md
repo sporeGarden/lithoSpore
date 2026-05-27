@@ -266,9 +266,9 @@ a **poster presentation** — the data proves it, the figures sell it.
 - 2D heatmaps (one per system)
 - Combined comparison panel (side-by-side with shared colorbar)
 
-**Generation**: `python generate_figures.py --pseudospore <path>` should
-reproduce all figures from `outputs/` data. The script itself SHOULD live in
-the lithoSpore `runtime/` or be referenced by `TRANSLATE.md`.
+**Generation**: `litho emit-pseudospore` auto-generates figures from `outputs/`
+data when matplotlib is available (see `emit_pseudospore/figures.rs`). For LTEE
+module figures, re-run the Tier 1 notebooks in `notebooks/`.
 
 ---
 

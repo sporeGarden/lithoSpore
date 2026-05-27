@@ -41,11 +41,11 @@ NNN_DESCRIPTOR.{rs,md,json,toml}
 
 | # | Name | Type | Domain | Blocked By |
 |---|------|------|--------|------------|
-| 012 | BLAKE3 hash backfill | toml | Data integrity | Network access to source repos |
-| 013 | neuralSpring ML surrogate integration | md | Modules 3, 4 | neuralSpring B3/B4 models |
-| 014 | Signal dispatch collapse | md | Architecture | biomeOS signal routing |
-| 015 | FIDO2 hardware attestation | md | Security | BearDog CTAP2 library |
-| 016 | Upstream braid handoff (wetSpring) | md | Provenance | wetSpring breseq pipeline |
+| 013 | BLAKE3 hash backfill | toml | Data integrity | Network access to source repos |
+| 014 | neuralSpring ML surrogate integration | md | Modules 3, 4 | neuralSpring B3/B4 models |
+| 015 | Signal dispatch collapse | md | Architecture | biomeOS signal routing |
+| 016 | FIDO2 hardware attestation | md | Security | BearDog CTAP2 library |
+| 017 | Upstream braid handoff (wetSpring) | md | Provenance | wetSpring breseq pipeline |
 
 ## Experiment Log (May 2026)
 
@@ -142,7 +142,7 @@ Graph and target staging paths parameterized from scope.toml.
 **Phase 4**: `viz/` moved from litho-core to ltee-cli (instance layer).
 LTEE test fixtures isolated in `crates/litho-core/tests/fixtures/`.
 `litho-core` reaches 100% chassis — 12 modules (including deprecated
-`pseudospore` re-export), zero LTEE-specific code. 189 workspace tests pass
+`pseudospore` re-export), zero LTEE-specific code. 198 workspace tests pass
 (75/75 science checks at Tier 2).
 
 ### 012 — Hypogeal Deployment to Barrick Lab (May 18)
@@ -162,7 +162,7 @@ interview.
 8. MANIFEST.toml for AI agent navigation
 9. Data courier: 5.2G SRA reads for airgapped seeding
 
-**Key metrics**: 75 science checks, 189 workspace tests, 7 modules, <100ms,
+**Key metrics**: 75 science checks, 198 workspace tests, 7 modules, <100ms,
 6.3MB binary, exFAT
 cross-platform, 10+ validated liveSpore.json entries.
 

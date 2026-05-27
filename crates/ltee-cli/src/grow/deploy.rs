@@ -4,6 +4,14 @@ use super::util::{step, which};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+const DEFAULT_LIBVIRT_IMAGES: &str = "/var/lib/libvirt/images";
+
+/// Libvirt image storage directory (`LITHO_LIBVIRT_IMAGES` overrides the default).
+fn libvirt_images_dir() -> PathBuf {
+    std::env::var("LITHO_LIBVIRT_IMAGES")
+        .map_or_else(|_| PathBuf::from(DEFAULT_LIBVIRT_IMAGES), PathBuf::from)
+}
+
 pub(super) fn stage_container(root: &Path) {
     step("Container Deployment — benchScale substrate");
 
@@ -143,9 +151,10 @@ pub(super) fn stage_vm(root: &Path) {
     }
 
     let home = std::env::var("HOME").unwrap_or_else(|_| "/root".into());
+    let libvirt_images = libvirt_images_dir();
     let tmp_cloud_image = std::env::temp_dir().join("ubuntu-24.04-server-cloudimg-amd64.img");
     let cloud_image_candidates = [
-        PathBuf::from("/var/lib/libvirt/images/ubuntu-24.04-server-cloudimg-amd64.img"),
+        libvirt_images.join("ubuntu-24.04-server-cloudimg-amd64.img"),
         PathBuf::from(&home).join("images/ubuntu-24.04-server-cloudimg-amd64.img"),
         tmp_cloud_image,
     ];
@@ -176,7 +185,8 @@ pub(super) fn stage_vm(root: &Path) {
     };
 
     let vm_name = "litho-grow-vm";
-    let vm_disk = format!("/var/lib/libvirt/images/{vm_name}.qcow2");
+    let vm_disk = libvirt_images_dir().join(format!("{vm_name}.qcow2"));
+    let vm_disk_s = vm_disk.to_string_lossy();
     let cidata_iso = std::env::temp_dir().join(format!("{vm_name}-cidata.iso"));
 
     // Clean up any previous attempt
@@ -233,9 +243,9 @@ pub(super) fn stage_vm(root: &Path) {
 
     // Create VM disk from cloud image
     println!("  Preparing VM disk...");
-    let _ = std::fs::copy(cloud_image, &vm_disk);
+    let _ = std::fs::copy(cloud_image, vm_disk.as_path());
     let _ = Command::new("qemu-img")
-        .args(["resize", &vm_disk, "20G"])
+        .args(["resize", vm_disk_s.as_ref(), "20G"])
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
         .status();
@@ -251,7 +261,7 @@ pub(super) fn stage_vm(root: &Path) {
             "--vcpus",
             "2",
             "--disk",
-            &format!("path={vm_disk},format=qcow2"),
+            &format!("path={},format=qcow2", vm_disk.display()),
             "--disk",
             &format!("path={},device=cdrom", cidata_iso.display()),
             "--os-variant",

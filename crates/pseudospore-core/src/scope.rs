@@ -114,10 +114,15 @@ impl ScopeDoc {
     /// # Errors
     ///
     /// Returns an error if the file cannot be read or parsed.
-    pub fn load(path: &std::path::Path) -> Result<Self, String> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| format!("Failed to read {}: {e}", path.display()))?;
-        toml::from_str(&content).map_err(|e| format!("Failed to parse scope.toml: {e}"))
+    pub fn load(path: &std::path::Path) -> Result<Self, crate::SporeError> {
+        let content = std::fs::read_to_string(path).map_err(|source| crate::SporeError::Io {
+            path: path.to_path_buf(),
+            source,
+        })?;
+        toml::from_str(&content).map_err(|e| crate::SporeError::Parse {
+            path: path.to_path_buf(),
+            detail: e.to_string(),
+        })
     }
 
     /// Read a single field from a section (utility for backward compatibility).

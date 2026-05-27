@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! Graph TOML validation helpers — mirrors primalSpring `validation/helpers.rs`.
+//! Graph-based validation checks for lithoSpore chassis.
+//!
+//! Used by `ltee-cli` audit and verify subcommands.
+//! These checks verify the structural integrity of validation dependency graphs.
 //!
 //! Tier 1 structural checks for deploy graph TOMLs: parsing, Dark Forest
 //! metadata, capability registry cross-referencing, and graph structure

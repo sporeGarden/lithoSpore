@@ -120,7 +120,7 @@ def main():
     print(f"  Expected: {EXPECTED_PATH}")
 
     if not DATA_DIR.exists():
-        print("\n  SKIP: Data not yet fetched. Run: scripts/fetch_wiser_2013.sh")
+        print("\n  SKIP: Data not yet fetched. Run: litho fetch --module fitness")
         return 2
 
     expected = load_expected()

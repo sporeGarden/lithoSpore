@@ -8,6 +8,19 @@ use std::process::Command;
 
 type ValidateRunner = Box<dyn FnMut(&[&str]) -> Option<std::process::ExitStatus>>;
 
+/// Default Rust cross-compile target (`LITHO_RUST_TARGET` overrides).
+fn default_rust_target() -> String {
+    std::env::var("LITHO_RUST_TARGET").unwrap_or_else(|_| {
+        match (std::env::consts::ARCH, std::env::consts::OS) {
+            ("x86_64", "linux") => "x86_64-unknown-linux-musl".into(),
+            ("aarch64", "linux") => "aarch64-unknown-linux-gnu".into(),
+            ("x86_64", "macos") => "x86_64-apple-darwin".into(),
+            ("aarch64", "macos") => "aarch64-apple-darwin".into(),
+            (arch, os) => format!("{arch}-unknown-{os}"),
+        }
+    })
+}
+
 pub(super) struct SourceConfig {
     pub repo: String,
     pub repo_https: String,
@@ -39,7 +52,7 @@ pub(super) fn load_source_metadata(root: &Path) -> SourceConfig {
                 src.rust_toolchain
             },
             rust_target: if src.rust_target.is_empty() {
-                "x86_64-unknown-linux-musl".into()
+                default_rust_target()
             } else {
                 src.rust_target
             },
@@ -54,7 +67,7 @@ pub(super) fn load_source_metadata(root: &Path) -> SourceConfig {
         ecosystem_repo: "https://github.com/sporeGarden/ecoPrimals.git".into(),
         ecosystem_repo_https: "https://github.com/sporeGarden/ecoPrimals.git".into(),
         rust_toolchain: "stable".into(),
-        rust_target: "x86_64-unknown-linux-musl".into(),
+        rust_target: default_rust_target(),
     }
 }
 

@@ -25,5 +25,12 @@ struct Cli {
 fn main() {
     let cli = Cli::parse();
     let result = ltee_alleles::run_validation(&cli.data_dir, &cli.expected, cli.max_tier);
-    harness::output_and_exit(&result, cli.json);
+    match harness::format_output(&result, cli.json) {
+        Ok(output) => println!("{output}"),
+        Err(e) => {
+            eprintln!("{e}");
+            std::process::exit(2);
+        }
+    }
+    std::process::exit(harness::exit_code(&result));
 }

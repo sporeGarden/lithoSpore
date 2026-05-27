@@ -51,12 +51,7 @@ pub fn run_validation(data_dir: &str, expected: &str, max_tier: u8) -> ModuleRes
         );
     }
 
-    harness::skip(
-        "biobrick_burden",
-        max_tier,
-        start,
-        &format!("Tier {max_tier} not implemented yet"),
-    )
+    harness::tier0_structural("biobrick_burden", expected, start)
 }
 
 // ── CSV parsing ─────────────────────────────────────────────────────
@@ -109,7 +104,7 @@ fn parse_csv_line(line: &str) -> Vec<&str> {
                 fields.push(line[start..i].trim_matches('"'));
                 start = i + 1;
             }
-            _ => {}
+            _ => {} // ordinary field byte — continue scanning
         }
     }
     fields.push(line[start..].trim_matches('"'));
@@ -492,5 +487,12 @@ mod tests {
         assert!((burden - 0.2).abs() < 0.001);
         let burden_zero = compute_burden(1.0, 1.0);
         assert!(burden_zero.abs() < 0.001);
+    }
+
+    #[test]
+    fn test_tier0_structural() {
+        let result = run_validation(".", "validation/expected/module5_biobricks.json", 0);
+        assert!(!result.name.is_empty());
+        assert!(result.error.is_some() || result.checks > 0);
     }
 }

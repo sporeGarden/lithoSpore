@@ -75,8 +75,8 @@ pub fn run(
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
-    let litho_version = version_override.unwrap_or("1.0.0");
-    let litho_name = ps_name.replace("hotSpring-", "");
+    let litho_version = version_override.unwrap_or(env!("CARGO_PKG_VERSION"));
+    let litho_name = strip_spring_prefix(ps_name);
     let dir_name = format!("lithoSpore_{litho_name}_v{litho_version}");
     let root = out.join(&dir_name);
 
@@ -236,7 +236,7 @@ pub fn run(
                 let mod_name = module.file_name().to_string_lossy().to_string();
                 let expected_dir = root.join(format!("expected/{mod_name}"));
                 fs::create_dir_all(&expected_dir).ok();
-                let expected_json = generate_expected_stub(&mod_name);
+                let expected_json = generate_expected_stub(&mod_name, profile.as_ref());
                 fs::write(expected_dir.join("expected.json"), &expected_json).ok();
                 expected_count += 1;
             }
@@ -327,6 +327,18 @@ fn collect_chassis_hashes(root: &Path, dir: &Path, entries: &mut Vec<(String, St
                 entries.push((hash, rel));
             }
         }
+    }
+}
+
+/// Strip a leading `<spring>-` prefix from a pseudoSpore artifact name.
+///
+/// Recognises the canonical spring naming convention: a camelCase name ending
+/// with "Spring" followed by a hyphen (e.g. `hotSpring-`, `groundSpring-`).
+fn strip_spring_prefix(name: &str) -> String {
+    if let Some(idx) = name.find("Spring-") {
+        name[idx + "Spring-".len()..].to_string()
+    } else {
+        name.to_string()
     }
 }
 

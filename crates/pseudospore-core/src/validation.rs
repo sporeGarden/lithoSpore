@@ -59,10 +59,15 @@ impl ValidationDoc {
     /// # Errors
     ///
     /// Returns an error if the file cannot be read or parsed.
-    pub fn load(path: &std::path::Path) -> Result<Self, String> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| format!("Failed to read {}: {e}", path.display()))?;
-        serde_json::from_str(&content).map_err(|e| format!("Failed to parse validation.json: {e}"))
+    pub fn load(path: &std::path::Path) -> Result<Self, crate::SporeError> {
+        let content = std::fs::read_to_string(path).map_err(|source| crate::SporeError::Io {
+            path: path.to_path_buf(),
+            source,
+        })?;
+        serde_json::from_str(&content).map_err(|e| crate::SporeError::Parse {
+            path: path.to_path_buf(),
+            detail: e.to_string(),
+        })
     }
 }
 
@@ -106,7 +111,7 @@ mod tests {
         let err =
             ValidationDoc::load(std::path::Path::new("/nonexistent/validation.json")).unwrap_err();
         assert!(
-            err.contains("Failed to read"),
+            err.to_string().contains("failed to read"),
             "expected read error, got: {err}"
         );
     }

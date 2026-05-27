@@ -13,6 +13,8 @@
 pub mod blake3_manifest;
 pub mod braid_envelope;
 pub mod domain_profile;
+pub mod envelope;
+pub mod error;
 pub mod livespore;
 pub mod receipts;
 pub mod scope;
@@ -26,6 +28,8 @@ pub use domain_profile::{
     DerivationConfig, DerivationContract, DomainProfile, EntityGroup, FigurePlot, FiguresConfig,
     ProfileModule, SimTimeConfig, TranslationConfig,
 };
+pub use envelope::{EnvelopeValidation, PseudoSporeEnvelope};
+pub use error::SporeError;
 pub use livespore::{LiveSporeDoc, ValidationEntry};
 pub use receipts::{
     ChecksumEntry, EnvironmentReceipt, compute_checksums, format_checksums, parse_checksums,

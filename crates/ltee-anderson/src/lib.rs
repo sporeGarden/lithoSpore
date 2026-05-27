@@ -40,13 +40,16 @@ pub fn run_validation(data_dir: &str, expected: &str, max_tier: u8) -> ModuleRes
     if max_tier >= 2 {
         return run_tier2_rust(data_dir, expected, start);
     }
+    if max_tier >= 1 {
+        return harness::skip(
+            "anderson_qs_predictions",
+            1,
+            start,
+            "Tier 1 is Python-based — invoke via `litho validate --tier 1` (Rust crate handles Tier 2+)",
+        );
+    }
 
-    harness::skip(
-        "anderson_qs_predictions",
-        max_tier,
-        start,
-        &format!("Tier {max_tier} not implemented yet"),
-    )
+    harness::tier0_structural("anderson_qs_predictions", expected, start)
 }
 
 fn level_spacing_ratio(values: &[f64]) -> Option<f64> {
@@ -339,5 +342,31 @@ mod tests {
         let fitness = [1.0, 1.05, 1.08, 1.10];
         let wv = estimate_disorder_parameter(&fitness);
         assert!(wv > 0.0 && wv < 10.0, "W/V={wv} should be reasonable");
+    }
+
+    #[test]
+    fn tier1_returns_python_note() {
+        let dir = std::env::temp_dir().join("litho_test_anderson_tier1");
+        let _ = std::fs::create_dir_all(&dir);
+        let expected = dir.join("expected.json");
+        std::fs::write(&expected, r#"{"fitness_values":{}}"#).unwrap();
+        let data = dir.join("data");
+        let _ = std::fs::create_dir_all(&data);
+        let result = run_validation(data.to_str().unwrap(), expected.to_str().unwrap(), 1);
+        assert_eq!(result.status, ValidationStatus::Skip);
+        assert_eq!(result.tier, 1);
+        assert!(
+            result
+                .error
+                .as_deref()
+                .is_some_and(|m| m.contains("litho validate --tier 1"))
+        );
+    }
+
+    #[test]
+    fn test_tier0_structural() {
+        let result = run_validation(".", "validation/expected/module7_anderson.json", 0);
+        assert!(!result.name.is_empty());
+        assert!(result.error.is_some() || result.checks > 0);
     }
 }

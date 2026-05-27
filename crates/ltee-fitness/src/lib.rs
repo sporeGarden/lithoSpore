@@ -47,12 +47,7 @@ pub fn run_validation(data_dir: &str, expected: &str, max_tier: u8) -> ModuleRes
         );
     }
 
-    harness::skip(
-        "power_law_fitness",
-        max_tier,
-        start,
-        &format!("Tier {max_tier} not implemented yet"),
-    )
+    harness::tier0_structural("power_law_fitness", expected, start)
 }
 
 // ── Tier 2: Pure Rust curve fitting ──────────────────────────────────
@@ -483,7 +478,7 @@ mod tests {
     }
 
     #[test]
-    fn run_validation_max_tier_zero_skips() {
+    fn run_validation_max_tier_zero_structural_pass() {
         let dir = std::env::temp_dir().join("litho_test_fitness_tier0");
         let _ = std::fs::create_dir_all(&dir);
         let expected = dir.join("expected.json");
@@ -491,6 +486,14 @@ mod tests {
         let data = dir.join("data");
         let _ = std::fs::create_dir_all(&data);
         let result = run_validation(data.to_str().unwrap(), expected.to_str().unwrap(), 0);
-        assert_eq!(result.status, ValidationStatus::Skip);
+        assert_eq!(result.status, ValidationStatus::Pass);
+        assert_eq!(result.tier, 0);
+    }
+
+    #[test]
+    fn test_tier0_structural() {
+        let result = run_validation(".", "validation/expected/module1_fitness.json", 0);
+        assert!(!result.name.is_empty());
+        assert!(result.error.is_some() || result.checks > 0);
     }
 }

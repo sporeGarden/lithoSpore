@@ -5,6 +5,10 @@
 //! Pure Rust replacement for 7 `scripts/fetch_*.sh` bash scripts.
 //! Strategy per dataset: try HTTP download → fall back to expected-JSON
 //! synthesis → compute BLAKE3 hash → report.
+//!
+//! Spring validation fallback: set `LITHO_SPRINGS_ROOT` to the directory that
+//! contains per-spring folders (e.g. `groundSpring/validation/`). When unset,
+//! defaults to `{workspace}/../springs` (two parents above the artifact root).
 
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
@@ -414,15 +418,15 @@ fn generate_from_expected(
 
     if !expected_path.exists() {
         if let Some(filename) = expected_path.file_name() {
-            let spring_expected = root
-                .parent()
-                .and_then(|p| p.parent())
-                .map(|eco| eco.join("springs/groundSpring/validation").join(filename));
+            let spring_name =
+                spring_for_module(root, module).unwrap_or_else(|| "groundSpring".to_string());
+            let spring_expected = springs_root(root)
+                .join(spring_name)
+                .join("validation")
+                .join(filename);
 
-            if let Some(ref sp) = spring_expected
-                && sp.exists()
-            {
-                std::fs::copy(sp, target_dir.join("expected_values.json"))
+            if spring_expected.exists() {
+                std::fs::copy(&spring_expected, target_dir.join("expected_values.json"))
                     .map_err(|e| format!("copy from spring: {e}"))?;
                 return Ok(());
             }
@@ -450,6 +454,36 @@ fn generate_from_expected(
             Ok(())
         }
     }
+}
+
+/// Root directory containing per-spring folders (`{spring}/validation/`, etc.).
+fn springs_root(artifact_root: &Path) -> PathBuf {
+    if let Ok(env_root) = std::env::var("LITHO_SPRINGS_ROOT")
+        && !env_root.is_empty()
+    {
+        return PathBuf::from(env_root);
+    }
+    artifact_root
+        .parent()
+        .and_then(|p| p.parent())
+        .map_or_else(|| PathBuf::from("springs"), |eco| eco.join("springs"))
+}
+
+/// Resolve which spring owns a module binary from `scope.toml` [[spring]] entries.
+fn spring_for_module(artifact_root: &Path, module: &str) -> Option<String> {
+    let scope_path = artifact_root.join("scope.toml");
+    let content = std::fs::read_to_string(scope_path).ok()?;
+    let scope: toml::Table = content.parse().ok()?;
+    let springs = scope.get("spring")?.as_array()?;
+    for spring in springs {
+        let table = spring.as_table()?;
+        let name = table.get("name")?.as_str()?;
+        let modules = table.get("modules")?.as_array()?;
+        if modules.iter().any(|m| m.as_str() == Some(module)) {
+            return Some(name.to_string());
+        }
+    }
+    None
 }
 
 /// Find the expected JSON file for a module by scanning the expected directory

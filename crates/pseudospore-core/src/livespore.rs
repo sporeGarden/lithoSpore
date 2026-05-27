@@ -60,12 +60,17 @@ impl LiveSporeDoc {
     /// # Errors
     ///
     /// Returns an error if the file cannot be read or parsed as JSON.
-    pub fn load(path: &Path) -> Result<Self, String> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| format!("Failed to read {}: {e}", path.display()))?;
+    pub fn load(path: &Path) -> Result<Self, crate::SporeError> {
+        let content = std::fs::read_to_string(path).map_err(|source| crate::SporeError::Io {
+            path: path.to_path_buf(),
+            source,
+        })?;
 
-        let raw: serde_json::Value = serde_json::from_str(&content)
-            .map_err(|e| format!("Failed to parse {}: {e}", path.display()))?;
+        let raw: serde_json::Value =
+            serde_json::from_str(&content).map_err(|e| crate::SporeError::Parse {
+                path: path.to_path_buf(),
+                detail: e.to_string(),
+            })?;
 
         Ok(Self::from_value(raw))
     }

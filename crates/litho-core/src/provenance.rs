@@ -13,6 +13,16 @@ use serde::{Deserialize, Serialize};
 use crate::discovery::{self, PrimalEndpoint};
 use crate::validation::{Tier3Session, ValidationReport};
 
+/// Well-known provenance trio primals (ecosystem-defined display names).
+///
+/// These are the canonical NUCLEUS instances for DAG, spine, and braid capabilities.
+/// Logging uses `name@host:port` — not hardcoded endpoints; discovery resolves hosts.
+const PRIMAL_DAG_DISPLAY: &str = "rhizocrypt";
+const PRIMAL_SPINE_DISPLAY: &str = "loamspine";
+const PRIMAL_BRAID_DISPLAY: &str = "sweetgrass";
+/// Optional crypto primal when the `crypto` capability is present.
+const PRIMAL_CRYPTO_DISPLAY: &str = "beardog";
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProvenanceEntry {
     pub dataset_id: String,
@@ -79,12 +89,12 @@ pub fn try_record_tier3(report: &ValidationReport) -> Result<Tier3Session, Strin
     let spine_ep = discovery::discover(CAP_SPINE);
     let braid_ep = discovery::discover(CAP_BRAID);
 
-    let mut primals_reached = vec![format!("rhizocrypt@{}", endpoint_addr(&dag_ep))];
+    let mut primals_reached = vec![format!("{PRIMAL_DAG_DISPLAY}@{}", endpoint_addr(&dag_ep))];
     if let Some(ref ep) = spine_ep {
-        primals_reached.push(format!("loamspine@{}", endpoint_addr(ep)));
+        primals_reached.push(format!("{PRIMAL_SPINE_DISPLAY}@{}", endpoint_addr(ep)));
     }
     if let Some(ref ep) = braid_ep {
-        primals_reached.push(format!("sweetgrass@{}", endpoint_addr(ep)));
+        primals_reached.push(format!("{PRIMAL_BRAID_DISPLAY}@{}", endpoint_addr(ep)));
     }
 
     // Phase 1: DAG session — create, append module events, complete
@@ -154,7 +164,10 @@ pub fn try_record_tier3(report: &ValidationReport) -> Result<Tier3Session, Strin
 
     // Check for optional crypto primal
     if let Some(crypto_ep) = discovery::discover("crypto") {
-        primals_reached.push(format!("beardog@{}", endpoint_addr(&crypto_ep)));
+        primals_reached.push(format!(
+            "{PRIMAL_CRYPTO_DISPLAY}@{}",
+            endpoint_addr(&crypto_ep)
+        ));
     }
 
     Ok(Tier3Session {

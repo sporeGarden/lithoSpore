@@ -18,13 +18,13 @@
 |---|--------|---------------------|-----------------|---------------|-----------------|---------------------|------------------|
 | 1 | fitness | PASS (`tier0_structural`) | PASS | PASS (8/8) | Via `try_record_tier3` | Yes | Yes |
 | 2 | mutations | PASS (`tier0_structural`) | PASS | PASS (7/7) | Via `try_record_tier3` | Yes | Yes |
-| 3 | alleles | — | PASS | PASS (20/20) | Via `try_record_tier3` | Yes | Yes |
-| 4 | citrate | — | PASS | PASS (11/11) | Via `try_record_tier3` | Yes | Yes |
+| 3 | alleles | PASS (`tier0_structural`) | PASS | PASS (20/20) | Via `try_record_tier3` | Yes | Yes |
+| 4 | citrate | PASS (`tier0_structural`) | PASS | PASS (11/11) | Via `try_record_tier3` | Yes | Yes |
 | 5 | biobricks | PASS (`tier0_structural`) | PASS | PASS (6/6) | Via `try_record_tier3` | Yes | Yes |
 | 6 | breseq | PASS (`tier0_structural`) | PASS | PASS (16/16) | Via `try_record_tier3` | Yes | Yes |
 | 7 | anderson | PASS (`tier0_structural`) | PASS | PASS (7/7) | Via `try_record_tier3` | Yes | Yes |
 
-**Total**: 7/7 Tier 2 PASS, 75/75 checks. 7/7 Tier 1 PASS.
+**Total**: 7/7 Tier 0 PASS, 7/7 Tier 1 PASS, 7/7 Tier 2 PASS, 75/75 checks.
 Cross-tier parity testable for all 7 modules.
 
 ## Shared Infrastructure
@@ -94,8 +94,8 @@ Each carries `doi`, `source_figures`, and tolerance specifications.
 
 ## Test Coverage
 
-198 tests across 10 crates:
+200 tests across 10 crates:
 - `litho-core`: 58 unit tests (discovery, provenance, validation, braid, spore, scope, graph, harness, pseudospore deprecation, etc.)
 - `pseudospore-core`: 44 unit tests (manifest, validation, tarball, braid envelope, receipts, scope, domain profile, envelope load+validate, error types, etc.)
 - `ltee-cli`: 56 unit + integration tests (lib 29, integration 20, cli_integration 7)
-- Module crates: 40 combined (fitness 9, mutations 9, anderson 7, biobricks 5, breseq 4, alleles 3, citrate 3)
+- Module crates: 42 combined (fitness 9, mutations 9, anderson 7, biobricks 5, breseq 4, alleles 4, citrate 4)

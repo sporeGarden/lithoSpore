@@ -238,14 +238,18 @@ enum Commands {
 
     /// Emit a pseudoSpore: assemble standard directory structure from module outputs.
     /// Works for any spring — driven by `domain_profile.toml` when provided.
+    ///
+    /// Use `--from-dir` to re-emit from an existing pseudoSpore directory (reads
+    /// name/version/origin from its `scope.toml`). This is the delegation path
+    /// used by nest-validate and other springs.
     EmitPseudospore {
-        /// Artifact name
-        #[arg(long)]
-        name: String,
+        /// Artifact name (required unless --from-dir is set)
+        #[arg(long, required_unless_present = "from_dir")]
+        name: Option<String>,
 
-        /// Artifact version (semver)
-        #[arg(long)]
-        version: String,
+        /// Artifact version (required unless --from-dir is set)
+        #[arg(long, required_unless_present = "from_dir")]
+        version: Option<String>,
 
         /// Origin spring/repo path (e.g., "ecoPrimals/springs/hotSpring")
         #[arg(long, default_value = "")]
@@ -279,6 +283,11 @@ enum Commands {
         /// Per `SPORE_OWNERSHIP_MATRIX.md`: each spring provides its own profile.
         #[arg(long, alias = "domain-profile")]
         profile: Option<String>,
+
+        /// Re-emit from an existing pseudoSpore directory. Reads name, version,
+        /// and origin from its `scope.toml`. Use for delegation from nest-validate.
+        #[arg(long)]
+        from_dir: Option<String>,
     },
 
     /// Pre-handoff audit: check config fidelity, translation, completeness, versioning
@@ -532,21 +541,32 @@ fn main() {
             braids,
             data,
             profile,
+            from_dir,
         } => {
-            let effective_origin = if origin.is_empty() {
+            let (resolved_name, resolved_version, resolved_origin) = if let Some(dir) = &from_dir {
+                resolve_emit_from_dir(dir, name.as_deref(), version.as_deref(), &origin)
+            } else {
+                (
+                    name.unwrap_or_default(),
+                    version.unwrap_or_default(),
+                    origin.clone(),
+                )
+            };
+            let effective_origin = if resolved_origin.is_empty() {
                 spring
                     .as_deref()
                     .map(|s| format!("ecoPrimals/springs/{s}"))
                     .unwrap_or_default()
             } else {
-                origin
+                resolved_origin
             };
+            let effective_outputs = outputs.as_deref().or(from_dir.as_deref());
             emit_pseudospore::run(&emit_pseudospore::EmitConfig {
-                name: &name,
-                version: &version,
+                name: &resolved_name,
+                version: &resolved_version,
                 origin: &effective_origin,
                 output_dir: &output,
-                outputs_dir: outputs.as_deref(),
+                outputs_dir: effective_outputs,
                 configs_dir: configs.as_deref(),
                 braids_dir: braids.as_deref(),
                 data_dir: data.as_deref(),
@@ -583,4 +603,39 @@ fn resolve_livespore(root: &std::path::Path) -> std::path::PathBuf {
         return usb;
     }
     root.join("artifact/liveSpore.json")
+}
+
+/// Read name, version, and origin from an existing pseudoSpore `scope.toml`.
+///
+/// CLI flags override scope values when provided.
+fn resolve_emit_from_dir(
+    dir: &str,
+    name_override: Option<&str>,
+    version_override: Option<&str>,
+    origin_override: &str,
+) -> (String, String, String) {
+    let scope_path = std::path::Path::new(dir).join("scope.toml");
+    match pseudospore_core::ScopeDoc::load(&scope_path) {
+        Ok(scope) => {
+            let name = name_override
+                .map(String::from)
+                .unwrap_or(scope.artifact.name);
+            let version = version_override
+                .map(String::from)
+                .unwrap_or(scope.artifact.version);
+            let origin = if origin_override.is_empty() {
+                scope.artifact.origin
+            } else {
+                origin_override.to_string()
+            };
+            (name, version, origin)
+        }
+        Err(e) => {
+            eprintln!(
+                "ERROR: --from-dir: cannot read {}: {e}",
+                scope_path.display()
+            );
+            std::process::exit(1);
+        }
+    }
 }

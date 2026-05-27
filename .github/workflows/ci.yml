@@ -59,6 +59,17 @@ jobs:
       - name: Verify data integrity
         run: ./target/release/litho verify
 
+      - name: Cross-tier parity
+        run: |
+          set +e
+          ./target/release/litho parity
+          EXIT_CODE=$?
+          set -e
+          if [ "$EXIT_CODE" -eq 1 ]; then
+            echo "::error::Parity check produced FAIL results"
+            exit 1
+          fi
+
   python-baselines:
     runs-on: ubuntu-latest
     steps:

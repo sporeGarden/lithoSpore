@@ -17,12 +17,7 @@ pub fn run_validation(data_dir: &str, expected: &str, max_tier: u8) -> ModuleRes
     let start = std::time::Instant::now();
 
     if max_tier < 2 {
-        return harness::skip(
-            "allele_trajectories",
-            max_tier,
-            start,
-            "Tier 2 Rust checks skipped (max_tier < 2)",
-        );
+        return harness::tier0_structural("allele_trajectories", expected, start);
     }
 
     let expected_path = std::path::Path::new(expected);
@@ -211,10 +206,10 @@ mod tests {
     }
 
     #[test]
-    fn max_tier_below_2_skips_tier2() {
+    fn max_tier_below_2_runs_tier0() {
         let result = run_validation("/nonexistent", "/nonexistent", 1);
         assert_eq!(result.status, ValidationStatus::Skip);
-        assert_eq!(result.tier, 1);
+        assert_eq!(result.tier, 0);
     }
 
     #[test]
@@ -274,6 +269,18 @@ mod tests {
             result.checks
         );
         assert_eq!(result.status, ValidationStatus::Pass);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_tier0_structural() {
+        let dir = std::env::temp_dir().join("ltee_alleles_tier0_test");
+        let _ = std::fs::create_dir_all(&dir);
+        let expected = dir.join("expected.json");
+        std::fs::write(&expected, r#"{"validation_checks":[{"name":"fixation"}]}"#).unwrap();
+        let result = run_validation(".", expected.to_str().unwrap(), 0);
+        assert_eq!(result.status, ValidationStatus::Pass);
+        assert_eq!(result.tier, 0);
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

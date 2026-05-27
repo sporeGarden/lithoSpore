@@ -4,19 +4,26 @@
 
 use serde::{Deserialize, Serialize};
 
+/// TOML-driven inventory of every dataset bundled in or referenced by the artifact.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DataManifest {
     pub datasets: Vec<Dataset>,
 }
 
+/// A single dataset entry with provenance, checksum, and refresh instructions.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Dataset {
     pub id: String,
+    /// Canonical download URI or DOI resolver.
     pub source_uri: String,
     pub license: String,
+    /// Path relative to artifact root where data is stored.
     pub local_path: String,
+    /// BLAKE3 checksum of the local dataset contents.
     pub blake3: String,
+    /// Date the dataset was last fetched (ISO 8601).
     pub retrieved: String,
+    /// Shell command to re-download or regenerate this dataset.
     pub refresh_command: String,
 }
 
@@ -74,10 +81,7 @@ mod tests {
     #[test]
     fn verify_hashes_all_present() {
         let m = DataManifest {
-            datasets: vec![
-                sample_dataset("a", "abc"),
-                sample_dataset("b", "def"),
-            ],
+            datasets: vec![sample_dataset("a", "abc"), sample_dataset("b", "def")],
         };
         assert!(m.verify_hashes().is_empty());
     }

@@ -21,11 +21,14 @@ pub mod tolerance;
 pub mod validation;
 
 pub use braid::{BraidCheck, BraidComputation, CloneMutationCount, FermentBraid};
+pub use discovery::{DiscoveryPath, PrimalListResponse};
 pub use manifest::DataManifest;
 pub use provenance::ProvenanceEntry;
 pub use pseudospore::{PseudoSporeManifest, PseudoSporeScope, SporeStatus};
 pub use scope::{ScopeManifest, ScopeModule};
-pub use tolerance::{Tolerance, ToleranceSet};
-pub use validation::{ModuleResult, ParityReport, ParityResult, ParityStatus, TargetCoverage, Tier3Session, ValidationReport, ValidationStatus};
-pub use discovery::{DiscoveryPath, PrimalListResponse};
 pub use spore::LiveSporeEntry;
+pub use tolerance::{Tolerance, ToleranceSet};
+pub use validation::{
+    ModuleResult, ParityReport, ParityResult, ParityStatus, TargetCoverage, Tier3Session,
+    ValidationReport, ValidationStatus,
+};

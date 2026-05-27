@@ -35,8 +35,14 @@ pub fn run(root: &str, json: bool) {
             litho_core::ParityStatus::Divergence => "DIVERGENCE",
             litho_core::ParityStatus::Skipped => "SKIPPED",
         };
-        eprintln!("  Tier 1: {:?} ({}/{})", tier1.status, tier1.checks_passed, tier1.checks);
-        eprintln!("  Tier 2: {:?} ({}/{})", tier2.status, tier2.checks_passed, tier2.checks);
+        eprintln!(
+            "  Tier 1: {:?} ({}/{})",
+            tier1.status, tier1.checks_passed, tier1.checks
+        );
+        eprintln!(
+            "  Tier 2: {:?} ({}/{})",
+            tier2.status, tier2.checks_passed, tier2.checks
+        );
         eprintln!("  Parity: [{symbol}]");
         eprintln!();
 
@@ -52,7 +58,9 @@ pub fn run(root: &str, json: bool) {
         });
     }
 
-    let all_match = parity_results.iter().all(|r| r.parity != litho_core::ParityStatus::Divergence);
+    let all_match = parity_results
+        .iter()
+        .all(|r| r.parity != litho_core::ParityStatus::Divergence);
 
     let report = litho_core::ParityReport {
         artifact: scope_name,
@@ -70,7 +78,10 @@ pub fn run(root: &str, json: bool) {
             }
         }
     } else {
-        println!("lithoSpore v{} — Cross-Tier Parity", env!("CARGO_PKG_VERSION"));
+        println!(
+            "lithoSpore v{} — Cross-Tier Parity",
+            env!("CARGO_PKG_VERSION")
+        );
         println!();
         for r in &report.modules {
             let symbol = match r.parity {
@@ -80,8 +91,14 @@ pub fn run(root: &str, json: bool) {
             };
             println!(
                 "  {:<30} T1={:?}({}/{}) T2={:?}({}/{})  [{}]",
-                r.module, r.tier1_status, r.tier1_passed, r.tier1_checks,
-                r.tier2_status, r.tier2_passed, r.tier2_checks, symbol,
+                r.module,
+                r.tier1_status,
+                r.tier1_passed,
+                r.tier1_checks,
+                r.tier2_status,
+                r.tier2_passed,
+                r.tier2_checks,
+                symbol,
             );
         }
         println!();
@@ -148,7 +165,10 @@ fn run_tier1(
 
     let notebook = if !entry.tier1_notebook.is_empty() {
         entry.tier1_notebook.as_str()
-    } else if let Some((_, nb)) = registry::LTEE_NOTEBOOKS.iter().find(|(n, _)| *n == name.as_str()) {
+    } else if let Some((_, nb)) = registry::LTEE_NOTEBOOKS
+        .iter()
+        .find(|(n, _)| *n == name.as_str())
+    {
         *nb
     } else {
         return litho_core::ModuleResult {
@@ -201,7 +221,11 @@ fn run_tier1(
                 checks: total,
                 checks_passed: passed,
                 runtime_ms: start.elapsed().as_millis() as u64,
-                error: if failed > 0 { Some(format!("{failed} check(s) failed")) } else { None },
+                error: if failed > 0 {
+                    Some(format!("{failed} check(s) failed"))
+                } else {
+                    None
+                },
             }
         }
         Err(e) => litho_core::ModuleResult {

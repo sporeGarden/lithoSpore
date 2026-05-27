@@ -38,7 +38,7 @@ A guideStone-grade artifact satisfies five properties (per primals.eco):
 ## Crate Architecture
 
 ```
-litho-core          ← shared library (CHASSIS — 100% domain-agnostic, 11 modules)
+litho-core          ← shared library (CHASSIS — 100% domain-agnostic, 12 modules)
   ├── validation/     ModuleResult, ValidationReport, Tier3Session, ParityReport
   ├── tolerance/      named tolerances with scientific justification
   ├── provenance/     ProvenanceChain + JSON-RPC client for trio (dag/spine/braid)
@@ -49,7 +49,9 @@ litho-core          ← shared library (CHASSIS — 100% domain-agnostic, 11 mod
   ├── manifest/       DataManifest (data.toml → BLAKE3 verification)
   ├── stats/          shared statistics (pearson_r)
   ├── harness/        module skip/load/dispatch helpers
-  └── graph_checks/   deploy graph validation (registry alignment, Dark Forest invariants)
+  ├── graph_checks/   deploy graph validation (registry alignment, Dark Forest invariants)
+  └── pseudospore/    deprecated re-export wrapper → `pseudospore-core`
+pseudospore-core    ← canonical pseudoSpore parsing, validation, checksums, tarball
   ↑
   ├── ltee-fitness   ← Module 1: power-law fitness (INSTANCE)
   ├── ltee-mutations ← Module 2: mutation accumulation
@@ -66,7 +68,29 @@ litho-core          ← shared library (CHASSIS — 100% domain-agnostic, 11 mod
       ├── verify.rs       litho verify — BLAKE3 integrity
       ├── fetch.rs        litho fetch — data pipeline (ureq + blake3)
       ├── assemble.rs     litho assemble — USB artifact assembly + .biomeos-spore generation
-      ├── grow.rs         litho grow — self-bootstrap from USB
+      ├── grow/           litho grow — self-bootstrap from USB
+      │   ├── mod.rs
+      │   ├── stages.rs
+      │   ├── deploy.rs
+      │   └── util.rs
+      ├── audit/          litho audit — pseudoSpore fidelity checks
+      │   ├── mod.rs
+      │   ├── completeness.rs
+      │   ├── domain.rs
+      │   ├── integrity.rs
+      │   └── provenance.rs
+      ├── emit_pseudospore/  litho emit-pseudospore — create pseudoSpore artifacts
+      │   ├── mod.rs
+      │   ├── scope.rs
+      │   ├── manifest.rs
+      │   ├── index_map.rs
+      │   ├── figures.rs
+      │   ├── environment.rs
+      │   └── scripts.rs
+      ├── promote/        litho promote — pseudoSpore → lithoSpore candidate
+      │   ├── mod.rs
+      │   └── report.rs
+      ├── ingest_pseudospore.rs  litho ingest-pseudospore
       ├── visualize.rs    litho visualize — petalTongue IPC
       ├── chaos.rs        litho chaos-test — 10 fault injection tests
       ├── deploy_test.rs  litho deploy-test — local deployment cycle
@@ -107,11 +131,12 @@ only `scope.toml` + `data.toml` + module crates. No changes to `litho-core`.
    Braid accessions derived from `data.toml`. Target coverage and graph paths
    parameterized. viz/ moved from `litho-core` to `ltee-cli` instance layer.
    `litho-core` is 100% chassis.
-2. **DONE**: pseudoSpore standard. `litho-core/src/pseudospore.rs` provides
-   parsing, validation, and checksum verification for lightweight braid-first
-   artifacts. `litho ingest-pseudospore` and `litho emit-pseudospore` CLI
-   subcommands handle the full lifecycle. `pseudospores/registry.toml` tracks
-   ingested artifacts. See `specs/PSEUDOSPORE_STANDARD.md`.
+2. **DONE**: pseudoSpore standard. `pseudospore-core` is the canonical crate for
+   parsing, validation, and checksum verification; `litho-core/src/pseudospore.rs`
+   is a deprecated re-export wrapper. `litho ingest-pseudospore` and
+   `litho emit-pseudospore` CLI subcommands handle the full lifecycle.
+   `pseudospores/registry.toml` tracks ingested artifacts.
+   See `specs/PSEUDOSPORE_STANDARD.md`.
 3. **Next**: Rename `ltee-cli` to `litho-cli`. Feature flags per instance.
    Dynamic module loading or plugin architecture.
 4. **Target**: Any guideStone instance is a set of workspace member crates +
@@ -141,7 +166,7 @@ ColdSpore → LiveSpore → pseudoSpore → lithoSpore (full)
 
 **Use case**: Any computation-heavy spring producing quantitative results can ship a pseudoSpore instead of waiting for full lithoSpore module integration. The braid carries the provenance, the receipts carry the proof, the configs carry reproducibility.
 
-**Chassis support**: `litho_core::pseudospore` (12th module in litho-core) — `PseudoSporeManifest`, `load_pseudospore()`, `verify_checksums()`, `check_completeness()`, `compute_checksums()`.
+**Chassis support**: `pseudospore-core` (canonical) and `litho_core::pseudospore` (12th litho-core module — deprecated re-export wrapper) — `PseudoSporeManifest`, `load_pseudospore()`, `verify_checksums()`, `check_completeness()`, `compute_checksums()`.
 
 See `specs/PSEUDOSPORE_STANDARD.md` for the complete specification.
 
@@ -170,6 +195,10 @@ When `--max-tier 3`, after Tier 2 science:
    - `spine.create` → `entry.append` (validation summary)
    - `braid.create` (attribution record)
 4. If trio unavailable, stays at Tier 2 with diagnostic
+
+All trio signing is anchored from BearDog via `crypto.sign_ed25519` JSON-RPC.
+lithoSpore never handles key material — the trio delegates crypto to the
+Tower Atomic electron shell.
 
 The 3-call sequence maps to `nest.store` — when biomeOS supports signal
 dispatch, it collapses to `ctx.dispatch("nest.store", ...)`.
@@ -374,6 +403,51 @@ Root (5-8 items max)
 The shim pattern handles exFAT's lack of Unix permissions:
 `validate` copies `runtime/bin/litho` to `/tmp`, `chmod +x`, executes,
 cleans up. Windows uses WSL2 or opens `science/index.html`.
+
+## Tower Atomic Integration
+
+lithoSpore operates within the Tower Atomic trust boundary — the electron
+shell composed of BearDog (crypto) + Songbird (network/TLS) + skunkBat (defense).
+
+### Crypto anchoring
+
+All ecosystem crypto is anchored from BearDog. lithoSpore does not embed
+signing keys or crypto implementations beyond local BLAKE3 hashing:
+
+- **Tier 2 (standalone)**: Local BLAKE3 checksums via `blake3` crate (`pure` + `std`)
+- **Tier 3 (NUCLEUS)**: Provenance signing delegated to BearDog via `crypto.sign`
+  JSON-RPC, discovered at runtime through capability chain
+- **HTTP/TLS**: `ureq` uses `rustls`/`ring` for science dataset downloads (`litho fetch`).
+  `ring` is the accepted ecosystem crypto backend — BearDog itself uses `ring`
+  for TCP TLS termination (H2-10 sovereignty)
+
+### Network discovery
+
+Songbird provides the discovery and relay mesh. lithoSpore resolves primals
+through the capability chain (`discovery.rs`):
+
+```
+$CAPABILITY_PORT env → UDS discovery.sock (Songbird) → TURN relay → Standalone
+```
+
+In NUCLEUS mode, Songbird's `http.request` capability is the canonical
+HTTPS gateway. lithoSpore's `ureq` path is the standalone/airgapped fallback
+for `litho fetch` when running outside a NUCLEUS composition.
+
+### Provenance trio delegation
+
+The provenance trio (rhizoCrypt, loamSpine, sweetGrass) anchors all signing
+from BearDog via `crypto.sign_ed25519` JSON-RPC. When lithoSpore records
+Tier 3 provenance, the chain is:
+
+```
+lithoSpore → discover("dag") → rhizoCrypt → BearDog (crypto.sign)
+lithoSpore → discover("spine") → loamSpine → BearDog (crypto.sign)
+lithoSpore → discover("braid") → sweetGrass → BearDog (crypto.sign)
+```
+
+lithoSpore never touches key material directly — it delegates signing
+through the trio, which delegates to BearDog.
 
 ## projectNUCLEUS Integration
 

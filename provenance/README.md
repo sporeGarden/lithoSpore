@@ -9,7 +9,20 @@ Upstream computation braids from spring teams are stored in `braids/`.
 | `barrick_2009_sovereign.json` | wetSpring | Sovereign Rust+GPU pipeline | READY |
 | `barrick_2009_breseq.json` | wetSpring | breseq 0.40.1 (C++ baseline) | READY |
 | `tenaillon_2016_wetspring_tier2.json` | wetSpring | Exp380 Tier 2 expected values (10 targets, 27/27 PASS) | READY |
-| `tenaillon_2016_sovereign.json` | wetSpring | Sovereign Rust+GPU pipeline | PENDING — file not yet present (42/312 accessions downloaded upstream) |
+| `tenaillon_2016_sovereign.json` | wetSpring | Sovereign Rust+GPU pipeline | **PENDING upstream** — not in repo yet (42/312 accessions downloaded upstream) |
+
+## Cross-Domain / Example Braids
+
+These files live in `braids/` for format reference and cross-instance ferment transcripts.
+They are **not** wired in `artifact/data.toml` `upstream_braid` fields (LTEE datasets use
+the braids in the table above only).
+
+| File | Domain | Purpose |
+|------|--------|---------|
+| `barrick_2009_refined_v1.json` | wetSpring / LTEE | Caller-refinement evolution of `barrick_2009_sovereign` (partial, 1/7 clones) |
+| `compchem_guidestone_v1_6_0.json` | hotSpring / CompChem | GuideStone v1.6.0 ferment receipt (8-module compchem artifact) |
+| `compchem_guidestone_v1_6_1.json` | hotSpring / CompChem | GuideStone v1.6.1 — full-data pseudoSpore promotion |
+| `hotspring-compchem-guidestone_ferment.json` | hotSpring / CompChem | Ferment transcript braid (DAG session + module manifest) |
 
 ## Wire Formats
 

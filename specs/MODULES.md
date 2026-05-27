@@ -18,8 +18,8 @@
 |---|--------|-----------------|---------------|-----------------|---------------------|------------------|
 | 1 | fitness | PASS | PASS (8/8) | Via `try_record_tier3` | Yes | Yes |
 | 2 | mutations | PASS | PASS (7/7) | Via `try_record_tier3` | Yes | Yes |
-| 3 | alleles | PASS | PASS (20/20) | Via `try_record_tier3` | **Ignored** | Yes |
-| 4 | citrate | PASS | PASS (11/11) | Via `try_record_tier3` | **Ignored** | Yes |
+| 3 | alleles | PASS | PASS (20/20) | Via `try_record_tier3` | Yes | Yes |
+| 4 | citrate | PASS | PASS (11/11) | Via `try_record_tier3` | Yes | Yes |
 | 5 | biobricks | PASS | PASS (6/6) | Via `try_record_tier3` | Yes | Yes |
 | 6 | breseq | PASS | PASS (16/16) | Via `try_record_tier3` | Yes | Yes |
 | 7 | anderson | PASS | PASS (7/7) | Via `try_record_tier3` | Yes | Yes |
@@ -40,7 +40,7 @@ Cross-tier parity testable for all 7 modules.
   graph checks
 
 - **`ltee-cli`** (instance wiring + chassis glue):
-  unified `litho` binary with 15 subcommands,
+  unified `litho` binary with 20 subcommands,
   scope-driven module registry (`registry.rs` — `load_module_table()`, `dispatch_module()`,
   `module_name_matches()`), visualization adapters (`viz/` — DataBinding for all 7 LTEE
   modules + 7 Barrick baselines). `.biomeos-spore` generated from scope.toml during assembly.
@@ -76,7 +76,7 @@ Every module binary MUST:
    JSON (modules 6, 7) or as named constants matching `artifact/tolerances.toml`
 6. Reference source data by dataset ID from `data.toml`
 7. Be statically linked (musl) with zero runtime dependencies
-8. Honor `max_tier` parameter (modules 3, 4 currently do not — known gap)
+8. Honor `max_tier` parameter. All modules honor `max_tier`.
 
 `artifact/tolerances.toml` is the centralized reference for all tolerance values
 and their scientific justifications. Module binaries may read tolerances from
@@ -94,7 +94,8 @@ Each carries `doi`, `source_figures`, and tolerance specifications.
 
 ## Test Coverage
 
-125 tests across 9 crates:
-- `litho-core`: 49 unit tests (discovery, provenance, validation, braid, spore, scope, graph, etc.)
-- `ltee-cli`: 49 unit + integration tests (registry 4, viz 11, ops 2, validate 1, visualize 3, cli integration 20, verify 2, fetch 6)
-- Module crates: 27 combined (fitness 6, mutations 6, anderson 5, biobricks 4, alleles 2, citrate 2, breseq 2)
+189 tests across 10 crates:
+- `litho-core`: 57 unit tests (discovery, provenance, validation, braid, spore, scope, graph, harness, pseudospore deprecation, etc.)
+- `pseudospore-core`: 43 unit tests (manifest, validation, tarball, braid envelope, receipts, scope, etc.)
+- `ltee-cli`: 56 unit + integration tests (lib 29, integration 20, cli_integration 7)
+- Module crates: 33 combined (fitness 8, mutations 8, anderson 5, biobricks 4, alleles 3, citrate 3, breseq 2)

@@ -5,8 +5,13 @@
 use crate::registry;
 
 const BASELINE_TOOLS: &[&str] = &[
-    "breseq", "plannotate", "ostir", "cryptkeeper",
-    "efm", "marker_divergence", "rna_mi",
+    "breseq",
+    "plannotate",
+    "ostir",
+    "cryptkeeper",
+    "efm",
+    "marker_divergence",
+    "rna_mi",
 ];
 
 pub fn run(root: &str, format: &str, output_dir: &str) {
@@ -34,7 +39,10 @@ fn run_json(root_path: &std::path::Path, modules: &[(&str, &str)]) {
     let all = load_module_data(root_path, modules);
     let refs: Vec<(&str, &serde_json::Value)> = all.iter().map(|(n, v)| (*n, v)).collect();
     let dashboard = crate::viz::build_dashboard(&refs);
-    println!("{}", serde_json::to_string_pretty(&dashboard).unwrap_or_default());
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&dashboard).unwrap_or_default()
+    );
 }
 
 fn run_svg(root_path: &std::path::Path, entries: &[registry::ModuleEntry], output_dir: &str) {
@@ -47,7 +55,10 @@ fn run_svg(root_path: &std::path::Path, entries: &[registry::ModuleEntry], outpu
     for entry in entries {
         let notebook = if !entry.tier1_notebook.is_empty() {
             entry.tier1_notebook.as_str()
-        } else if let Some((_, nb)) = registry::LTEE_NOTEBOOKS.iter().find(|(n, _)| *n == entry.name.as_str()) {
+        } else if let Some((_, nb)) = registry::LTEE_NOTEBOOKS
+            .iter()
+            .find(|(n, _)| *n == entry.name.as_str())
+        {
             *nb
         } else {
             eprintln!("  SKIP {}: no notebook", entry.name);
@@ -75,13 +86,16 @@ fn run_svg(root_path: &std::path::Path, entries: &[registry::ModuleEntry], outpu
         }
     }
 
-    eprintln!("  {generated} modules processed, figures in {}", out_path.display());
+    eprintln!(
+        "  {generated} modules processed, figures in {}",
+        out_path.display()
+    );
 
     let svgs: Vec<String> = std::fs::read_dir(&out_path)
         .into_iter()
         .flatten()
-        .filter_map(|e| e.ok())
-        .filter(|e| e.path().extension().map(|x| x == "svg").unwrap_or(false))
+        .filter_map(std::result::Result::ok)
+        .filter(|e| e.path().extension().is_some_and(|x| x == "svg"))
         .map(|e| e.path().display().to_string())
         .collect();
 
@@ -114,7 +128,10 @@ fn run_dashboard(root_path: &std::path::Path, modules: &[(&str, &str)]) {
 fn run_baselines(root_path: &std::path::Path) {
     let baselines_dir = root_path.join("baselines");
     if !baselines_dir.exists() {
-        eprintln!("ERROR: baselines/ directory not found at {}", baselines_dir.display());
+        eprintln!(
+            "ERROR: baselines/ directory not found at {}",
+            baselines_dir.display()
+        );
         std::process::exit(1);
     }
 
@@ -127,11 +144,17 @@ fn run_baselines(root_path: &std::path::Path) {
         }
         let content = match std::fs::read_to_string(&ref_path) {
             Ok(c) => c,
-            Err(e) => { eprintln!("  SKIP {tool}: {e}"); continue; }
+            Err(e) => {
+                eprintln!("  SKIP {tool}: {e}");
+                continue;
+            }
         };
         let data: serde_json::Value = match serde_json::from_str(&content) {
             Ok(v) => v,
-            Err(e) => { eprintln!("  SKIP {tool}: parse error: {e}"); continue; }
+            Err(e) => {
+                eprintln!("  SKIP {tool}: parse error: {e}");
+                continue;
+            }
         };
         eprintln!("  Loaded baseline: {tool}");
         all_tools.push((tool, data));
@@ -139,20 +162,31 @@ fn run_baselines(root_path: &std::path::Path) {
 
     let refs: Vec<(&str, &serde_json::Value)> = all_tools.iter().map(|(n, v)| (*n, v)).collect();
     let dashboard = crate::viz::build_baseline_dashboard(&refs);
-    let bindings_count = dashboard["bindings"].as_array().map(|a| a.len()).unwrap_or(0);
-    eprintln!("  {bindings_count} DataBindings from {} tools", all_tools.len());
+    let bindings_count = dashboard["bindings"]
+        .as_array()
+        .map_or(0, std::vec::Vec::len);
+    eprintln!(
+        "  {bindings_count} DataBindings from {} tools",
+        all_tools.len()
+    );
 
     let socket_path = discover_visualization_socket();
     if socket_path.is_empty() {
         eprintln!("  visualization socket not found — outputting JSON");
-        println!("{}", serde_json::to_string_pretty(&dashboard).unwrap_or_default());
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&dashboard).unwrap_or_default()
+        );
         return;
     }
 
     push_to_visualization(&socket_path, &dashboard, "Baselines");
 }
 
-fn load_module_data<'a>(root_path: &std::path::Path, modules: &[(&'a str, &str)]) -> Vec<(&'a str, serde_json::Value)> {
+fn load_module_data<'a>(
+    root_path: &std::path::Path,
+    modules: &[(&'a str, &str)],
+) -> Vec<(&'a str, serde_json::Value)> {
     let mut all = Vec::new();
     for (name, expected_path) in modules {
         let path = root_path.join(expected_path);
@@ -162,11 +196,17 @@ fn load_module_data<'a>(root_path: &std::path::Path, modules: &[(&'a str, &str)]
         }
         let content = match std::fs::read_to_string(&path) {
             Ok(c) => c,
-            Err(e) => { eprintln!("  SKIP {name}: {e}"); continue; }
+            Err(e) => {
+                eprintln!("  SKIP {name}: {e}");
+                continue;
+            }
         };
         let expected: serde_json::Value = match serde_json::from_str(&content) {
             Ok(v) => v,
-            Err(e) => { eprintln!("  SKIP {name}: parse error: {e}"); continue; }
+            Err(e) => {
+                eprintln!("  SKIP {name}: parse error: {e}");
+                continue;
+            }
         };
         all.push((*name, expected));
     }
@@ -196,7 +236,10 @@ fn push_to_visualization(socket_path: &str, dashboard: &serde_json::Value, label
         }
         Err(e) => {
             eprintln!("  WARNING: visualization push failed: {e}");
-            println!("{}", serde_json::to_string_pretty(dashboard).unwrap_or_default());
+            println!(
+                "{}",
+                serde_json::to_string_pretty(dashboard).unwrap_or_default()
+            );
         }
     }
 }
@@ -208,17 +251,17 @@ fn push_to_visualization(socket_path: &str, dashboard: &serde_json::Value, label
 ///   4. XDG runtime dir socket scan (fallback)
 pub(crate) fn discover_visualization_socket() -> String {
     for env_key in ["VISUALIZATION_SOCKET", "PETALTONGUE_SOCKET"] {
-        if let Ok(path) = std::env::var(env_key) {
-            if std::path::Path::new(&path).exists() {
-                return path;
-            }
+        if let Ok(path) = std::env::var(env_key)
+            && std::path::Path::new(&path).exists()
+        {
+            return path;
         }
     }
 
-    if let Some(ep) = litho_core::discovery::discover("visualization") {
-        if ep.transport == litho_core::discovery::Transport::Uds {
-            return ep.host;
-        }
+    if let Some(ep) = litho_core::discovery::discover("visualization")
+        && ep.transport == litho_core::discovery::Transport::Uds
+    {
+        return ep.host;
     }
 
     let xdg_runtime = resolve_xdg_runtime();
@@ -253,7 +296,8 @@ fn resolve_xdg_runtime() -> String {
         }
         #[cfg(not(unix))]
         {
-            std::env::var("TEMP").unwrap_or_else(|_| std::env::temp_dir().to_string_lossy().to_string())
+            std::env::var("TEMP")
+                .unwrap_or_else(|_| std::env::temp_dir().to_string_lossy().to_string())
         }
     })
 }
@@ -288,19 +332,26 @@ fn send_uds(socket_path: &str, payload: &[u8]) -> Result<String, String> {
     use std::io::{Read, Write};
     use std::os::unix::net::UnixStream;
 
-    let mut stream = UnixStream::connect(socket_path)
-        .map_err(|e| format!("connect: {e}"))?;
+    let mut stream = UnixStream::connect(socket_path).map_err(|e| format!("connect: {e}"))?;
 
-    stream.set_write_timeout(Some(std::time::Duration::from_secs(5))).ok();
-    stream.set_read_timeout(Some(std::time::Duration::from_secs(10))).ok();
+    stream
+        .set_write_timeout(Some(std::time::Duration::from_secs(5)))
+        .ok();
+    stream
+        .set_read_timeout(Some(std::time::Duration::from_secs(10)))
+        .ok();
 
-    stream.write_all(payload).map_err(|e| format!("write: {e}"))?;
+    stream
+        .write_all(payload)
+        .map_err(|e| format!("write: {e}"))?;
     stream.flush().map_err(|e| format!("flush: {e}"))?;
 
     stream.shutdown(std::net::Shutdown::Write).ok();
 
     let mut response = String::new();
-    stream.read_to_string(&mut response).map_err(|e| format!("read: {e}"))?;
+    stream
+        .read_to_string(&mut response)
+        .map_err(|e| format!("read: {e}"))?;
 
     Ok(response)
 }

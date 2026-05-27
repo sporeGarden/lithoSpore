@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! Module 5: BioBrick metabolic burden
+//! Module 5: `BioBrick` metabolic burden
 //!
 //! Validates burden measurements from Barrick et al. 2024 (B6), Nature Communications.
 //! doi:10.1038/s41467-024-50639-9
 //!
-//! Data: barricklab/igem2019 (v1.0.2) — 301 BioBrick plasmid growth burden assays.
+//! Data: barricklab/igem2019 (v1.0.2) — 301 `BioBrick` plasmid growth burden assays.
 //! Tier 2: pure Rust CSV parsing + growth rate computation + burden distribution.
 //! Target: T08 (fat-tailed burden distribution).
 
@@ -18,19 +18,24 @@ use std::time::Instant;
 const BFP_CONTROLS: &[&str] = &["K3174002", "K3174003", "K3174004", "K3174006", "K3174007"];
 
 /// Run module 5 validation with the given paths and tier.
+#[must_use]
 pub fn run_validation(data_dir: &str, expected: &str, max_tier: u8) -> ModuleResult {
     let start = Instant::now();
 
     if !Path::new(expected).exists() {
         return harness::skip(
-            "biobrick_burden", 1, start,
+            "biobrick_burden",
+            1,
+            start,
             "Expected values not found — run fetch + generate expected values first",
         );
     }
 
     if !Path::new(data_dir).exists() {
         return harness::skip(
-            "biobrick_burden", 1, start,
+            "biobrick_burden",
+            1,
+            start,
             "Data not fetched — run `litho fetch --all`",
         );
     }
@@ -47,7 +52,9 @@ pub fn run_validation(data_dir: &str, expected: &str, max_tier: u8) -> ModuleRes
     }
 
     harness::skip(
-        "biobrick_burden", max_tier, start,
+        "biobrick_burden",
+        max_tier,
+        start,
         &format!("Tier {max_tier} not implemented yet"),
     )
 }
@@ -151,10 +158,11 @@ fn compute_growth_rate(measurements: &[GrowthMeasurement]) -> Option<f64> {
 
 fn load_plate_measurements(plate_dir: &Path) -> Vec<GrowthMeasurement> {
     let meas_file = plate_dir.join(
-        plate_dir.file_name()
+        plate_dir
+            .file_name()
             .and_then(|n| n.to_str())
             .map(|n| format!("{n}.measurements.csv"))
-            .unwrap_or_default()
+            .unwrap_or_default(),
     );
 
     let content = match std::fs::read_to_string(&meas_file) {
@@ -168,12 +176,15 @@ fn load_plate_measurements(plate_dir: &Path) -> Vec<GrowthMeasurement> {
 
     for line in lines {
         let cols: Vec<&str> = line.split(',').collect();
-        if cols.len() >= 2 {
-            if let (Ok(time), Ok(od)) = (cols[0].trim().parse::<f64>(), cols[1].trim().parse::<f64>()) {
-                if od > 0.0 {
-                    measurements.push(GrowthMeasurement { time_hours: time, od600: od });
-                }
-            }
+        if cols.len() >= 2
+            && let (Ok(time), Ok(od)) =
+                (cols[0].trim().parse::<f64>(), cols[1].trim().parse::<f64>())
+            && od > 0.0
+        {
+            measurements.push(GrowthMeasurement {
+                time_hours: time,
+                od600: od,
+            });
         }
     }
 
@@ -193,18 +204,26 @@ fn compute_burden(sample_rate: f64, control_rate: f64) -> f64 {
 fn run_tier2_rust(data_dir: &str, expected_path: &str, start: Instant) -> ModuleResult {
     let expected = match harness::load_expected(expected_path) {
         Some(v) => v,
-        None => return harness::skip(
-            "biobrick_burden", 2, start,
-            "Cannot parse expected values JSON",
-        ),
+        None => {
+            return harness::skip(
+                "biobrick_burden",
+                2,
+                start,
+                "Cannot parse expected values JSON",
+            );
+        }
     };
 
     let strains = match load_strain_metadata(data_dir) {
         Some(s) => s,
-        None => return harness::skip(
-            "biobrick_burden", 2, start,
-            "Cannot parse igem2019_strain_metadata.csv",
-        ),
+        None => {
+            return harness::skip(
+                "biobrick_burden",
+                2,
+                start,
+                "Cannot parse igem2019_strain_metadata.csv",
+            );
+        }
     };
 
     let bfp_set: HashSet<&str> = BFP_CONTROLS.iter().copied().collect();
@@ -247,37 +266,66 @@ fn run_tier2_rust(data_dir: &str, expected_path: &str, start: Instant) -> Module
     let mut total = 0_u32;
 
     let exp_total = expected["total_biobricks_tested"].as_u64().unwrap_or(301);
-    let count_tol = expected["tolerances"]["count_tolerance"].as_u64().unwrap_or(5);
+    let count_tol = expected["tolerances"]["count_tolerance"]
+        .as_u64()
+        .unwrap_or(5);
 
     total += 1;
     let bb_count = biobrick_accessions.len() as u64;
     let count_ok = bb_count.abs_diff(exp_total) <= count_tol;
-    if count_ok { passed += 1; }
-    eprintln!("  [{}] Total BioBrick parts: {} (expected: {} ± {})",
-        if count_ok { "PASS" } else { "FAIL" }, bb_count, exp_total, count_tol);
+    if count_ok {
+        passed += 1;
+    }
+    eprintln!(
+        "  [{}] Total BioBrick parts: {} (expected: {} ± {})",
+        if count_ok { "PASS" } else { "FAIL" },
+        bb_count,
+        exp_total,
+        count_tol
+    );
 
     total += 1;
-    if has_plate_data { passed += 1; }
-    eprintln!("  [{}] Growth curve plate data present",
-        if has_plate_data { "PASS" } else { "FAIL" });
+    if has_plate_data {
+        passed += 1;
+    }
+    eprintln!(
+        "  [{}] Growth curve plate data present",
+        if has_plate_data { "PASS" } else { "FAIL" }
+    );
 
     total += 1;
     let bb_ok = psb1c3_accessions.len() >= 230;
-    if bb_ok { passed += 1; }
-    eprintln!("  [{}] pSB1C3 BioBricks: {} (expected: >= 230)",
-        if bb_ok { "PASS" } else { "FAIL" }, psb1c3_accessions.len());
+    if bb_ok {
+        passed += 1;
+    }
+    eprintln!(
+        "  [{}] pSB1C3 BioBricks: {} (expected: >= 230)",
+        if bb_ok { "PASS" } else { "FAIL" },
+        psb1c3_accessions.len()
+    );
 
     total += 1;
     let bfp_ok = bfp_measured.len() == BFP_CONTROLS.len();
-    if bfp_ok { passed += 1; }
-    eprintln!("  [{}] BFP controls: {}/{}",
-        if bfp_ok { "PASS" } else { "FAIL" }, bfp_measured.len(), BFP_CONTROLS.len());
+    if bfp_ok {
+        passed += 1;
+    }
+    eprintln!(
+        "  [{}] BFP controls: {}/{}",
+        if bfp_ok { "PASS" } else { "FAIL" },
+        bfp_measured.len(),
+        BFP_CONTROLS.len()
+    );
 
     total += 1;
     let a2_ok = psb1a2_accessions.len() >= 35;
-    if a2_ok { passed += 1; }
-    eprintln!("  [{}] pSB1A2 BioBricks: {} (expected: >= 35)",
-        if a2_ok { "PASS" } else { "FAIL" }, psb1a2_accessions.len());
+    if a2_ok {
+        passed += 1;
+    }
+    eprintln!(
+        "  [{}] pSB1A2 BioBricks: {} (expected: >= 35)",
+        if a2_ok { "PASS" } else { "FAIL" },
+        psb1a2_accessions.len()
+    );
 
     if has_plate_data {
         let mut growth_rates: Vec<f64> = Vec::new();
@@ -298,45 +346,72 @@ fn run_tier2_rust(data_dir: &str, expected_path: &str, start: Instant) -> Module
 
         total += 1;
         let plates_ok = plate_count >= 10;
-        if plates_ok { passed += 1; }
-        eprintln!("  [{}] Plate experiments parsed: {} (expected >= 10)",
-            if plates_ok { "PASS" } else { "FAIL" }, plate_count);
+        if plates_ok {
+            passed += 1;
+        }
+        eprintln!(
+            "  [{}] Plate experiments parsed: {} (expected >= 10)",
+            if plates_ok { "PASS" } else { "FAIL" },
+            plate_count
+        );
 
         if growth_rates.len() >= 5 {
             total += 1;
             let rates_positive = growth_rates.iter().all(|r| *r > 0.0);
-            if rates_positive { passed += 1; }
-            eprintln!("  [{}] Growth rates all positive: {} rates computed",
-                if rates_positive { "PASS" } else { "FAIL" }, growth_rates.len());
+            if rates_positive {
+                passed += 1;
+            }
+            eprintln!(
+                "  [{}] Growth rates all positive: {} rates computed",
+                if rates_positive { "PASS" } else { "FAIL" },
+                growth_rates.len()
+            );
 
             let mean_rate = growth_rates.iter().sum::<f64>() / growth_rates.len() as f64;
-            let burdens: Vec<f64> = growth_rates.iter()
+            let burdens: Vec<f64> = growth_rates
+                .iter()
                 .map(|r| compute_burden(*r, mean_rate))
                 .collect();
 
             let mean_burden = burdens.iter().sum::<f64>() / burdens.len() as f64;
-            let var_burden = burdens.iter()
+            let var_burden = burdens
+                .iter()
                 .map(|b| (b - mean_burden).powi(2))
-                .sum::<f64>() / burdens.len() as f64;
+                .sum::<f64>()
+                / burdens.len() as f64;
             let std_burden = var_burden.sqrt();
 
             total += 1;
             let has_variance = std_burden > 0.01;
-            if has_variance { passed += 1; }
-            eprintln!("  [{}] Burden distribution has variance: mean={mean_burden:.4}, std={std_burden:.4}",
-                if has_variance { "PASS" } else { "FAIL" });
+            if has_variance {
+                passed += 1;
+            }
+            eprintln!(
+                "  [{}] Burden distribution has variance: mean={mean_burden:.4}, std={std_burden:.4}",
+                if has_variance { "PASS" } else { "FAIL" }
+            );
 
             if burdens.len() >= 10 {
-                let m4 = burdens.iter()
+                let m4 = burdens
+                    .iter()
                     .map(|b| (b - mean_burden).powi(4))
-                    .sum::<f64>() / burdens.len() as f64;
-                let kurtosis = if var_burden > 0.0 { m4 / var_burden.powi(2) } else { 0.0 };
+                    .sum::<f64>()
+                    / burdens.len() as f64;
+                let kurtosis = if var_burden > 0.0 {
+                    m4 / var_burden.powi(2)
+                } else {
+                    0.0
+                };
 
                 total += 1;
                 let fat_tail = kurtosis > 2.5;
-                if fat_tail { passed += 1; }
-                eprintln!("  [{}] Fat-tailed burden distribution: kurtosis={kurtosis:.2} (expected > 2.5 for leptokurtic)",
-                    if fat_tail { "PASS" } else { "FAIL" });
+                if fat_tail {
+                    passed += 1;
+                }
+                eprintln!(
+                    "  [{}] Fat-tailed burden distribution: kurtosis={kurtosis:.2} (expected > 2.5 for leptokurtic)",
+                    if fat_tail { "PASS" } else { "FAIL" }
+                );
             }
         }
     }
@@ -384,11 +459,26 @@ mod tests {
     #[test]
     fn growth_rate_computation() {
         let measurements = vec![
-            GrowthMeasurement { time_hours: 0.0, od600: 0.01 },
-            GrowthMeasurement { time_hours: 1.0, od600: 0.03 },
-            GrowthMeasurement { time_hours: 2.0, od600: 0.08 },
-            GrowthMeasurement { time_hours: 3.0, od600: 0.20 },
-            GrowthMeasurement { time_hours: 4.0, od600: 0.50 },
+            GrowthMeasurement {
+                time_hours: 0.0,
+                od600: 0.01,
+            },
+            GrowthMeasurement {
+                time_hours: 1.0,
+                od600: 0.03,
+            },
+            GrowthMeasurement {
+                time_hours: 2.0,
+                od600: 0.08,
+            },
+            GrowthMeasurement {
+                time_hours: 3.0,
+                od600: 0.20,
+            },
+            GrowthMeasurement {
+                time_hours: 4.0,
+                od600: 0.50,
+            },
         ];
         let rate = compute_growth_rate(&measurements);
         assert!(rate.is_some(), "should compute a growth rate");

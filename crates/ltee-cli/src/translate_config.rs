@@ -8,6 +8,7 @@
 //! while compute configs use runtime-correct indices.
 
 use std::collections::HashMap;
+use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
 
@@ -19,7 +20,6 @@ struct AtomMapping {
 }
 
 #[derive(Debug)]
-#[allow(dead_code)]
 struct SystemMap {
     name: String,
     description: String,
@@ -56,7 +56,7 @@ pub fn run(index_map_path: &str, config_path: &str, frame: &str, output: Option<
     println!("=== litho translate-config ===");
     println!("  index_map: {}", map_path.display());
     println!("  config:    {}", cfg_path.display());
-    println!("  target:    {} frame", frame);
+    println!("  target:    {frame} frame");
     println!();
 
     let translated = translate(&config_content, &systems, from_frame, to_frame);
@@ -91,12 +91,14 @@ fn parse_index_map(content: &str) -> Vec<SystemMap> {
                         if let toml::Value::Table(mapping) = atom_val {
                             let domain = mapping
                                 .get("domain")
-                                .and_then(|v| v.as_integer())
-                                .unwrap_or(0) as u64;
+                                .and_then(toml::Value::as_integer)
+                                .and_then(|i| u64::try_from(i).ok())
+                                .unwrap_or(0);
                             let computation = mapping
                                 .get("computation")
-                                .and_then(|v| v.as_integer())
-                                .unwrap_or(0) as u64;
+                                .and_then(toml::Value::as_integer)
+                                .and_then(|i| u64::try_from(i).ok())
+                                .unwrap_or(0);
                             atoms.push(AtomMapping {
                                 name: atom_name.clone(),
                                 domain,
@@ -178,14 +180,11 @@ fn translate(config: &str, systems: &[SystemMap], from_frame: &str, to_frame: &s
     }
 
     // Add frame annotation header
-    let mut header = format!(
-        "# AUTO-TRANSLATED to {} frame by `litho translate-config`\n",
-        to_frame
-    );
-    header.push_str(&format!(
-        "# Source indices were in {} frame\n#\n",
-        from_frame
-    ));
+    let mut header = format!("# AUTO-TRANSLATED to {to_frame} frame by `litho translate-config`\n");
+    let _ = writeln!(header, "# Source indices were in {from_frame} frame\n#");
+    for sys in systems {
+        let _ = writeln!(header, "# System: {} — {}", sys.name, sys.description);
+    }
     header.push_str(&result);
     header
 }

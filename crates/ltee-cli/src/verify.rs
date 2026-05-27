@@ -20,7 +20,14 @@ pub fn run(root: &str, json_output: bool) {
 
     if !json_output {
         println!("=== Upstream source check ===");
-        println!("  Connectivity: {}", if online { "ONLINE" } else { "OFFLINE (airgapped) — skipping upstream checks" });
+        println!(
+            "  Connectivity: {}",
+            if online {
+                "ONLINE"
+            } else {
+                "OFFLINE (airgapped) — skipping upstream checks"
+            }
+        );
     }
 
     if online && data_toml_path.exists() {
@@ -29,9 +36,21 @@ pub fn run(root: &str, json_output: bool) {
 
     print_summary(&results, json_output);
 
-    let local_drift = results.local_checks.iter().filter(|c| c.status == "DRIFT").count();
-    let local_missing = results.local_checks.iter().filter(|c| c.status == "MISSING").count();
-    let local_error = results.local_checks.iter().filter(|c| c.status == "ERROR").count();
+    let local_drift = results
+        .local_checks
+        .iter()
+        .filter(|c| c.status == "DRIFT")
+        .count();
+    let local_missing = results
+        .local_checks
+        .iter()
+        .filter(|c| c.status == "MISSING")
+        .count();
+    let local_error = results
+        .local_checks
+        .iter()
+        .filter(|c| c.status == "ERROR")
+        .count();
     let manifest_empty = results.local_checks.is_empty() && manifest_path.exists();
 
     if local_drift > 0 || local_missing > 0 || local_error > 0 || manifest_empty {
@@ -39,7 +58,7 @@ pub fn run(root: &str, json_output: bool) {
     }
 }
 
-/// Run verification and return success/failure without calling process::exit.
+/// Run verification and return success/failure without calling `process::exit`.
 pub fn run_check(root: &str) -> bool {
     let root_path = std::path::Path::new(root);
     let manifest_path = root_path.join("data_manifest.toml");
@@ -50,9 +69,21 @@ pub fn run_check(root: &str) -> bool {
         verify_local_integrity(&manifest_path, root_path, &mut results, true);
     }
 
-    let local_drift = results.local_checks.iter().filter(|c| c.status == "DRIFT").count();
-    let local_missing = results.local_checks.iter().filter(|c| c.status == "MISSING").count();
-    let local_error = results.local_checks.iter().filter(|c| c.status == "ERROR").count();
+    let local_drift = results
+        .local_checks
+        .iter()
+        .filter(|c| c.status == "DRIFT")
+        .count();
+    let local_missing = results
+        .local_checks
+        .iter()
+        .filter(|c| c.status == "MISSING")
+        .count();
+    let local_error = results
+        .local_checks
+        .iter()
+        .filter(|c| c.status == "ERROR")
+        .count();
     let manifest_empty = results.local_checks.is_empty() && manifest_path.exists();
 
     local_drift == 0 && local_missing == 0 && local_error == 0 && !manifest_empty
@@ -68,10 +99,15 @@ fn verify_local_integrity(
         Ok(c) => c,
         Err(e) => {
             let msg = format!("Cannot read data_manifest.toml: {e}");
-            if !json_output { eprintln!("  ERROR: {msg}"); }
+            if !json_output {
+                eprintln!("  ERROR: {msg}");
+            }
             results.local_checks.push(FileCheck {
-                path: "data_manifest.toml".into(), status: "ERROR".into(),
-                expected: String::new(), actual: String::new(), detail: Some(msg),
+                path: "data_manifest.toml".into(),
+                status: "ERROR".into(),
+                expected: String::new(),
+                actual: String::new(),
+                detail: Some(msg),
             });
             return;
         }
@@ -81,10 +117,15 @@ fn verify_local_integrity(
         Ok(v) => v,
         Err(e) => {
             let msg = format!("Corrupt data_manifest.toml: {e}");
-            if !json_output { eprintln!("  ERROR: {msg}"); }
+            if !json_output {
+                eprintln!("  ERROR: {msg}");
+            }
             results.local_checks.push(FileCheck {
-                path: "data_manifest.toml".into(), status: "ERROR".into(),
-                expected: String::new(), actual: String::new(), detail: Some(msg),
+                path: "data_manifest.toml".into(),
+                status: "ERROR".into(),
+                expected: String::new(),
+                actual: String::new(),
+                detail: Some(msg),
             });
             return;
         }
@@ -92,61 +133,117 @@ fn verify_local_integrity(
 
     if let Some(files) = manifest.get("file").and_then(|v| v.as_array()) {
         if files.is_empty() {
-            if !json_output { eprintln!("  WARNING: data_manifest.toml has no [[file]] entries"); }
+            if !json_output {
+                eprintln!("  WARNING: data_manifest.toml has no [[file]] entries");
+            }
             results.local_checks.push(FileCheck {
-                path: "data_manifest.toml".into(), status: "ERROR".into(),
-                expected: String::new(), actual: String::new(),
+                path: "data_manifest.toml".into(),
+                status: "ERROR".into(),
+                expected: String::new(),
+                actual: String::new(),
                 detail: Some("manifest contains no [[file]] entries".into()),
             });
             return;
         }
 
-        if !json_output { println!("=== Local integrity check (BLAKE3) ==="); }
+        if !json_output {
+            println!("=== Local integrity check (BLAKE3) ===");
+        }
 
         for entry in files {
             let path = entry.get("path").and_then(|v| v.as_str()).unwrap_or("");
             let expected_hash = entry.get("blake3").and_then(|v| v.as_str()).unwrap_or("");
 
-            if path.is_empty() || expected_hash.is_empty() { continue; }
+            if path.is_empty() || expected_hash.is_empty() {
+                continue;
+            }
 
             let full_path = root_path.join(path);
             let check = if full_path.exists() {
                 match hash_file(&full_path) {
                     Ok(actual) => {
                         if actual == expected_hash {
-                            FileCheck { path: path.into(), status: "ok".into(), expected: expected_hash.into(), actual, detail: None }
+                            FileCheck {
+                                path: path.into(),
+                                status: "ok".into(),
+                                expected: expected_hash.into(),
+                                actual,
+                                detail: None,
+                            }
                         } else {
-                            FileCheck { path: path.into(), status: "DRIFT".into(), expected: expected_hash.into(), actual, detail: Some("local file hash does not match manifest".into()) }
+                            FileCheck {
+                                path: path.into(),
+                                status: "DRIFT".into(),
+                                expected: expected_hash.into(),
+                                actual,
+                                detail: Some("local file hash does not match manifest".into()),
+                            }
                         }
                     }
-                    Err(e) => FileCheck { path: path.into(), status: "ERROR".into(), expected: expected_hash.into(), actual: String::new(), detail: Some(format!("hash error: {e}")) },
+                    Err(e) => FileCheck {
+                        path: path.into(),
+                        status: "ERROR".into(),
+                        expected: expected_hash.into(),
+                        actual: String::new(),
+                        detail: Some(format!("hash error: {e}")),
+                    },
                 }
             } else {
-                FileCheck { path: path.into(), status: "MISSING".into(), expected: expected_hash.into(), actual: String::new(), detail: Some("file not found on disk".into()) }
+                FileCheck {
+                    path: path.into(),
+                    status: "MISSING".into(),
+                    expected: expected_hash.into(),
+                    actual: String::new(),
+                    detail: Some("file not found on disk".into()),
+                }
             };
 
             if !json_output && check.status != "ok" {
-                println!("  [{:>7}] {}{}", check.status, check.path, check.detail.as_deref().map(|d| format!(" — {d}")).unwrap_or_default());
+                println!(
+                    "  [{:>7}] {}{}",
+                    check.status,
+                    check.path,
+                    check
+                        .detail
+                        .as_deref()
+                        .map(|d| format!(" — {d}"))
+                        .unwrap_or_default()
+                );
             }
             results.local_checks.push(check);
         }
 
-        let ok_count = results.local_checks.iter().filter(|c| c.status == "ok").count();
+        let ok_count = results
+            .local_checks
+            .iter()
+            .filter(|c| c.status == "ok")
+            .count();
         let total = results.local_checks.len();
-        if !json_output { println!("  {ok_count}/{total} files verified\n"); }
+        if !json_output {
+            println!("  {ok_count}/{total} files verified\n");
+        }
     } else {
-        if !json_output { eprintln!("  ERROR: data_manifest.toml has no [[file]] key"); }
+        if !json_output {
+            eprintln!("  ERROR: data_manifest.toml has no [[file]] key");
+        }
         results.local_checks.push(FileCheck {
-            path: "data_manifest.toml".into(), status: "ERROR".into(),
-            expected: String::new(), actual: String::new(),
+            path: "data_manifest.toml".into(),
+            status: "ERROR".into(),
+            expected: String::new(),
+            actual: String::new(),
             detail: Some("manifest has no [[file]] key — cannot verify".into()),
         });
     }
 }
 
-fn verify_upstream(data_toml_path: &std::path::Path, results: &mut VerifyResults, json_output: bool) {
+fn verify_upstream(
+    data_toml_path: &std::path::Path,
+    results: &mut VerifyResults,
+    json_output: bool,
+) {
     let content = std::fs::read_to_string(data_toml_path).unwrap_or_default();
-    let data_toml: toml::Value = toml::from_str(&content).unwrap_or(toml::Value::Table(Default::default()));
+    let data_toml: toml::Value =
+        toml::from_str(&content).unwrap_or(toml::Value::Table(toml::map::Map::new()));
 
     if let Some(datasets) = data_toml.get("dataset").and_then(|v| v.as_array()) {
         for ds in datasets {
@@ -169,7 +266,10 @@ fn verify_upstream(data_toml_path: &std::path::Path, results: &mut VerifyResults
             if !json_output {
                 match &probe.status[..] {
                     "reachable" => println!("  [{id}] {uri} — reachable"),
-                    "unreachable" => println!("  [{id}] {uri} — UNREACHABLE: {}", probe.detail.as_deref().unwrap_or("?")),
+                    "unreachable" => println!(
+                        "  [{id}] {uri} — UNREACHABLE: {}",
+                        probe.detail.as_deref().unwrap_or("?")
+                    ),
                     _ => println!("  [{id}] {uri} — {}", probe.status),
                 }
             }
@@ -179,11 +279,27 @@ fn verify_upstream(data_toml_path: &std::path::Path, results: &mut VerifyResults
 }
 
 fn print_summary(results: &VerifyResults, json_output: bool) {
-    let local_ok = results.local_checks.iter().filter(|c| c.status == "ok").count();
+    let local_ok = results
+        .local_checks
+        .iter()
+        .filter(|c| c.status == "ok")
+        .count();
     let local_total = results.local_checks.len();
-    let local_drift = results.local_checks.iter().filter(|c| c.status == "DRIFT").count();
-    let upstream_reachable = results.upstream_checks.iter().filter(|c| c.status == "reachable").count();
-    let upstream_total = results.upstream_checks.iter().filter(|c| !c.source_uri.is_empty()).count();
+    let local_drift = results
+        .local_checks
+        .iter()
+        .filter(|c| c.status == "DRIFT")
+        .count();
+    let upstream_reachable = results
+        .upstream_checks
+        .iter()
+        .filter(|c| c.status == "reachable")
+        .count();
+    let upstream_total = results
+        .upstream_checks
+        .iter()
+        .filter(|c| !c.source_uri.is_empty())
+        .count();
 
     if json_output {
         let mut out = results.clone();
@@ -211,10 +327,12 @@ fn print_summary(results: &VerifyResults, json_output: bool) {
 fn hash_file(path: &std::path::Path) -> Result<String, std::io::Error> {
     let mut file = std::fs::File::open(path)?;
     let mut hasher = blake3::Hasher::new();
-    let mut buf = [0u8; 65536];
+    let mut buf = vec![0u8; 65536];
     loop {
         let n = std::io::Read::read(&mut file, &mut buf)?;
-        if n == 0 { break; }
+        if n == 0 {
+            break;
+        }
         hasher.update(&buf[..n]);
     }
     Ok(hasher.finalize().to_hex().to_string())
@@ -240,16 +358,18 @@ fn check_connectivity() -> bool {
     let hosts: Vec<&str> = if custom_hosts.is_empty() {
         DEFAULT_CONNECTIVITY_HOSTS.to_vec()
     } else {
-        custom_hosts.iter().map(|s| s.as_str()).collect()
+        custom_hosts
+            .iter()
+            .map(std::string::String::as_str)
+            .collect()
     };
 
     for addr in &hosts {
-        if let Ok(mut iter) = addr.to_socket_addrs() {
-            if let Some(sock) = iter.next() {
-                if TcpStream::connect_timeout(&sock, std::time::Duration::from_secs(3)).is_ok() {
-                    return true;
-                }
-            }
+        if let Ok(mut iter) = addr.to_socket_addrs()
+            && let Some(sock) = iter.next()
+            && TcpStream::connect_timeout(&sock, std::time::Duration::from_secs(3)).is_ok()
+        {
+            return true;
         }
     }
     false

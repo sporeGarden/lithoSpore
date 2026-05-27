@@ -1,0 +1,59 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# cargo-deny configuration — ecoBin compliance for lithoSpore.
+# Zero C dependencies, AGPL-3.0-or-later, no copyleft-incompatible crates.
+
+[graph]
+targets = [
+    "x86_64-unknown-linux-gnu",
+    "x86_64-unknown-linux-musl",
+    "aarch64-unknown-linux-gnu",
+    "aarch64-unknown-linux-musl",
+]
+
+[advisories]
+unmaintained = "workspace"
+yanked = "warn"
+
+[licenses]
+confidence-threshold = 0.8
+allow = [
+    "AGPL-3.0-or-later",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "BSL-1.0", # boost; kept for future deps
+    "CC0-1.0",
+    "CDLA-Permissive-2.0",
+    "ISC",
+    "MIT",
+    "Unicode-3.0",
+    "Zlib",
+]
+
+[bans]
+multiple-versions = "warn"
+wildcards = "allow"
+highlight = "all"
+deny = [
+    # ecoBin: deny crates that link external C libraries.
+    # ring is ALLOWED — BearDog uses ring for TCP TLS (H2-10 sovereignty);
+    # ureq → rustls → ring is the accepted TLS path for standalone fetch.
+    # blake3 uses pure Rust via features = ["pure", "std"].
+    # zip uses deflate-flate2-zlib-rs only (no zstd/lzma C backends).
+    { crate = "openssl-sys" },
+    { crate = "libz-sys" },
+    { crate = "curl-sys" },
+    { crate = "libgit2-sys" },
+    { crate = "libssh2-sys" },
+    { crate = "zlib-ng-sys" },
+    { crate = "zstd-sys" },
+    { crate = "bzip2-sys" },
+    { crate = "lzma-sys" },
+    { crate = "cloudflare-zlib-sys" },
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "warn"

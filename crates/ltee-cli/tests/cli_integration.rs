@@ -20,7 +20,10 @@ fn temp_artifact_root() -> tempfile::TempDir {
 
 #[test]
 fn help_exits_zero() {
-    let output = litho_bin().arg("--help").output().expect("run litho --help");
+    let output = litho_bin()
+        .arg("--help")
+        .output()
+        .expect("run litho --help");
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("lithoSpore"));
@@ -28,7 +31,10 @@ fn help_exits_zero() {
 
 #[test]
 fn version_exits_zero() {
-    let output = litho_bin().arg("--version").output().expect("run litho --version");
+    let output = litho_bin()
+        .arg("--version")
+        .output()
+        .expect("run litho --version");
     assert!(output.status.success());
 }
 
@@ -48,14 +54,19 @@ fn status_exits_zero() {
 fn validate_json_exits_with_report() {
     let root = temp_artifact_root();
     let output = litho_bin()
-        .args(["validate", "--artifact-root", root.path().to_str().unwrap(), "--json"])
+        .args([
+            "validate",
+            "--artifact-root",
+            root.path().to_str().unwrap(),
+            "--json",
+        ])
         .output()
         .expect("run litho validate --json");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     // Should produce valid JSON even with no data
-    let report: serde_json::Value = serde_json::from_str(&stdout)
-        .expect("validate output is valid JSON");
+    let report: serde_json::Value =
+        serde_json::from_str(&stdout).expect("validate output is valid JSON");
     assert!(report.get("modules").is_some());
     assert!(report.get("version").is_some());
 }
@@ -64,14 +75,19 @@ fn validate_json_exits_with_report() {
 fn verify_json_exits_cleanly() {
     let root = temp_artifact_root();
     let output = litho_bin()
-        .args(["verify", "--artifact-root", root.path().to_str().unwrap(), "--json"])
+        .args([
+            "verify",
+            "--artifact-root",
+            root.path().to_str().unwrap(),
+            "--json",
+        ])
         .output()
         .expect("run litho verify --json");
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    let result: serde_json::Value = serde_json::from_str(&stdout)
-        .expect("verify output is valid JSON");
+    let result: serde_json::Value =
+        serde_json::from_str(&stdout).expect("verify output is valid JSON");
     assert!(result.get("online").is_some());
     assert!(result.get("summary").is_some());
 }
@@ -80,14 +96,20 @@ fn verify_json_exits_cleanly() {
 fn visualize_json_exits_cleanly() {
     let root = temp_artifact_root();
     let output = litho_bin()
-        .args(["visualize", "--artifact-root", root.path().to_str().unwrap(), "--format", "json"])
+        .args([
+            "visualize",
+            "--artifact-root",
+            root.path().to_str().unwrap(),
+            "--format",
+            "json",
+        ])
         .output()
         .expect("run litho visualize --format json");
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    let dashboard: serde_json::Value = serde_json::from_str(&stdout)
-        .expect("visualize output is valid JSON");
+    let dashboard: serde_json::Value =
+        serde_json::from_str(&stdout).expect("visualize output is valid JSON");
     assert_eq!(dashboard["session_id"], "lithoSpore-dashboard");
 }
 
@@ -129,7 +151,9 @@ fn artifact_with_manifest(files: &[(&str, &str)]) -> tempfile::TempDir {
         }
         std::fs::write(&full, content).expect("write test file");
         let hash = blake3::hash(content.as_bytes()).to_hex().to_string();
-        manifest.push_str(&format!("[[file]]\npath = \"{path}\"\nblake3 = \"{hash}\"\n\n"));
+        manifest.push_str(&format!(
+            "[[file]]\npath = \"{path}\"\nblake3 = \"{hash}\"\n\n"
+        ));
     }
     std::fs::write(root.join("data_manifest.toml"), manifest).ok();
     dir
@@ -139,7 +163,11 @@ fn artifact_with_manifest(files: &[(&str, &str)]) -> tempfile::TempDir {
 fn verify_detects_drifted_file() {
     let root = artifact_with_manifest(&[("artifact/data/test.json", "{\"valid\": true}")]);
     // Corrupt the file after hashing
-    std::fs::write(root.path().join("artifact/data/test.json"), "{\"corrupted\": true}").ok();
+    std::fs::write(
+        root.path().join("artifact/data/test.json"),
+        "{\"corrupted\": true}",
+    )
+    .ok();
 
     let output = litho_bin()
         .args(["verify", "--artifact-root", root.path().to_str().unwrap()])
@@ -147,7 +175,11 @@ fn verify_detects_drifted_file() {
         .expect("run litho verify");
 
     assert!(!output.status.success(), "verify should fail on DRIFT");
-    let combined = format!("{}{}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
+    let combined = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert!(combined.contains("DRIFT"), "output should mention DRIFT");
 }
 
@@ -175,7 +207,10 @@ fn verify_detects_corrupt_manifest() {
         .output()
         .expect("run litho verify");
 
-    assert!(!output.status.success(), "verify should fail on corrupt manifest");
+    assert!(
+        !output.status.success(),
+        "verify should fail on corrupt manifest"
+    );
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("Corrupt") || stderr.contains("ERROR"));
 }
@@ -183,14 +218,21 @@ fn verify_detects_corrupt_manifest() {
 #[test]
 fn verify_detects_empty_manifest() {
     let dir = tempfile::tempdir().expect("create temp dir");
-    std::fs::write(dir.path().join("data_manifest.toml"), "[meta]\nartifact = \"test\"\n").ok();
+    std::fs::write(
+        dir.path().join("data_manifest.toml"),
+        "[meta]\nartifact = \"test\"\n",
+    )
+    .ok();
 
     let output = litho_bin()
         .args(["verify", "--artifact-root", dir.path().to_str().unwrap()])
         .output()
         .expect("run litho verify");
 
-    assert!(!output.status.success(), "verify should fail on manifest with no [[file]] entries");
+    assert!(
+        !output.status.success(),
+        "verify should fail on manifest with no [[file]] entries"
+    );
 }
 
 #[test]
@@ -205,7 +247,10 @@ fn verify_passes_clean_manifest() {
         .output()
         .expect("run litho verify");
 
-    assert!(output.status.success(), "verify should pass with clean data");
+    assert!(
+        output.status.success(),
+        "verify should pass with clean data"
+    );
 }
 
 #[test]
@@ -219,7 +264,12 @@ fn livespore_survives_corruption() {
     std::fs::write(root.join("artifact/liveSpore.json"), "THIS IS NOT JSON{{{{").ok();
 
     let output = litho_bin()
-        .args(["validate", "--artifact-root", root.to_str().unwrap(), "--json"])
+        .args([
+            "validate",
+            "--artifact-root",
+            root.to_str().unwrap(),
+            "--json",
+        ])
         .output()
         .expect("run litho validate");
 
@@ -230,8 +280,10 @@ fn livespore_survives_corruption() {
 
     // Stderr should mention the backup
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains("corrupt") || stderr.contains("backed up"),
-        "should warn about corrupt liveSpore.json");
+    assert!(
+        stderr.contains("corrupt") || stderr.contains("backed up"),
+        "should warn about corrupt liveSpore.json"
+    );
 }
 
 #[test]
@@ -243,7 +295,10 @@ fn self_test_detects_missing_components() {
         .output()
         .expect("run litho self-test");
 
-    assert!(!output.status.success(), "self-test should fail on empty dir");
+    assert!(
+        !output.status.success(),
+        "self-test should fail on empty dir"
+    );
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("MISSING"), "should report MISSING files");
 }
@@ -253,13 +308,22 @@ fn deploy_report_produces_toml() {
     let root = temp_artifact_root();
 
     let output = litho_bin()
-        .args(["deploy-report", "--artifact-root", root.path().to_str().unwrap(), "--pattern", "test"])
+        .args([
+            "deploy-report",
+            "--artifact-root",
+            root.path().to_str().unwrap(),
+            "--pattern",
+            "test",
+        ])
         .output()
         .expect("run litho deploy-report");
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("[meta]"), "deploy-report should produce TOML");
+    assert!(
+        stdout.contains("[meta]"),
+        "deploy-report should produce TOML"
+    );
     assert!(stdout.contains("deployment_pattern = \"test\""));
 }
 
@@ -317,13 +381,15 @@ blake3 = ""
     std::fs::write(
         root.path().join("validation/expected/module1_fitness.json"),
         serde_json::to_string_pretty(&expected).unwrap(),
-    ).unwrap();
+    )
+    .unwrap();
 
     // Write minimal CSV data
     std::fs::write(
         root.path().join("artifact/data/test_data/fitness_data.csv"),
         "generation,mean_fitness\n0,1.0\n500,1.1\n1000,1.2\n",
-    ).unwrap();
+    )
+    .unwrap();
 
     let output = litho_bin()
         .args(["validate", "--artifact-root", root_str, "--json"])
@@ -331,17 +397,24 @@ blake3 = ""
         .expect("run litho validate");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
-    let report: serde_json::Value = serde_json::from_str(&stdout)
-        .expect("scope-driven validate should produce valid JSON");
+    let report: serde_json::Value =
+        serde_json::from_str(&stdout).expect("scope-driven validate should produce valid JSON");
 
-    assert_eq!(report["artifact"], "test-artifact",
-        "scope-driven path should use guidestone name from scope.toml");
+    assert_eq!(
+        report["artifact"], "test-artifact",
+        "scope-driven path should use guidestone name from scope.toml"
+    );
 
     let modules = report["modules"].as_array().expect("modules array");
-    assert_eq!(modules.len(), 1,
-        "scope declares only ltee-fitness, so only 1 module should run");
-    assert_eq!(modules[0]["name"], "power_law_fitness",
-        "module name comes from the module's run_validation, not scope");
+    assert_eq!(
+        modules.len(),
+        1,
+        "scope declares only ltee-fitness, so only 1 module should run"
+    );
+    assert_eq!(
+        modules[0]["name"], "power_law_fitness",
+        "module name comes from the module's run_validation, not scope"
+    );
 }
 
 #[test]
@@ -355,14 +428,19 @@ fn validate_falls_back_to_ltee_constants_without_scope() {
         .expect("run litho validate");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
-    let report: serde_json::Value = serde_json::from_str(&stdout)
-        .expect("fallback validate should produce valid JSON");
+    let report: serde_json::Value =
+        serde_json::from_str(&stdout).expect("fallback validate should produce valid JSON");
 
-    assert_eq!(report["artifact"], "ltee-guidestone",
-        "without scope.toml should fall back to ltee-guidestone");
+    assert_eq!(
+        report["artifact"], "ltee-guidestone",
+        "without scope.toml should fall back to ltee-guidestone"
+    );
     let modules = report["modules"].as_array().expect("modules array");
-    assert_eq!(modules.len(), 7,
-        "without scope.toml should load all 7 LTEE modules");
+    assert_eq!(
+        modules.len(),
+        7,
+        "without scope.toml should load all 7 LTEE modules"
+    );
 }
 
 #[test]
@@ -387,8 +465,10 @@ artifact = "minimal-artifact"
     let output = litho_bin()
         .args([
             "assemble",
-            "--artifact-root", root_str,
-            "--target", target.to_str().unwrap(),
+            "--artifact-root",
+            root_str,
+            "--target",
+            target.to_str().unwrap(),
             "--dry-run",
         ])
         .output()
@@ -417,12 +497,15 @@ artifact = "empty-scope"
         .expect("run litho validate");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
-    let report: serde_json::Value = serde_json::from_str(&stdout)
-        .expect("empty-scope validate should produce valid JSON");
+    let report: serde_json::Value =
+        serde_json::from_str(&stdout).expect("empty-scope validate should produce valid JSON");
 
     // Scope has no springs/modules, so load_module_table falls through to LTEE constants
     assert_eq!(report["artifact"], "empty-scope");
     let modules = report["modules"].as_array().expect("modules array");
-    assert_eq!(modules.len(), 7,
-        "scope with no modules should fall back to LTEE constant table");
+    assert_eq!(
+        modules.len(),
+        7,
+        "scope with no modules should fall back to LTEE constant table"
+    );
 }

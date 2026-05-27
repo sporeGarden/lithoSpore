@@ -8,7 +8,7 @@ integrity (BLAKE3), multi-tier validation (Python/Rust/Primal), provenance
 tracking, and USB deployment. You supply the science.
 
 **This instance** targets the Long-Term Evolution Experiment (LTEE) with
-*E. coli* — the work of Barrick, Lenski, and collaborators across 75,000+
+*E. coli* — the work of Barrick, Lenski, and collaborators across 82,500+
 generations of continuous evolution. It is the first **Targeted GuideStone**
 built on the lithoSpore chassis. The same infrastructure would work for
 any body of science with quantitative claims, source data, and expected values.
@@ -194,7 +194,7 @@ To add new LTEE papers or predictions:
 2. Add a dataset entry to `artifact/data.toml` (source URI + expected hash)
 3. Add expected values to `validation/expected/`
 4. Create a new module crate under `crates/` with `lib.rs` exposing `run_validation`
-5. Add a module entry to `artifact/scope.toml` and wire into `LTEE_MODULES` in `crates/ltee-cli/src/validate.rs`
+5. Add a `[[module]]` entry to `artifact/scope.toml` (name, binary, data_dir, expected, tier1_notebook) and register dispatch in `crates/ltee-cli/src/registry.rs`
 6. `litho fetch` will automatically handle data retrieval from the data.toml entry
 
 ## Building Your Own lithoSpore
@@ -237,5 +237,5 @@ The math is real. The infrastructure is universal. The deployment is sovereign.
 
 ## Contact
 
-This artifact targets the Barrick Lab, UT Austin.
+This artifact targets the Barrick Lab, MSU.
 See `artifact/scope.toml` for the full provenance chain.

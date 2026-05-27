@@ -17,7 +17,10 @@ pub fn run_with_provenance(root: &str, json: bool, max_tier: u8, provenance_dir:
     let root_path = std::path::Path::new(root);
 
     let scope_name = litho_core::ScopeManifest::load(&root_path.join("artifact/scope.toml"))
-        .map_or_else(|_| "ltee-guidestone".to_string(), |s| s.guidestone.name.clone());
+        .map_or_else(
+            |_| "ltee-guidestone".to_string(),
+            |s| s.guidestone.name.clone(),
+        );
 
     let mut report = litho_core::ValidationReport::new(&scope_name, env!("CARGO_PKG_VERSION"));
     let modules = registry::load_module_table(root_path);
@@ -27,7 +30,12 @@ pub fn run_with_provenance(root: &str, json: bool, max_tier: u8, provenance_dir:
         for entry in &modules {
             let data_path = root_path.join(&entry.data_dir);
             let expected_path = root_path.join(&entry.expected);
-            report.add_module(dispatch_python_tier1(entry, root, &data_path, &expected_path));
+            report.add_module(dispatch_python_tier1(
+                entry,
+                root,
+                &data_path,
+                &expected_path,
+            ));
         }
     } else {
         eprintln!("=== Tier 2 (Rust) — compiled validation ===");
@@ -44,7 +52,12 @@ pub fn run_with_provenance(root: &str, json: bool, max_tier: u8, provenance_dir:
                 );
                 report.add_module(result);
             } else {
-                report.add_module(dispatch_python_tier1(entry, root, &data_path, &expected_path));
+                report.add_module(dispatch_python_tier1(
+                    entry,
+                    root,
+                    &data_path,
+                    &expected_path,
+                ));
             }
         }
 
@@ -73,7 +86,10 @@ pub fn run_with_provenance(root: &str, json: bool, max_tier: u8, provenance_dir:
                 }
                 Err(e) => {
                     eprintln!("  Tier 3 unavailable: {e}");
-                    eprintln!("  Remaining at Tier {} (science validation complete)", report.tier_reached);
+                    eprintln!(
+                        "  Remaining at Tier {} (science validation complete)",
+                        report.tier_reached
+                    );
                 }
             }
         }
@@ -117,7 +133,10 @@ pub fn run_with_provenance(root: &str, json: bool, max_tier: u8, provenance_dir:
                 litho_core::ValidationStatus::Fail => "FAIL",
                 litho_core::ValidationStatus::Skip => "SKIP",
             };
-            println!("  {} — {} ({}/{})", m.name, status, m.checks_passed, m.checks);
+            println!(
+                "  {} — {} ({}/{})",
+                m.name, status, m.checks_passed, m.checks
+            );
         }
         if let Some(ref t3) = report.tier3 {
             println!("\nTier 3 Provenance:");
@@ -133,10 +152,15 @@ pub fn run_with_provenance(root: &str, json: bool, max_tier: u8, provenance_dir:
             for check in &braid_checks {
                 if !check.found_accession.is_empty() {
                     if check.accession_ok {
-                        println!("  [PASS] {} accession: {}", check.braid_id, check.found_accession);
+                        println!(
+                            "  [PASS] {} accession: {}",
+                            check.braid_id, check.found_accession
+                        );
                     } else {
-                        println!("  [FAIL] {} accession mismatch: got {}, expected {}",
-                            check.braid_id, check.found_accession, check.expected_accession);
+                        println!(
+                            "  [FAIL] {} accession mismatch: got {}, expected {}",
+                            check.braid_id, check.found_accession, check.expected_accession
+                        );
                     }
                 }
             }
@@ -178,8 +202,11 @@ fn write_provenance_dir(dir: &str, report: &litho_core::ValidationReport) {
 
     // provenance.toml — summary metadata
     let timestamp = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
-    let passed = report.modules.iter()
-        .filter(|m| m.status == litho_core::ValidationStatus::Pass).count();
+    let passed = report
+        .modules
+        .iter()
+        .filter(|m| m.status == litho_core::ValidationStatus::Pass)
+        .count();
     let toml_content = format!(
         "# lithoSpore provenance artifact — projectFOUNDATION Thread 10\n\
          [meta]\n\
@@ -189,7 +216,10 @@ fn write_provenance_dir(dir: &str, report: &litho_core::ValidationReport) {
          tier_reached = {}\n\
          modules_passed = {passed}\n\
          modules_total = {}\n",
-        report.artifact, report.version, report.tier_reached, report.modules.len(),
+        report.artifact,
+        report.version,
+        report.tier_reached,
+        report.modules.len(),
     );
     let toml_path = dir_path.join("provenance.toml");
     if let Err(e) = std::fs::write(&toml_path, &toml_content) {
@@ -226,35 +256,64 @@ fn wire_target_coverage(root_path: &std::path::Path, report: &mut litho_core::Va
     let targets_path = registry::load_scope(root_path)
         .and_then(|s| {
             let f = &s.guidestone.targets_file;
-            if f.is_empty() { None } else { Some(root_path.join(f)) }
+            if f.is_empty() {
+                None
+            } else {
+                Some(root_path.join(f))
+            }
         })
         .unwrap_or_else(|| root_path.join("data/targets/ltee_validation_targets.toml"));
 
     if !targets_path.exists() {
         return;
     }
-    let Ok(content) = std::fs::read_to_string(&targets_path) else { return };
-    let Ok(targets_toml) = content.parse::<toml::Value>() else { return };
-    let Some(targets_arr) = targets_toml.get("targets").and_then(|v| v.as_array()) else { return };
+    let Ok(content) = std::fs::read_to_string(&targets_path) else {
+        return;
+    };
+    let Ok(targets_toml) = content.parse::<toml::Value>() else {
+        return;
+    };
+    let Some(targets_arr) = targets_toml.get("targets").and_then(|v| v.as_array()) else {
+        return;
+    };
 
     let modules = registry::load_module_table(root_path);
 
     for target in targets_arr {
-        let id = target.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
-        let module = target.get("module").and_then(|v| v.as_str()).unwrap_or("").to_string();
-        let claim = target.get("claim").and_then(|v| v.as_str()).unwrap_or("").to_string();
-        let target_status = target.get("status").and_then(|v| v.as_str()).unwrap_or("active");
+        let id = target
+            .get("id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let module = target
+            .get("module")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let claim = target
+            .get("claim")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let target_status = target
+            .get("status")
+            .and_then(|v| v.as_str())
+            .unwrap_or("active");
 
         if target_status == "pending_upstream" {
             report.target_coverage.push(litho_core::TargetCoverage {
-                id, module, claim, status: "PENDING".to_string(),
+                id,
+                module,
+                claim,
+                status: "PENDING".to_string(),
             });
             continue;
         }
 
-        let module_result = report.modules.iter().find(|m| {
-            registry::module_name_matches(&modules, &m.name, &module)
-        });
+        let module_result = report
+            .modules
+            .iter()
+            .find(|m| registry::module_name_matches(&modules, &m.name, &module));
 
         let status = match module_result {
             Some(m) if m.status == litho_core::ValidationStatus::Pass => "PASS",
@@ -264,7 +323,10 @@ fn wire_target_coverage(root_path: &std::path::Path, report: &mut litho_core::Va
         };
 
         report.target_coverage.push(litho_core::TargetCoverage {
-            id, module, claim, status: status.to_string(),
+            id,
+            module,
+            claim,
+            status: status.to_string(),
         });
     }
 }
@@ -282,9 +344,14 @@ fn write_livespore(root: &str, report: &litho_core::ValidationReport) {
                     Err(e) => {
                         let backup = spore_path.with_extension("json.bak");
                         if let Err(be) = std::fs::copy(&spore_path, &backup) {
-                            eprintln!("Warning: liveSpore.json is corrupt ({e}) and backup failed ({be})");
+                            eprintln!(
+                                "Warning: liveSpore.json is corrupt ({e}) and backup failed ({be})"
+                            );
                         } else {
-                            eprintln!("Warning: liveSpore.json is corrupt ({e}), backed up to {}", backup.display());
+                            eprintln!(
+                                "Warning: liveSpore.json is corrupt ({e}), backed up to {}",
+                                backup.display()
+                            );
                         }
                     }
                 }
@@ -300,7 +367,10 @@ fn write_livespore(root: &str, report: &litho_core::ValidationReport) {
             if let Err(e) = std::fs::write(&spore_path, json) {
                 eprintln!("Warning: could not write liveSpore.json: {e}");
             } else {
-                eprintln!("liveSpore: recorded validation run ({} entries)", entries.len());
+                eprintln!(
+                    "liveSpore: recorded validation run ({} entries)",
+                    entries.len()
+                );
             }
         }
         Err(e) => eprintln!("Warning: could not serialize liveSpore: {e}"),
@@ -318,7 +388,7 @@ fn dispatch_python_tier1(
 
     if !data_path.exists() && !expected_path.exists() {
         return litho_core::ModuleResult {
-            name: name.to_string(),
+            name: name.clone(),
             status: litho_core::ValidationStatus::Skip,
             tier: 1,
             checks: 0,
@@ -330,11 +400,14 @@ fn dispatch_python_tier1(
 
     let notebook = if !entry.tier1_notebook.is_empty() {
         entry.tier1_notebook.as_str()
-    } else if let Some((_, nb)) = registry::LTEE_NOTEBOOKS.iter().find(|(n, _)| *n == name.as_str()) {
+    } else if let Some((_, nb)) = registry::LTEE_NOTEBOOKS
+        .iter()
+        .find(|(n, _)| *n == name.as_str())
+    {
         *nb
     } else {
         return litho_core::ModuleResult {
-            name: name.to_string(),
+            name: name.clone(),
             status: litho_core::ValidationStatus::Skip,
             tier: 1,
             checks: 0,
@@ -348,7 +421,7 @@ fn dispatch_python_tier1(
     let nb_path = root_path.join(notebook);
     if !nb_path.exists() {
         return litho_core::ModuleResult {
-            name: name.to_string(),
+            name: name.clone(),
             status: litho_core::ValidationStatus::Skip,
             tier: 1,
             checks: 0,
@@ -373,7 +446,7 @@ fn dispatch_python_tier1(
             let total = passed + failed;
 
             litho_core::ModuleResult {
-                name: name.to_string(),
+                name: name.clone(),
                 status: if out.status.code() == Some(0) && failed == 0 {
                     litho_core::ValidationStatus::Pass
                 } else if out.status.code() == Some(2) {
@@ -385,11 +458,15 @@ fn dispatch_python_tier1(
                 checks: total,
                 checks_passed: passed,
                 runtime_ms: start.elapsed().as_millis() as u64,
-                error: if failed > 0 { Some(format!("{failed} check(s) failed")) } else { None },
+                error: if failed > 0 {
+                    Some(format!("{failed} check(s) failed"))
+                } else {
+                    None
+                },
             }
         }
         Err(e) => litho_core::ModuleResult {
-            name: name.to_string(),
+            name: name.clone(),
             status: litho_core::ValidationStatus::Skip,
             tier: 1,
             checks: 0,
@@ -414,8 +491,8 @@ fn find_python(root: &std::path::Path) -> String {
 }
 
 /// Derive expected SRA accessions from `data.toml` dataset entries.
-/// Returns (dataset_id_fragment, sra_accession) pairs, extracting the
-/// dataset name prefix (e.g. "barrick_2009" from "barrick_2009_mutations")
+/// Returns (`dataset_id_fragment`, `sra_accession`) pairs, extracting the
+/// dataset name prefix (e.g. "`barrick_2009`" from "`barrick_2009_mutations`")
 /// for braid matching.
 fn load_sra_accessions(root: &std::path::Path) -> Vec<(String, String)> {
     let data_path = root.join("artifact/data.toml");
@@ -432,7 +509,10 @@ fn load_sra_accessions(root: &std::path::Path) -> Vec<(String, String)> {
     if let Some(datasets) = data_toml.get("dataset").and_then(|v| v.as_array()) {
         for ds in datasets {
             let id = ds.get("id").and_then(|v| v.as_str()).unwrap_or("");
-            let acc = ds.get("sra_accession").and_then(|v| v.as_str()).unwrap_or("");
+            let acc = ds
+                .get("sra_accession")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
             if !acc.is_empty() {
                 accessions.push((id.to_string(), acc.to_string()));
                 // Also add a trimmed variant (e.g. "barrick_2009" from "barrick_2009_mutations")

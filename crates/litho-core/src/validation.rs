@@ -4,6 +4,7 @@
 
 use serde::{Deserialize, Serialize};
 
+/// Outcome of a single module validation run.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum ValidationStatus {
@@ -12,23 +13,31 @@ pub enum ValidationStatus {
     Skip,
 }
 
+/// Per-module result emitted by the validation harness.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ModuleResult {
     pub name: String,
     pub status: ValidationStatus,
+    /// Highest validation tier this module reached (1–3).
     pub tier: u8,
     pub checks: u32,
     pub checks_passed: u32,
     pub runtime_ms: u64,
+    /// Human-readable failure or skip reason, when applicable.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
 
+/// Maps a scientific target claim to the module that validates it.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TargetCoverage {
+    /// Target identifier from `targets.toml`.
     pub id: String,
+    /// Module binary or name that covers this claim.
     pub module: String,
+    /// Claim text or key being validated.
     pub claim: String,
+    /// Coverage status (e.g. `covered`, `partial`, `missing`).
     pub status: String,
 }
 
@@ -74,14 +83,18 @@ pub struct ParityReport {
     pub parity_pass: bool,
 }
 
+/// Structured JSON report from a full `./validate` run.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ValidationReport {
     pub artifact: String,
     pub version: String,
+    /// Highest tier achieved by any passing module in this run.
     pub tier_reached: u8,
     pub modules: Vec<ModuleResult>,
+    /// Per-target claim coverage when targets.toml is present.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub target_coverage: Vec<TargetCoverage>,
+    /// Tier 3 provenance session when NUCLEUS primals anchor the run.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tier3: Option<Tier3Session>,
 }

@@ -7,8 +7,13 @@
 //! relay → None. No primal names are hardcoded in application logic — all
 //! resolution goes through capability strings.
 //!
+//! Discovery operates within the Tower Atomic trust boundary composed of
+//! `BearDog`, Songbird, and skunkBat. Songbird provides the discovery mesh
+//! and TURN relay. `BearDog` anchors all ecosystem crypto via JSON-RPC
+//! (`crypto.sign_ed25519`). The provenance trio delegates signing to `BearDog`.
+//!
 //! The discovery path maps to lithoSpore's three operating modes:
-//! - **Standalone** (no discovery): Tier 1 Python-only against bundled data
+//! - **Standalone** (no discovery): Tier 1/2 against bundled data
 //! - **LAN** (env or UDS): Tier 2 Rust + primal IPC via local sockets
 //! - **Geo-delocalized** (TURN): Tier 2 via Songbird TURN through cellMembrane
 
@@ -92,10 +97,18 @@ pub fn discover(capability: &str) -> Option<PrimalEndpoint> {
 #[must_use]
 pub fn discover_full(capability: &str) -> Option<DiscoveryResult> {
     if let Some(ep) = discover_from_env(capability) {
-        return Some(DiscoveryResult { endpoint: ep, path: DiscoveryPath::Env, turn_relay: None });
+        return Some(DiscoveryResult {
+            endpoint: ep,
+            path: DiscoveryPath::Env,
+            turn_relay: None,
+        });
     }
     if let Some(ep) = discover_from_socket(capability) {
-        return Some(DiscoveryResult { endpoint: ep, path: DiscoveryPath::Uds, turn_relay: None });
+        return Some(DiscoveryResult {
+            endpoint: ep,
+            path: DiscoveryPath::Uds,
+            turn_relay: None,
+        });
     }
     if let Some(result) = discover_from_turn(capability) {
         return Some(result);
@@ -115,7 +128,9 @@ pub fn probe_operating_mode() -> (DiscoveryPath, Option<String>) {
     if discovery_socket_path().is_some() {
         return (DiscoveryPath::Uds, None);
     }
-    if let Ok(turn) = std::env::var("RELAY_SERVER").or_else(|_| std::env::var("SONGBIRD_TURN_SERVER")) {
+    if let Ok(turn) =
+        std::env::var("RELAY_SERVER").or_else(|_| std::env::var("SONGBIRD_TURN_SERVER"))
+    {
         return (DiscoveryPath::Turn, Some(turn));
     }
     (DiscoveryPath::Standalone, None)
@@ -150,7 +165,9 @@ fn resolve_primal_host() -> String {
 
 fn discovery_socket_path() -> Option<PathBuf> {
     let runtime = std::env::var("XDG_RUNTIME_DIR").unwrap_or_else(|_| "/tmp".to_string());
-    let path = PathBuf::from(runtime).join(RUNTIME_SUBDIR).join(DISCOVERY_SOCKET_NAME);
+    let path = PathBuf::from(runtime)
+        .join(RUNTIME_SUBDIR)
+        .join(DISCOVERY_SOCKET_NAME);
     if path.exists() { Some(path) } else { None }
 }
 
@@ -162,7 +179,9 @@ fn discover_from_socket(capability: &str) -> Option<PrimalEndpoint> {
         use std::os::unix::net::UnixStream;
         let mut stream = UnixStream::connect(&sock_path).ok()?;
         stream.set_read_timeout(Some(Duration::from_secs(2))).ok()?;
-        stream.set_write_timeout(Some(Duration::from_secs(2))).ok()?;
+        stream
+            .set_write_timeout(Some(Duration::from_secs(2)))
+            .ok()?;
 
         let request = format!(
             "{{\"jsonrpc\":\"2.0\",\"method\":\"{RPC_METHOD_RESOLVE}\",\"params\":{{\"capability\":\"{capability}\"}},\"id\":1}}\n"
@@ -184,7 +203,10 @@ fn discover_from_socket(capability: &str) -> Option<PrimalEndpoint> {
     }
 }
 
-#[cfg_attr(not(unix), expect(dead_code, reason = "used only on unix via discover_from_socket"))]
+#[cfg_attr(
+    not(unix),
+    expect(dead_code, reason = "used only on unix via discover_from_socket")
+)]
 fn parse_discovery_response(capability: &str, response: &str) -> Option<PrimalEndpoint> {
     let v: serde_json::Value = serde_json::from_str(response).ok()?;
     let result = v.get("result")?;
@@ -251,7 +273,10 @@ fn discover_from_turn(capability: &str) -> Option<DiscoveryResult> {
     Some(DiscoveryResult {
         endpoint: PrimalEndpoint {
             capability: capability.to_string(),
-            host: turn_server.split(':').next().map_or_else(resolve_primal_host, String::from),
+            host: turn_server
+                .split(':')
+                .next()
+                .map_or_else(resolve_primal_host, String::from),
             port,
             transport: Transport::Tcp,
         },
@@ -262,12 +287,14 @@ fn discover_from_turn(capability: &str) -> Option<DiscoveryResult> {
 
 fn rpc_tcp(endpoint: &PrimalEndpoint, request: &str) -> Option<serde_json::Value> {
     let addr = format!("{}:{}", endpoint.host, endpoint.port);
-    let mut stream = TcpStream::connect_timeout(
-        &addr.parse().ok()?,
-        Duration::from_secs(5),
-    ).ok()?;
-    stream.set_read_timeout(Some(Duration::from_secs(10))).ok()?;
-    stream.set_write_timeout(Some(Duration::from_secs(5))).ok()?;
+    let mut stream =
+        TcpStream::connect_timeout(&addr.parse().ok()?, Duration::from_secs(5)).ok()?;
+    stream
+        .set_read_timeout(Some(Duration::from_secs(10)))
+        .ok()?;
+    stream
+        .set_write_timeout(Some(Duration::from_secs(5)))
+        .ok()?;
 
     stream.write_all(request.as_bytes()).ok()?;
     stream.write_all(b"\n").ok()?;
@@ -287,8 +314,12 @@ fn rpc_uds(endpoint: &PrimalEndpoint, request: &str) -> Option<serde_json::Value
     use std::os::unix::net::UnixStream;
 
     let mut stream = UnixStream::connect(&endpoint.host).ok()?;
-    stream.set_read_timeout(Some(Duration::from_secs(10))).ok()?;
-    stream.set_write_timeout(Some(Duration::from_secs(5))).ok()?;
+    stream
+        .set_read_timeout(Some(Duration::from_secs(10)))
+        .ok()?;
+    stream
+        .set_write_timeout(Some(Duration::from_secs(5)))
+        .ok()?;
 
     stream.write_all(request.as_bytes()).ok()?;
     stream.write_all(b"\n").ok()?;

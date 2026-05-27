@@ -4,13 +4,16 @@
 
 use serde::{Deserialize, Serialize};
 
+/// A named numeric tolerance with scientific justification for parity checks.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Tolerance {
     pub name: String,
     pub value: f64,
+    /// Why this threshold is acceptable (paper citation, instrument precision, etc.).
     pub justification: String,
 }
 
+/// Collection of named tolerances loaded from `tolerances.toml`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToleranceSet {
     pub tolerance: Vec<Tolerance>,
@@ -77,16 +80,28 @@ justification = "unit test"
         let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
         let toml_path = manifest_dir.join("../../artifact/tolerances.toml");
         if toml_path.exists() {
-            let set = ToleranceSet::load(&toml_path)
-                .expect("artifact/tolerances.toml should parse");
-            assert!(set.tolerance.len() >= 10, "expected >=10 tolerances, got {}", set.tolerance.len());
+            let set =
+                ToleranceSet::load(&toml_path).expect("artifact/tolerances.toml should parse");
+            assert!(
+                set.tolerance.len() >= 10,
+                "expected >=10 tolerances, got {}",
+                set.tolerance.len()
+            );
             assert!(set.get("power_law_exponent").is_some());
             assert!(set.get("mutation_rate_per_gen").is_some());
             assert!(set.get("anderson_disorder_parameter").is_some());
             for t in &set.tolerance {
                 assert!(!t.name.is_empty(), "tolerance name should not be empty");
-                assert!(!t.justification.is_empty(), "justification should not be empty for {}", t.name);
-                assert!(t.value > 0.0, "tolerance value should be positive for {}", t.name);
+                assert!(
+                    !t.justification.is_empty(),
+                    "justification should not be empty for {}",
+                    t.name
+                );
+                assert!(
+                    t.value > 0.0,
+                    "tolerance value should be positive for {}",
+                    t.name
+                );
             }
         }
     }

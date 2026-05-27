@@ -10,13 +10,17 @@
 use serde::Deserialize;
 use std::path::Path;
 
+/// Parsed scope.toml — the guideStone birth certificate for chassis dispatch.
 #[derive(Debug, Clone, Deserialize)]
 pub struct ScopeManifest {
     pub guidestone: GuideStoneIdentity,
+    /// Contributing springs and their module binaries.
     #[serde(default)]
     pub spring: Vec<SpringEntry>,
+    /// NUCLEUS primals required for Tier 3 provenance.
     #[serde(default)]
     pub primal: Vec<PrimalEntry>,
+    /// Foundation threads grouping datasets by scientific narrative.
     #[serde(default)]
     pub foundation_thread: Vec<FoundationThread>,
     #[serde(default)]
@@ -26,7 +30,7 @@ pub struct ScopeManifest {
 }
 
 /// Per-module metadata — the domain-agnostic contract that replaces
-/// compiled LTEE_MODULES / LTEE_NOTEBOOKS constants. When present in
+/// compiled `LTEE_MODULES` / `LTEE_NOTEBOOKS` constants. When present in
 /// scope.toml, the chassis uses these fields for dispatch, parity,
 /// assembly, and Tier-1 notebook resolution.
 #[derive(Debug, Clone, Deserialize)]
@@ -41,6 +45,7 @@ pub struct ScopeModule {
     pub tier1_notebook: String,
 }
 
+/// `[source]` metadata for reproducible builds and container images.
 #[derive(Debug, Clone, Deserialize)]
 pub struct SourceMetadata {
     #[serde(default)]
@@ -49,6 +54,7 @@ pub struct SourceMetadata {
     pub repo_https: String,
     #[serde(default)]
     pub branch: String,
+    /// Parent ecosystem monorepo (e.g. ecoPrimals).
     #[serde(default)]
     pub ecosystem_repo: String,
     #[serde(default)]
@@ -63,36 +69,46 @@ pub struct SourceMetadata {
     pub license: String,
 }
 
+/// `[guidestone]` identity — name, version, and paths to targets/graph files.
 #[derive(Debug, Clone, Deserialize)]
 pub struct GuideStoneIdentity {
     pub name: String,
     pub version: String,
+    /// Human-readable description of the scientific target.
     #[serde(default)]
     pub target: String,
     #[serde(default)]
     pub created: String,
+    /// Compliance standard (e.g. `TARGETED_GUIDESTONE_STANDARD`).
     #[serde(default)]
     pub standard: String,
+    /// Relative path to targets.toml.
     #[serde(default)]
     pub targets_file: String,
+    /// Relative path to the module dependency graph.
     #[serde(default)]
     pub graph_file: String,
 }
 
+/// A contributing spring and the modules it supplies to this guideStone.
 #[derive(Debug, Clone, Deserialize)]
 pub struct SpringEntry {
     pub name: String,
+    /// Capability tags this spring contributes (e.g. `mutations`, `fitness`).
     #[serde(default)]
     pub contributes: Vec<String>,
+    /// Module binary names owned by this spring.
     #[serde(default)]
     pub modules: Vec<String>,
     #[serde(default)]
     pub papers: Vec<String>,
 }
 
+/// A NUCLEUS primal dependency — required for higher validation tiers.
 #[derive(Debug, Clone, Deserialize)]
 pub struct PrimalEntry {
     pub name: String,
+    /// Minimum tier at which this primal must be reachable.
     #[serde(default)]
     pub tier: u8,
     #[serde(default)]
@@ -101,10 +117,12 @@ pub struct PrimalEntry {
     pub purpose: String,
 }
 
+/// A foundation thread — groups related datasets under one scientific narrative.
 #[derive(Debug, Clone, Deserialize)]
 pub struct FoundationThread {
     pub id: String,
     pub name: String,
+    /// Dataset paths or IDs belonging to this thread.
     #[serde(default)]
     pub datasets: Vec<String>,
     #[serde(default)]
@@ -113,6 +131,10 @@ pub struct FoundationThread {
 
 impl ScopeManifest {
     /// Load from a TOML file.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the file cannot be read or parsed.
     pub fn load(path: &Path) -> Result<Self, Box<dyn std::error::Error>> {
         let contents = std::fs::read_to_string(path)?;
         let scope: Self = toml::from_str(&contents)?;
@@ -182,7 +204,10 @@ datasets = ["data_a"]
 "#;
         let scope: ScopeManifest = toml::from_str(toml).unwrap();
         assert_eq!(scope.guidestone.name, "test-guidestone");
-        assert_eq!(scope.guidestone.targets_file, "data/targets/test_targets.toml");
+        assert_eq!(
+            scope.guidestone.targets_file,
+            "data/targets/test_targets.toml"
+        );
         assert_eq!(scope.guidestone.graph_file, "graphs/test_graph.toml");
         assert_eq!(scope.spring.len(), 2);
         assert_eq!(scope.module_binaries(), vec!["mod-a", "mod-b", "mod-c"]);

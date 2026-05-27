@@ -6,7 +6,8 @@
 //! Strategy per dataset: try HTTP download → fall back to expected-JSON
 //! synthesis → compute BLAKE3 hash → report.
 
-use std::path::Path;
+use std::fmt::Write as _;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, serde::Deserialize)]
 struct DataManifest {
@@ -83,25 +84,49 @@ pub fn run(root: &str, dataset_filter: Option<&str>, all: bool, full: bool) {
             std::process::exit(1);
         }
 
-        if matches!(ds.status.as_str(), "internal" | "derived") && dataset_filter.is_none() && !full {
-            println!("[{id}] SKIP ({status}): data is generated from expected values, not fetched",
-                     id = ds.id, status = ds.status);
+        if matches!(ds.status.as_str(), "internal" | "derived") && dataset_filter.is_none() && !full
+        {
+            println!(
+                "[{id}] SKIP ({status}): data is generated from expected values, not fetched",
+                id = ds.id,
+                status = ds.status
+            );
             fetched += 1;
             continue;
         }
 
         // In full mode, report the data tier and what we're pulling
         if full {
-            let tier = if ds.data_tier.is_empty() { "unknown" } else { &ds.data_tier };
+            let tier = if ds.data_tier.is_empty() {
+                "unknown"
+            } else {
+                &ds.data_tier
+            };
             println!("[{id}] Data tier: {tier}", id = ds.id);
             if !ds.full_data_size.is_empty() {
-                println!("[{id}]   Full data: {} (via {})", ds.full_data_size, if ds.full_data_tool.is_empty() { "fetch" } else { &ds.full_data_tool }, id = ds.id);
+                println!(
+                    "[{id}]   Full data: {} (via {})",
+                    ds.full_data_size,
+                    if ds.full_data_tool.is_empty() {
+                        "fetch"
+                    } else {
+                        &ds.full_data_tool
+                    },
+                    id = ds.id
+                );
             }
             if !ds.full_data_checks.is_empty() {
-                println!("[{id}]   Additional checks: {}", ds.full_data_checks, id = ds.id);
+                println!(
+                    "[{id}]   Additional checks: {}",
+                    ds.full_data_checks,
+                    id = ds.id
+                );
             }
             if ds.data_tier == "complete" {
-                println!("[{id}]   Already complete — no additional download needed", id = ds.id);
+                println!(
+                    "[{id}]   Already complete — no additional download needed",
+                    id = ds.id
+                );
                 fetched += 1;
                 continue;
             }
@@ -110,13 +135,25 @@ pub fn run(root: &str, dataset_filter: Option<&str>, all: bool, full: bool) {
         let target_dir = root_path.join(&ds.local_path);
         std::fs::create_dir_all(&target_dir).ok();
 
-        println!("[{id}] Fetching: {uri}", id = ds.id, uri = if ds.source_uri.is_empty() { "(generated)" } else { &ds.source_uri });
+        println!(
+            "[{id}] Fetching: {uri}",
+            id = ds.id,
+            uri = if ds.source_uri.is_empty() {
+                "(generated)"
+            } else {
+                &ds.source_uri
+            }
+        );
 
         match fetch_dataset(root_path, ds, full) {
             Ok(hash) => {
                 println!("[{id}]   BLAKE3: {hash}", id = ds.id);
                 if !ds.blake3.is_empty() && ds.blake3 != hash {
-                    eprintln!("[{id}]   WARN: hash mismatch (expected: {})", ds.blake3, id = ds.id);
+                    eprintln!(
+                        "[{id}]   WARN: hash mismatch (expected: {})",
+                        ds.blake3,
+                        id = ds.id
+                    );
                 }
                 fetched += 1;
             }
@@ -145,7 +182,10 @@ fn fetch_dataset(root: &Path, ds: &DatasetEntry, full: bool) -> Result<String, S
     if full && !ds.sra_accession.is_empty() {
         match try_sra_download(&ds.sra_accession, &target_dir, &ds.id) {
             Ok(()) => return hash_directory(&target_dir),
-            Err(e) => eprintln!("[{}]   SRA download failed: {e} — trying other strategies", ds.id),
+            Err(e) => eprintln!(
+                "[{}]   SRA download failed: {e} — trying other strategies",
+                ds.id
+            ),
         }
     }
 
@@ -160,9 +200,19 @@ fn fetch_dataset(root: &Path, ds: &DatasetEntry, full: bool) -> Result<String, S
     // Strategy 2: try HTTP download if source URI is present and not a BioProject landing page
     if !ds.source_uri.is_empty() && ds.source_uri.starts_with("http") {
         if !full && is_landing_page_uri(&ds.source_uri) {
-            eprintln!("[{}]   URI is a landing page — skipping HTTP download", ds.id);
-            eprintln!("[{}]   Use --full to pull via SRA toolkit: prefetch {} && fastq-dump",
-                      ds.id, if ds.sra_accession.is_empty() { "<accession>" } else { &ds.sra_accession });
+            eprintln!(
+                "[{}]   URI is a landing page — skipping HTTP download",
+                ds.id
+            );
+            eprintln!(
+                "[{}]   Use --full to pull via SRA toolkit: prefetch {} && fastq-dump",
+                ds.id,
+                if ds.sra_accession.is_empty() {
+                    "<accession>"
+                } else {
+                    &ds.sra_accession
+                }
+            );
         } else {
             match try_http_download(&ds.source_uri, &target_dir, &ds.id) {
                 Ok(()) => return hash_directory(&target_dir),
@@ -179,8 +229,16 @@ fn fetch_dataset(root: &Path, ds: &DatasetEntry, full: bool) -> Result<String, S
     }
 
     // Strategy 4: check if data already exists
-    if target_dir.exists() && std::fs::read_dir(&target_dir).map(|mut d| d.next().is_some()).unwrap_or(false) {
-        eprintln!("[{}]   Using existing data in {}", ds.id, target_dir.display());
+    if target_dir.exists()
+        && std::fs::read_dir(&target_dir)
+            .map(|mut d| d.next().is_some())
+            .unwrap_or(false)
+    {
+        eprintln!(
+            "[{}]   Using existing data in {}",
+            ds.id,
+            target_dir.display()
+        );
         return hash_directory(&target_dir);
     }
 
@@ -196,20 +254,25 @@ fn is_landing_page_uri(uri: &str) -> bool {
 }
 
 fn try_sra_download(accession: &str, target_dir: &Path, id: &str) -> Result<(), String> {
-    let has_prefetch = std::process::Command::new("which").arg("prefetch")
+    let has_prefetch = std::process::Command::new("which")
+        .arg("prefetch")
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
-        .status().map(|s| s.success()).unwrap_or(false);
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false);
 
     if !has_prefetch {
         return Err("SRA toolkit not installed (prefetch not found). \
-                    Install: https://github.com/ncbi/sra-tools/wiki".to_string());
+                    Install: https://github.com/ncbi/sra-tools/wiki"
+            .to_string());
     }
 
     eprintln!("[{id}]   Fetching via SRA toolkit: prefetch {accession}");
     let status = std::process::Command::new("prefetch")
         .arg(accession)
-        .arg("--output-directory").arg(target_dir)
+        .arg("--output-directory")
+        .arg(target_dir)
         .status()
         .map_err(|e| format!("prefetch failed: {e}"))?;
 
@@ -229,13 +292,16 @@ fn try_http_download(uri: &str, target_dir: &Path, id: &str) -> Result<(), Strin
         .call()
         .map_err(|e| format!("HTTP request failed: {e}"))?;
 
-    let content_type = response.headers()
+    let content_type = response
+        .headers()
         .get("content-type")
         .and_then(|v| v.to_str().ok())
         .unwrap_or("")
         .to_string();
 
-    let body = response.body_mut().read_to_vec()
+    let body = response
+        .body_mut()
+        .read_to_vec()
         .map_err(|e| format!("Failed to read response body: {e}"))?;
 
     if content_type.contains("html") || content_type.contains("xml") {
@@ -248,20 +314,32 @@ fn try_http_download(uri: &str, target_dir: &Path, id: &str) -> Result<(), Strin
     if body.len() < 256 {
         let preview = String::from_utf8_lossy(&body[..body.len().min(128)]);
         if preview.contains("<html") || preview.contains("<!DOCTYPE") || preview.contains("<HTML") {
-            return Err("Response body appears to be HTML despite content-type header. \
-                        Likely a redirect to a login/landing page.".to_string());
+            return Err(
+                "Response body appears to be HTML despite content-type header. \
+                        Likely a redirect to a login/landing page."
+                    .to_string(),
+            );
         }
     }
 
-    let (suffix, label) = if content_type.contains("gzip") || content_type.contains("x-tar")
-        || uri.ends_with(".tar.gz") || uri.ends_with(".tgz")
+    let uri_path = PathBuf::from(uri);
+    let uri_lower = uri.to_ascii_lowercase();
+    let ext_matches = |ext: &str| {
+        uri_path
+            .extension()
+            .is_some_and(|e| e.eq_ignore_ascii_case(ext))
+    };
+    let (suffix, label) = if content_type.contains("gzip")
+        || content_type.contains("x-tar")
+        || uri_lower.ends_with(".tar.gz")
+        || ext_matches("tgz")
     {
         (".tar.gz", "tarball")
-    } else if content_type.contains("zip") || uri.ends_with(".zip") {
+    } else if content_type.contains("zip") || ext_matches("zip") {
         ("_raw.zip", "archive")
-    } else if content_type.contains("json") || uri.ends_with(".json") {
+    } else if content_type.contains("json") || ext_matches("json") {
         (".json", "JSON")
-    } else if content_type.contains("csv") || uri.ends_with(".csv") {
+    } else if content_type.contains("csv") || ext_matches("csv") {
         (".csv", "CSV")
     } else {
         ("_data", "data")
@@ -269,7 +347,10 @@ fn try_http_download(uri: &str, target_dir: &Path, id: &str) -> Result<(), Strin
 
     let dest = target_dir.join(format!("{id}{suffix}"));
     std::fs::write(&dest, &body).map_err(|e| format!("write: {e}"))?;
-    eprintln!("[{id}]   Saved {:.1} KB {label}", body.len() as f64 / 1024.0);
+    eprintln!(
+        "[{id}]   Saved {:.1} KB {label}",
+        body.len() as f64 / 1024.0
+    );
 
     // Unpack archives so module validators can read individual files
     if suffix == ".tar.gz" {
@@ -284,7 +365,10 @@ fn try_http_download(uri: &str, target_dir: &Path, id: &str) -> Result<(), Strin
 fn unpack_tar_gz(archive: &Path, target_dir: &Path, id: &str) {
     let file = match std::fs::File::open(archive) {
         Ok(f) => f,
-        Err(e) => { eprintln!("[{id}]   Cannot open archive: {e}"); return; }
+        Err(e) => {
+            eprintln!("[{id}]   Cannot open archive: {e}");
+            return;
+        }
     };
     let gz = flate2::read::GzDecoder::new(file);
     let mut tar = tar::Archive::new(gz);
@@ -297,14 +381,24 @@ fn unpack_tar_gz(archive: &Path, target_dir: &Path, id: &str) {
 fn unpack_zip(archive: &Path, target_dir: &Path, id: &str) {
     let file = match std::fs::File::open(archive) {
         Ok(f) => f,
-        Err(e) => { eprintln!("[{id}]   Cannot open archive: {e}"); return; }
+        Err(e) => {
+            eprintln!("[{id}]   Cannot open archive: {e}");
+            return;
+        }
     };
     let mut zip = match zip::ZipArchive::new(file) {
         Ok(z) => z,
-        Err(e) => { eprintln!("[{id}]   Invalid zip: {e}"); return; }
+        Err(e) => {
+            eprintln!("[{id}]   Invalid zip: {e}");
+            return;
+        }
     };
     match zip.extract(target_dir) {
-        Ok(()) => eprintln!("[{id}]   Unpacked zip ({} entries) to {}", zip.len(), target_dir.display()),
+        Ok(()) => eprintln!(
+            "[{id}]   Unpacked zip ({} entries) to {}",
+            zip.len(),
+            target_dir.display()
+        ),
         Err(e) => eprintln!("[{id}]   Zip extraction failed: {e}"),
     }
 }
@@ -320,27 +414,30 @@ fn generate_from_expected(
 
     if !expected_path.exists() {
         if let Some(filename) = expected_path.file_name() {
-            let spring_expected = root.parent()
+            let spring_expected = root
+                .parent()
                 .and_then(|p| p.parent())
                 .map(|eco| eco.join("springs/groundSpring/validation").join(filename));
 
-            if let Some(ref sp) = spring_expected {
-                if sp.exists() {
-                    std::fs::copy(sp, target_dir.join("expected_values.json"))
-                        .map_err(|e| format!("copy from spring: {e}"))?;
-                    return Ok(());
-                }
+            if let Some(ref sp) = spring_expected
+                && sp.exists()
+            {
+                std::fs::copy(sp, target_dir.join("expected_values.json"))
+                    .map_err(|e| format!("copy from spring: {e}"))?;
+                return Ok(());
             }
         }
 
-        return Err(format!("Expected values not found: {}", expected_path.display()));
+        return Err(format!(
+            "Expected values not found: {}",
+            expected_path.display()
+        ));
     }
 
-    let content = std::fs::read_to_string(&expected_path)
-        .map_err(|e| format!("read: {e}"))?;
+    let content = std::fs::read_to_string(&expected_path).map_err(|e| format!("read: {e}"))?;
 
-    let expected: serde_json::Value = serde_json::from_str(&content)
-        .map_err(|e| format!("parse: {e}"))?;
+    let expected: serde_json::Value =
+        serde_json::from_str(&content).map_err(|e| format!("parse: {e}"))?;
 
     // Generate module-specific synthetic data
     match module {
@@ -356,8 +453,8 @@ fn generate_from_expected(
 }
 
 /// Find the expected JSON file for a module by scanning the expected directory
-/// for any `.json` file whose name contains the module's key (e.g., "ltee_fitness"
-/// matches "module1_fitness.json"). Domain-agnostic: no hardcoded module list.
+/// for any `.json` file whose name contains the module's key (e.g., "`ltee_fitness`"
+/// matches "`module1_fitness.json`"). Domain-agnostic: no hardcoded module list.
 fn find_expected_for_module(expected_dir: &Path, module: &str) -> Option<std::path::PathBuf> {
     let suffix = module.replace('-', "_");
     let short = suffix.strip_prefix("ltee_").unwrap_or(&suffix);
@@ -374,16 +471,18 @@ fn find_expected_for_module(expected_dir: &Path, module: &str) -> Option<std::pa
 }
 
 fn generate_fitness_csv(target_dir: &Path, expected: &serde_json::Value) -> Result<(), String> {
-    let gens = expected["generations"].as_array()
+    let gens = expected["generations"]
+        .as_array()
         .ok_or("missing 'generations' array")?;
-    let fitness = expected["mean_fitness"].as_array()
+    let fitness = expected["mean_fitness"]
+        .as_array()
         .ok_or("missing 'mean_fitness' array")?;
 
     let mut csv = String::from("generation,mean_fitness\n");
     for (g, f) in gens.iter().zip(fitness) {
         let generation = g.as_f64().unwrap_or(0.0) as i64;
         let fit = f.as_f64().unwrap_or(0.0);
-        csv.push_str(&format!("{generation},{fit:.6}\n"));
+        let _ = writeln!(csv, "{generation},{fit:.6}");
     }
 
     std::fs::write(target_dir.join("fitness_data.csv"), &csv)
@@ -406,8 +505,7 @@ fn generate_mutation_params(target_dir: &Path, expected: &serde_json::Value) -> 
         "note": "Generated from expected values — real data requires SRA download",
     });
 
-    let json = serde_json::to_string_pretty(&params)
-        .map_err(|e| format!("serialize: {e}"))?;
+    let json = serde_json::to_string_pretty(&params).map_err(|e| format!("serialize: {e}"))?;
 
     std::fs::write(target_dir.join("mutation_parameters.json"), &json)
         .map_err(|e| format!("write: {e}"))?;
@@ -419,9 +517,9 @@ fn generate_mutation_params(target_dir: &Path, expected: &serde_json::Value) -> 
 fn hash_directory(dir: &Path) -> Result<String, String> {
     let mut files: Vec<_> = walkdir::WalkDir::new(dir)
         .into_iter()
-        .filter_map(|e| e.ok())
+        .filter_map(std::result::Result::ok)
         .filter(|e| e.file_type().is_file())
-        .filter(|e| !e.file_name().to_str().map_or(false, |n| n.starts_with('.')))
+        .filter(|e| !e.file_name().to_str().is_some_and(|n| n.starts_with('.')))
         .collect();
 
     files.sort_by(|a, b| a.path().cmp(b.path()));

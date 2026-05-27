@@ -4,7 +4,10 @@ use clap::Parser;
 use litho_core::harness;
 
 #[derive(Parser)]
-#[command(name = "ltee-biobricks", about = "BioBrick metabolic burden validation")]
+#[command(
+    name = "ltee-biobricks",
+    about = "BioBrick metabolic burden validation"
+)]
 struct Cli {
     #[arg(long, default_value = "artifact/data/biobricks_2024")]
     data_dir: String,

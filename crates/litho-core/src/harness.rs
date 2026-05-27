@@ -47,9 +47,12 @@ pub fn dispatch_python(name: &str, script_path: &Path, working_dir: &Path) -> Mo
     let start = Instant::now();
 
     if !script_path.exists() {
-        return skip(name, 1, start, &format!(
-            "Python baseline not found: {}", script_path.display()
-        ));
+        return skip(
+            name,
+            1,
+            start,
+            &format!("Python baseline not found: {}", script_path.display()),
+        );
     }
 
     let output = std::process::Command::new("python3")
@@ -143,5 +146,42 @@ mod tests {
     #[test]
     fn load_expected_missing_file() {
         assert!(load_expected("/nonexistent/path.json").is_none());
+    }
+
+    #[test]
+    fn load_expected_valid_json() {
+        let dir = std::env::temp_dir().join("litho_harness_test");
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("expected.json");
+        std::fs::write(&path, r#"{"key": 42}"#).expect("write expected");
+        let value = load_expected(path.to_str().unwrap()).expect("parse expected");
+        assert_eq!(value["key"], 42);
+    }
+
+    #[test]
+    fn skip_result_fields() {
+        let start = Instant::now();
+        let r = skip("my_module", 3, start, "tier not available");
+        assert_eq!(r.name, "my_module");
+        assert_eq!(r.tier, 3);
+        assert_eq!(r.status, ValidationStatus::Skip);
+        assert_eq!(r.checks, 0);
+        assert_eq!(r.checks_passed, 0);
+    }
+
+    #[test]
+    fn module_result_json_format() {
+        let result = ModuleResult {
+            name: "test_module".to_string(),
+            status: ValidationStatus::Pass,
+            tier: 2,
+            checks: 10,
+            checks_passed: 10,
+            runtime_ms: 100,
+            error: None,
+        };
+        let json = serde_json::to_string_pretty(&result).expect("serialize");
+        assert!(json.contains("\"name\": \"test_module\""));
+        assert!(json.contains("\"status\": \"PASS\""));
     }
 }

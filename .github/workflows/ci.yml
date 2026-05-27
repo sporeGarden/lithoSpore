@@ -18,8 +18,17 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
 
+      - name: Format check
+        run: cargo fmt --check --all
+
       - name: Clippy (pedantic)
         run: cargo clippy --workspace -- -D warnings
+
+      - name: Install cargo-deny
+        run: cargo install cargo-deny --locked
+
+      - name: Dependency & license audit
+        run: cargo deny check
 
       - name: Build (release)
         run: cargo build --release --workspace
@@ -27,13 +36,17 @@ jobs:
       - name: Unit tests
         run: cargo test --workspace
 
+      - name: Doc build
+        run: cargo doc --workspace --no-deps
+        env:
+          RUSTDOCFLAGS: "-D warnings"
+
       - name: Fetch data
         run: ./target/release/litho fetch --all
 
       - name: Litho CLI validate
         run: |
-          # Exit code 2 = SKIP (module 5 scaffold), which is expected.
-          # The CLI exits with the worst status: 0=all pass, 1=any fail, 2=any skip (no fail).
+          # Exit codes: 0=all pass, 1=any fail, 2=any module SKIP (no fail).
           set +e
           ./target/release/litho validate --json
           EXIT_CODE=$?
@@ -74,3 +87,6 @@ jobs:
 
       - name: Module 7 — Python Tier 1
         run: python3 notebooks/module7_anderson/anderson_predictions.py
+
+      - name: Module 5 — Python Tier 1
+        run: python3 notebooks/module5_biobricks/biobrick_burden.py

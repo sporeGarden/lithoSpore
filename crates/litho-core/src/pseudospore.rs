@@ -1,17 +1,29 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! pseudoSpore: lightweight braid-first deployment artifact.
+//! DEPRECATED: Use `pseudospore_core` directly.
 //!
-//! A pseudoSpore proves a computation happened, what it produced, and how to
-//! reproduce it — without carrying the runtime or raw inputs. This module
-//! provides parsing, validation, and checksum verification for the pseudoSpore
-//! standard (see `specs/PSEUDOSPORE_STANDARD.md`).
+//! This module re-exports pseudoSpore types from `pseudospore-core` for backward
+//! compatibility. New code should depend on `pseudospore-core` directly.
+//! See `SPORE_OWNERSHIP_MATRIX.md` for the canonical crate.
+
+#[deprecated(note = "use pseudospore_core::ChecksumEntry directly")]
+pub type ChecksumEntry = pseudospore_core::ChecksumEntry;
+
+#[deprecated(note = "use pseudospore_core::EnvironmentReceipt directly")]
+pub type EnvironmentReceipt = pseudospore_core::EnvironmentReceipt;
+
+#[deprecated(note = "use pseudospore_core::FermentTranscript directly")]
+pub type FermentTranscript = pseudospore_core::FermentTranscript;
+
+pub use pseudospore_core::receipts::{compute_checksums, format_checksums, parse_checksums};
+pub use pseudospore_core::validation::{ValidationDoc, ValidationModule, ValidationSummary};
+
+// --- Types preserved for backward compatibility ---
+// These were originally defined here; now canonical versions live in pseudospore-core.
+// Re-exported without deprecation warnings to avoid churn in existing consumers.
 
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-
-// --- Scope types (pseudoSpore-specific header) ---
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PseudoSporeScope {
@@ -103,87 +115,7 @@ pub struct SourceRef {
     pub branch: String,
 }
 
-// --- Validation result types ---
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct ValidationDoc {
-    #[serde(default)]
-    pub artifact: String,
-    #[serde(default)]
-    pub version: String,
-    #[serde(default)]
-    pub date: String,
-    #[serde(default)]
-    pub modules: Vec<ValidationModule>,
-    #[serde(default)]
-    pub summary: Option<ValidationSummary>,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct ValidationModule {
-    pub name: String,
-    #[serde(default)]
-    pub status: String,
-    #[serde(default)]
-    pub checks_total: Option<u32>,
-    #[serde(default)]
-    pub checks_passed: Option<u32>,
-    #[serde(default)]
-    pub checks: Vec<serde_json::Value>,
-    #[serde(default)]
-    pub errata: Vec<serde_json::Value>,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct ValidationSummary {
-    #[serde(default)]
-    pub modules_total: u32,
-    #[serde(default)]
-    pub modules_pass: u32,
-    #[serde(default)]
-    pub modules_in_flight: u32,
-}
-
-// --- Environment receipt ---
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct EnvironmentReceipt {
-    #[serde(default)]
-    pub hardware: Option<BTreeMap<String, toml::Value>>,
-    #[serde(default)]
-    pub software: Option<BTreeMap<String, toml::Value>>,
-    #[serde(default)]
-    pub timestamps: Option<BTreeMap<String, toml::Value>>,
-}
-
-// --- Ferment transcript (minimal fields for validation) ---
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct FermentTranscript {
-    #[serde(default)]
-    pub dataset_id: String,
-    #[serde(default)]
-    pub spring: String,
-    #[serde(default)]
-    pub spring_version: Option<String>,
-    #[serde(default)]
-    pub braid_id: Option<String>,
-    #[serde(default)]
-    pub dag_session_id: Option<String>,
-    #[serde(default)]
-    pub timestamp: Option<String>,
-}
-
-// --- Checksum entry ---
-
-#[derive(Debug, Clone)]
-pub struct ChecksumEntry {
-    pub hash: String,
-    pub path: String,
-}
-
-// --- Verification status ---
-
+/// Verification status of a loaded pseudoSpore.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum SporeStatus {
     Valid,
@@ -203,101 +135,80 @@ impl std::fmt::Display for SporeStatus {
     }
 }
 
-// --- Composite manifest (loaded pseudoSpore) ---
-
+/// Composite manifest of a loaded pseudoSpore directory.
 #[derive(Debug, Clone)]
 pub struct PseudoSporeManifest {
     pub root: PathBuf,
     pub scope: PseudoSporeScope,
-    pub validation: ValidationDoc,
-    pub environment: EnvironmentReceipt,
-    pub ferment: FermentTranscript,
-    pub checksums: Vec<ChecksumEntry>,
+    pub validation: pseudospore_core::ValidationDoc,
+    pub environment: pseudospore_core::EnvironmentReceipt,
+    pub ferment: pseudospore_core::FermentTranscript,
+    pub checksums: Vec<pseudospore_core::ChecksumEntry>,
     pub status: SporeStatus,
     pub errors: Vec<String>,
 }
 
-// --- Parsing and validation ---
-
-/// Parse checksums.blake3 file content into entries.
-pub fn parse_checksums(content: &str) -> Vec<ChecksumEntry> {
-    content
-        .lines()
-        .filter(|line| !line.is_empty() && !line.starts_with('#'))
-        .filter_map(|line| {
-            let mut parts = line.splitn(2, "  ");
-            let hash = parts.next()?.trim().to_string();
-            let path = parts.next()?.trim().to_string();
-            if hash.is_empty() || path.is_empty() {
-                return None;
-            }
-            Some(ChecksumEntry { hash, path })
-        })
-        .collect()
-}
-
 /// Validate a pseudoSpore directory structure. Returns a manifest with status.
+#[must_use]
 pub fn load_pseudospore(root: &Path) -> PseudoSporeManifest {
     let mut errors = Vec::new();
 
-    // 1. Parse scope.toml
     let scope_path = root.join("scope.toml");
-    let scope: PseudoSporeScope = match std::fs::read_to_string(&scope_path) {
-        Ok(content) => match toml::from_str(&content) {
+    let scope: PseudoSporeScope = if let Ok(content) = std::fs::read_to_string(&scope_path) {
+        match toml::from_str(&content) {
             Ok(s) => s,
             Err(e) => {
                 errors.push(format!("scope.toml parse error: {e}"));
                 return invalid_manifest(root, errors);
             }
-        },
-        Err(_) => {
-            errors.push("scope.toml not found".to_string());
-            return invalid_manifest(root, errors);
         }
+    } else {
+        errors.push("scope.toml not found".to_string());
+        return invalid_manifest(root, errors);
     };
 
-    if scope.artifact.artifact_type != "pseudoSpore" && scope.artifact.artifact_type != "pseudo-lithoSpore" {
+    if scope.artifact.artifact_type != "pseudoSpore"
+        && scope.artifact.artifact_type != "pseudo-lithoSpore"
+    {
         errors.push(format!(
             "scope.toml type is '{}', expected 'pseudoSpore'",
             scope.artifact.artifact_type
         ));
     }
 
-    // 2. Parse validation.json
     let val_path = root.join("validation.json");
-    let validation: ValidationDoc = match std::fs::read_to_string(&val_path) {
-        Ok(content) => match serde_json::from_str(&content) {
-            Ok(v) => v,
-            Err(e) => {
-                errors.push(format!("validation.json parse error: {e}"));
-                return invalid_manifest(root, errors);
+    let validation: pseudospore_core::ValidationDoc =
+        if let Ok(content) = std::fs::read_to_string(&val_path) {
+            match serde_json::from_str(&content) {
+                Ok(v) => v,
+                Err(e) => {
+                    errors.push(format!("validation.json parse error: {e}"));
+                    return invalid_manifest(root, errors);
+                }
             }
-        },
-        Err(_) => {
+        } else {
             errors.push("validation.json not found".to_string());
             return invalid_manifest(root, errors);
-        }
-    };
+        };
 
     if validation.modules.is_empty() {
         errors.push("validation.json has no modules".to_string());
     }
 
-    // 3. Parse receipts/environment.toml
     let env_path = root.join("receipts/environment.toml");
-    let environment: EnvironmentReceipt = match std::fs::read_to_string(&env_path) {
-        Ok(content) => match toml::from_str(&content) {
-            Ok(e) => e,
-            Err(e) => {
-                errors.push(format!("receipts/environment.toml parse error: {e}"));
-                return invalid_manifest(root, errors);
+    let environment: pseudospore_core::EnvironmentReceipt =
+        if let Ok(content) = std::fs::read_to_string(&env_path) {
+            match toml::from_str(&content) {
+                Ok(e) => e,
+                Err(e) => {
+                    errors.push(format!("receipts/environment.toml parse error: {e}"));
+                    return invalid_manifest(root, errors);
+                }
             }
-        },
-        Err(_) => {
+        } else {
             errors.push("receipts/environment.toml not found".to_string());
             return invalid_manifest(root, errors);
-        }
-    };
+        };
 
     if environment.hardware.is_none() {
         errors.push("receipts/environment.toml missing [hardware]".to_string());
@@ -306,31 +217,31 @@ pub fn load_pseudospore(root: &Path) -> PseudoSporeManifest {
         errors.push("receipts/environment.toml missing [software]".to_string());
     }
 
-    // 4. Parse receipts/checksums.blake3
     let cksum_path = root.join("receipts/checksums.blake3");
-    let checksums: Vec<ChecksumEntry> = match std::fs::read_to_string(&cksum_path) {
-        Ok(content) => parse_checksums(&content),
-        Err(_) => {
+    let checksums: Vec<pseudospore_core::ChecksumEntry> =
+        if let Ok(content) = std::fs::read_to_string(&cksum_path) {
+            parse_checksums(&content)
+        } else {
             errors.push("receipts/checksums.blake3 not found".to_string());
             Vec::new()
-        }
-    };
+        };
 
-    // 5. Parse provenance/ferment_transcript.json
     let ferment_path = root.join("provenance/ferment_transcript.json");
-    let ferment: FermentTranscript = match std::fs::read_to_string(&ferment_path) {
-        Ok(content) => match serde_json::from_str(&content) {
-            Ok(f) => f,
-            Err(e) => {
-                errors.push(format!("provenance/ferment_transcript.json parse error: {e}"));
-                return invalid_manifest(root, errors);
+    let ferment: pseudospore_core::FermentTranscript =
+        if let Ok(content) = std::fs::read_to_string(&ferment_path) {
+            match serde_json::from_str(&content) {
+                Ok(f) => f,
+                Err(e) => {
+                    errors.push(format!(
+                        "provenance/ferment_transcript.json parse error: {e}"
+                    ));
+                    return invalid_manifest(root, errors);
+                }
             }
-        },
-        Err(_) => {
+        } else {
             errors.push("provenance/ferment_transcript.json not found".to_string());
             return invalid_manifest(root, errors);
-        }
-    };
+        };
 
     if ferment.dataset_id.is_empty() {
         errors.push("ferment_transcript.json missing dataset_id".to_string());
@@ -339,15 +250,17 @@ pub fn load_pseudospore(root: &Path) -> PseudoSporeManifest {
         errors.push("ferment_transcript.json missing spring".to_string());
     }
 
-    // 6. Check README.md
     let readme_path = root.join("README.md");
     if !readme_path.exists() {
         errors.push("README.md not found".to_string());
-    } else if std::fs::metadata(&readme_path).map(|m| m.len()).unwrap_or(0) == 0 {
+    } else if std::fs::metadata(&readme_path)
+        .map(|m| m.len())
+        .unwrap_or(0)
+        == 0
+    {
         errors.push("README.md is empty".to_string());
     }
 
-    // Determine base status
     let status = if errors.is_empty() {
         SporeStatus::Valid
     } else {
@@ -380,23 +293,22 @@ pub fn verify_checksums(manifest: &mut PseudoSporeManifest) -> bool {
     let mut all_ok = true;
     for entry in &manifest.checksums {
         let file_path = manifest.root.join(&entry.path);
-        match std::fs::read(&file_path) {
-            Ok(data) => {
-                let computed = blake3::hash(&data).to_hex().to_string();
-                if computed != entry.hash {
-                    manifest.errors.push(format!(
-                        "Checksum mismatch: {} (expected {}, got {})",
-                        entry.path,
-                        &entry.hash[..12],
-                        &computed[..12]
-                    ));
-                    all_ok = false;
-                }
-            }
-            Err(_) => {
-                manifest.errors.push(format!("Missing file: {}", entry.path));
+        if let Ok(data) = std::fs::read(&file_path) {
+            let computed = blake3::hash(&data).to_hex().to_string();
+            if computed != entry.hash {
+                manifest.errors.push(format!(
+                    "Checksum mismatch: {} (expected {}, got {})",
+                    entry.path,
+                    &entry.hash[..12.min(entry.hash.len())],
+                    &computed[..12]
+                ));
                 all_ok = false;
             }
+        } else {
+            manifest
+                .errors
+                .push(format!("Missing file: {}", entry.path));
+            all_ok = false;
         }
     }
 
@@ -406,7 +318,7 @@ pub fn verify_checksums(manifest: &mut PseudoSporeManifest) -> bool {
     all_ok
 }
 
-/// Check completeness (all modules PASS or SKIP, none IN_FLIGHT).
+/// Check completeness (all modules PASS or SKIP, none `IN_FLIGHT`).
 pub fn check_completeness(manifest: &mut PseudoSporeManifest) -> bool {
     if manifest.status == SporeStatus::Invalid {
         return false;
@@ -417,64 +329,12 @@ pub fn check_completeness(manifest: &mut PseudoSporeManifest) -> bool {
         s == "PASS" || s == "SKIP"
     });
 
-    if all_done && (manifest.status == SporeStatus::Verified || manifest.status == SporeStatus::Valid) {
+    if all_done
+        && (manifest.status == SporeStatus::Verified || manifest.status == SporeStatus::Valid)
+    {
         manifest.status = SporeStatus::Complete;
     }
     all_done
-}
-
-// --- Emission helpers ---
-
-/// Compute BLAKE3 checksums for all files under a directory, relative to root.
-pub fn compute_checksums(root: &Path, dirs: &[&str]) -> Vec<ChecksumEntry> {
-    let mut entries = Vec::new();
-    for dir_name in dirs {
-        let dir = root.join(dir_name);
-        if !dir.exists() {
-            continue;
-        }
-        if let Ok(walker) = walk_dir(&dir) {
-            for file_path in walker {
-                if let Ok(data) = std::fs::read(&file_path) {
-                    let hash = blake3::hash(&data).to_hex().to_string();
-                    let rel = file_path
-                        .strip_prefix(root)
-                        .unwrap_or(&file_path)
-                        .to_string_lossy()
-                        .to_string();
-                    entries.push(ChecksumEntry { hash, path: rel });
-                }
-            }
-        }
-    }
-    entries.sort_by(|a, b| a.path.cmp(&b.path));
-    entries
-}
-
-/// Format checksum entries into the checksums.blake3 file content.
-pub fn format_checksums(entries: &[ChecksumEntry]) -> String {
-    entries
-        .iter()
-        .map(|e| format!("{}  {}", e.hash, e.path))
-        .collect::<Vec<_>>()
-        .join("\n")
-}
-
-/// Simple recursive directory walker (no external deps).
-fn walk_dir(dir: &Path) -> std::io::Result<Vec<PathBuf>> {
-    let mut files = Vec::new();
-    if dir.is_dir() {
-        for entry in std::fs::read_dir(dir)? {
-            let entry = entry?;
-            let path = entry.path();
-            if path.is_dir() {
-                files.extend(walk_dir(&path)?);
-            } else {
-                files.push(path);
-            }
-        }
-    }
-    Ok(files)
 }
 
 fn invalid_manifest(root: &Path, errors: Vec<String>) -> PseudoSporeManifest {
@@ -495,25 +355,28 @@ fn invalid_manifest(root: &Path, errors: Vec<String>) -> PseudoSporeManifest {
             evolution: None,
             source: None,
         },
-        validation: ValidationDoc {
+        validation: pseudospore_core::ValidationDoc {
             artifact: String::new(),
             version: String::new(),
             date: String::new(),
             modules: Vec::new(),
             summary: None,
         },
-        environment: EnvironmentReceipt {
+        environment: pseudospore_core::EnvironmentReceipt {
             hardware: None,
             software: None,
             timestamps: None,
         },
-        ferment: FermentTranscript {
+        ferment: pseudospore_core::FermentTranscript {
             dataset_id: String::new(),
             spring: String::new(),
             spring_version: None,
             braid_id: None,
             dag_session_id: None,
+            dag_merkle_root: None,
+            spine_id: None,
             timestamp: None,
+            computation: None,
         },
         checksums: Vec::new(),
         status: SporeStatus::Invalid,
@@ -545,10 +408,68 @@ mod tests {
     #[test]
     fn format_checksums_roundtrip() {
         let entries = vec![
-            ChecksumEntry { hash: "aaa".to_string(), path: "a.txt".to_string() },
-            ChecksumEntry { hash: "bbb".to_string(), path: "b.txt".to_string() },
+            pseudospore_core::ChecksumEntry {
+                hash: "aaa".to_string(),
+                path: "a.txt".to_string(),
+            },
+            pseudospore_core::ChecksumEntry {
+                hash: "bbb".to_string(),
+                path: "b.txt".to_string(),
+            },
         ];
         let formatted = format_checksums(&entries);
         assert_eq!(formatted, "aaa  a.txt\nbbb  b.txt");
+    }
+
+    #[test]
+    #[allow(deprecated)]
+    fn deprecated_reexports_match_pseudospore_core() {
+        let core_entry = pseudospore_core::ChecksumEntry {
+            hash: "h".to_string(),
+            path: "p".to_string(),
+        };
+        let wrapped: ChecksumEntry = core_entry.clone();
+        assert_eq!(wrapped.hash, core_entry.hash);
+        assert_eq!(wrapped.path, core_entry.path);
+
+        let input = "abc  file.txt\n";
+        assert_eq!(
+            parse_checksums(input).len(),
+            pseudospore_core::parse_checksums(input).len()
+        );
+        let entries = vec![ChecksumEntry {
+            hash: "x".to_string(),
+            path: "y.txt".to_string(),
+        }];
+        assert_eq!(
+            format_checksums(&entries),
+            pseudospore_core::format_checksums(&entries)
+        );
+    }
+
+    #[test]
+    fn validation_doc_reexport_roundtrip() {
+        let doc = ValidationDoc {
+            artifact: "a".to_string(),
+            version: "1".to_string(),
+            date: String::new(),
+            modules: vec![ValidationModule {
+                name: "m".to_string(),
+                status: "pass".to_string(),
+                checks_total: Some(1),
+                checks_passed: Some(1),
+                checks: vec![],
+                errata: vec![],
+            }],
+            summary: Some(ValidationSummary {
+                modules_total: 1,
+                modules_pass: 1,
+                modules_in_flight: 0,
+            }),
+        };
+        let json = serde_json::to_string(&doc).expect("serialize");
+        let parsed: ValidationDoc = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(parsed.artifact, "a");
+        assert_eq!(parsed.modules[0].name, "m");
     }
 }

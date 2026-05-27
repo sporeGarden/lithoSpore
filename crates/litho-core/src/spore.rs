@@ -7,20 +7,26 @@
 //! BLAKE3-hashed), and the `discovery_path` + `turn_relay` fields record
 //! the operating mode for geo-delocalized provenance.
 
-use serde::{Deserialize, Serialize};
 use super::discovery::DiscoveryPath;
+use serde::{Deserialize, Serialize};
 
+/// One append-only record in `liveSpore.json` for a deployment validation run.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LiveSporeEntry {
+    /// RFC 3339 timestamp when validation completed.
     pub timestamp: String,
+    /// BLAKE3 hash of the host name (no raw hostname stored).
     pub hostname_hash: String,
     pub arch: String,
     pub os: String,
+    /// Highest validation tier achieved in this run (0–3).
     pub tier_reached: u8,
     pub modules_passed: u32,
     pub modules_total: u32,
     pub runtime_ms: u64,
+    /// How NUCLEUS primals were discovered (standalone, env, relay, etc.).
     pub discovery_path: DiscoveryPath,
+    /// TURN relay endpoint when geo-delocalized provenance was used.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub turn_relay: Option<String>,
 }
@@ -187,8 +193,12 @@ mod tests {
         let report = sample_report(1, 0);
         let entry = LiveSporeEntry::from_report(&report);
         assert!(
-            matches!(entry.discovery_path, DiscoveryPath::Standalone | DiscoveryPath::Env),
-            "expected standalone or env, got {:?}", entry.discovery_path
+            matches!(
+                entry.discovery_path,
+                DiscoveryPath::Standalone | DiscoveryPath::Env
+            ),
+            "expected standalone or env, got {:?}",
+            entry.discovery_path
         );
     }
 }

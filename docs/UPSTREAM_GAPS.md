@@ -1,6 +1,6 @@
 # lithoSpore Upstream Gap Registry
 
-**Last Updated**: May 23, 2026 (73/73 checks, 7/7 modules, Tier 3 wired, 125 tests, 3 live braids)
+**Last Updated**: May 27, 2026 (75/75 checks, 7/7 modules, Tier 3 wired, 189 tests, 3 live braids)
 **Phase**: Post-deployment (first live handoff to Barrick Lab May 18)
 **Scope**: lithoSpore verification chassis (LTEE first instance; chassis 100% agnostic)
 **Geo-delocalization**: Absorbed — discovery chain env → UDS → TURN → standalone
@@ -50,7 +50,7 @@ all bash fetch scripts. `litho assemble` replaces `assemble-usb.sh`.
 
 | ID | Gap | Resolution |
 |----|-----|-----------|
-| LS-UNSAFE | No `#![forbid(unsafe_code)]` on any crate | `unsafe_code = "forbid"` at workspace lint level, all 9 crates inherit via `[lints] workspace = true` |
+| LS-UNSAFE | No `#![forbid(unsafe_code)]` on any crate | `unsafe_code = "forbid"` at workspace lint level, all 10 crates inherit via `[lints] workspace = true` |
 | LS-PANIC | `pearson_r` used `assert_eq!` (panics on mismatch) | Changed to `debug_assert_eq!` + early return 0.0 on length mismatch or empty |
 | LS-DISC2 | `discovery.rs` hardcoded `127.0.0.1` fallback | Now checks `$PRIMAL_HOST` env var before falling back to localhost |
 | LS-PORT | Port parsing via truncating `as u16` cast | Replaced with `u16::try_from().ok()?` — returns `None` on overflow |
@@ -328,18 +328,18 @@ currently embed (standalone CLI pattern).
   New `registry.rs` centralizes module resolution for all 6 consumer files. `.biomeos-spore`
   generated from scope.toml. Braid accessions from data.toml. `viz/` moved from litho-core
   to ltee-cli (instance layer). `litho-core` 11 modules, 100% chassis. Graph/target paths
-  parameterized. Test fixtures isolated. 125 tests, zero clippy warnings.
+  parameterized. Test fixtures isolated. 189 tests, zero clippy warnings.
 - **2026-05-17 PM**: wetSpring braid ingestion — `litho-core::braid` module (4 tests),
   sovereign + breseq baseline braids parsed, accession validated (SRP001569 PASS),
   braids displayed in `litho validate` output. URI fixes: gzip/zip content-type
-  ordering bug, Dryad API auth handled, tar.gz/zip unpacking. 123 total tests.
+  ordering bug, Dryad API auth handled, tar.gz/zip unpacking. [historical: was 123 tests at that time].
 - **2026-05-17 PM**: Wave 21 absorption — canonical `primal.list` / `capability.list`
   envelope types and `query_primal_list()` added. Method stability tiers annotated
   on all registry domains (stable/evolving/internal). `try_record_tier3()` evolved
   for partial provenance (DAG-only valid, spine/braid optional). `ParityReport`
   published as ecosystem standard (`specs/PARITY_REPORT_SCHEMA.md`). Per-primal
   degradation matrix documented (`docs/DEGRADATION_BEHAVIOR.md`). Braid ingestion
-  path prepared (`provenance/braids/`). 119 tests pass (2 new Wave 20 envelope tests).
+  path prepared (`provenance/braids/`). [historical: was 119 tests at that time] (2 new Wave 20 envelope tests).
   wateringHole handoff: `LITHOSPORE_WAVE21_ABSORPTION_HANDOFF_MAY17_2026.md`.
 - **2026-05-17**: Root docs cleanup — README.md chaos count corrected (15→10),
   GETTING_STARTED.md paper count (18→16) and check count (73→75) fixed,
@@ -347,10 +347,10 @@ currently embed (standalone CLI pattern).
   parity No → Yes), experiments/README.md chaos count fixed and experiments
   008-010 added (parity, Tier 3, two-tier data). whitePaper/baseCamp/README.md
   updated with Tier 3, parity, and ferment transcript sections. main.rs module
-  doc updated (9→15 subcommands). scripts/ description corrected in README tree.
+  doc updated (9→20 subcommands). scripts/ description corrected in README tree.
   7 CATHEDRAL handoffs (May 13-15) archived per 48h rule. New wateringHole
   handoff: LITHOSPORE_PRIMAL_SPRING_EVOLUTION_HANDOFF_MAY17_2026.md — primal
-  evolution requests, NUCLEUS composition, deployment patterns. All 117 tests
+  evolution requests, NUCLEUS composition, deployment patterns. [historical: was 117 tests at that time]
   pass, zero clippy errors.
 - **2026-05-17**: Two-tier data model and ferment transcript pattern formalized.
   `data.toml` gains `data_tier`, `full_data_size`, `full_data_tool`, `full_data_checks`,
@@ -368,7 +368,7 @@ currently embed (standalone CLI pattern).
   comparison. `Tier3Session`, `ParityReport`, `ParityResult`, `ParityStatus` types
   added to `litho-core::validation`. `discovery.rs` gains `announce_self()` +
   `query_capabilities()` for Wave 20 canonical envelope. `--provenance-dir` flag
-  for projectFOUNDATION Thread 10 compatibility. 117 tests, 15 subcommands.
+  for projectFOUNDATION Thread 10 compatibility. [historical: was 117 tests at that time], 20 subcommands.
   Specs updated: ARCHITECTURE.md (chassis evolution roadmap, guideStone five-property
   assessment), MODULES.md (tier support matrix, coupling inventory), UPSTREAM_GAPS.md
   (Tier 3, parity, chassis abstraction status, guideStone audit), README.md, SCIENCE.md.
@@ -377,8 +377,8 @@ currently embed (standalone CLI pattern).
   secure_by_default + btsp_enforced + uds_only + by_capability on all nodes),
   signal adoption annotations present (nest.store/nest.commit mapped in graph),
   TURN discovery wired (env → UDS → TURN → standalone chain operational),
-  production unwrap() in grow.rs replaced with graceful error handling.
-  Updated all check counts to 73/73 (citrate refined to 9 checks).
+  production unwrap() in `grow/` module replaced with graceful error handling.
+  Updated all check counts to 75/75 (citrate at 11/11 checks).
   Upstream items: braid accession normalization (SRP→PRJNA), songbird-turn-client
   integration (enhancement over current raw TCP), aarch64 binary for Apple Silicon.
 - **2026-05-18**: First live deployment — 4 USBs to Barrick Lab (MSU). exFAT

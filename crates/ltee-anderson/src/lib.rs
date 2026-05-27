@@ -15,25 +15,38 @@ use std::path::Path;
 use std::time::Instant;
 
 /// Run module 7 validation with the given paths and tier.
+#[must_use]
 pub fn run_validation(data_dir: &str, expected: &str, max_tier: u8) -> ModuleResult {
     let start = Instant::now();
 
     if !Path::new(expected).exists() {
-        return harness::skip("anderson_qs_predictions", 1, start,
-            "Expected values not found — run `litho fetch --all`");
+        return harness::skip(
+            "anderson_qs_predictions",
+            1,
+            start,
+            "Expected values not found — run `litho fetch --all`",
+        );
     }
 
     if !Path::new(data_dir).exists() {
-        return harness::skip("anderson_qs_predictions", 1, start,
-            &format!("Data directory not found: {data_dir}"));
+        return harness::skip(
+            "anderson_qs_predictions",
+            1,
+            start,
+            &format!("Data directory not found: {data_dir}"),
+        );
     }
 
     if max_tier >= 2 {
         return run_tier2_rust(data_dir, expected, start);
     }
 
-    harness::skip("anderson_qs_predictions", max_tier, start,
-        &format!("Tier {max_tier} not implemented yet"))
+    harness::skip(
+        "anderson_qs_predictions",
+        max_tier,
+        start,
+        &format!("Tier {max_tier} not implemented yet"),
+    )
 }
 
 fn level_spacing_ratio(values: &[f64]) -> Option<f64> {
@@ -44,15 +57,14 @@ fn level_spacing_ratio(values: &[f64]) -> Option<f64> {
     let mut sorted = values.to_vec();
     sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
-    let spacings: Vec<f64> = sorted.windows(2)
-        .map(|w| w[1] - w[0])
-        .collect();
+    let spacings: Vec<f64> = sorted.windows(2).map(|w| w[1] - w[0]).collect();
 
     if spacings.len() < 2 {
         return None;
     }
 
-    let ratios: Vec<f64> = spacings.windows(2)
+    let ratios: Vec<f64> = spacings
+        .windows(2)
         .filter_map(|w| {
             let (s1, s2) = (w[0], w[1]);
             let max = s1.max(s2);
@@ -80,18 +92,18 @@ fn estimate_disorder_parameter(fitness_values: &[f64]) -> f64 {
     if fitness_values.len() < 2 {
         return 0.0;
     }
-    let increments: Vec<f64> = fitness_values.windows(2)
-        .map(|w| w[1] - w[0])
-        .collect();
+    let increments: Vec<f64> = fitness_values.windows(2).map(|w| w[1] - w[0]).collect();
 
     if increments.is_empty() {
         return 0.0;
     }
 
     let mean_inc = increments.iter().sum::<f64>() / increments.len() as f64;
-    let var_inc = increments.iter()
+    let var_inc = increments
+        .iter()
         .map(|i| (i - mean_inc).powi(2))
-        .sum::<f64>() / increments.len() as f64;
+        .sum::<f64>()
+        / increments.len() as f64;
 
     if mean_inc > 0.0 {
         var_inc.sqrt() / mean_inc
@@ -103,8 +115,14 @@ fn estimate_disorder_parameter(fitness_values: &[f64]) -> f64 {
 fn run_tier2_rust(data_dir: &str, expected_path: &str, start: Instant) -> ModuleResult {
     let expected = match harness::load_expected(expected_path) {
         Some(v) => v,
-        None => return harness::skip("anderson_qs_predictions", 2, start,
-            "Cannot parse expected values JSON"),
+        None => {
+            return harness::skip(
+                "anderson_qs_predictions",
+                2,
+                start,
+                "Cannot parse expected values JSON",
+            );
+        }
     };
 
     let dfe_path = Path::new(data_dir)
@@ -125,25 +143,41 @@ fn run_tier2_rust(data_dir: &str, expected_path: &str, start: Instant) -> Module
 
     total += 1;
     let no_plateau = gen_50k > gen_10k;
-    if no_plateau { passed += 1; }
-    eprintln!("  [{}] No plateau: w(50k)={gen_50k:.4} > w(10k)={gen_10k:.4}",
-        if no_plateau { "PASS" } else { "FAIL" });
+    if no_plateau {
+        passed += 1;
+    }
+    eprintln!(
+        "  [{}] No plateau: w(50k)={gen_50k:.4} > w(10k)={gen_10k:.4}",
+        if no_plateau { "PASS" } else { "FAIL" }
+    );
 
     total += 1;
     let first_rate = (gen_5k - gen_500) / (5000.0 - 500.0);
     let last_rate = (gen_50k - gen_10k) / (50000.0 - 10000.0);
-    let ratio = if first_rate > 0.0 { last_rate / first_rate } else { f64::INFINITY };
+    let ratio = if first_rate > 0.0 {
+        last_rate / first_rate
+    } else {
+        f64::INFINITY
+    };
     let diminishing = ratio < 1.0;
-    if diminishing { passed += 1; }
-    eprintln!("  [{}] Diminishing returns: late/early rate ratio={ratio:.4} (expected < 1.0)",
-        if diminishing { "PASS" } else { "FAIL" });
+    if diminishing {
+        passed += 1;
+    }
+    eprintln!(
+        "  [{}] Diminishing returns: late/early rate ratio={ratio:.4} (expected < 1.0)",
+        if diminishing { "PASS" } else { "FAIL" }
+    );
 
     total += 1;
     let w_over_v = estimate_disorder_parameter(&fitness_series);
     let disorder_ok = w_over_v > 0.1 && w_over_v < 10.0;
-    if disorder_ok { passed += 1; }
-    eprintln!("  [{}] Disorder parameter W/V = {w_over_v:.4} (expected 0.1–10.0, sparse-series analogy range)",
-        if disorder_ok { "PASS" } else { "FAIL" });
+    if disorder_ok {
+        passed += 1;
+    }
+    eprintln!(
+        "  [{}] Disorder parameter W/V = {w_over_v:.4} (expected 0.1–10.0, sparse-series analogy range)",
+        if disorder_ok { "PASS" } else { "FAIL" }
+    );
 
     let diagnostics = &expected["anderson_diagnostics"];
     let goe_ref = diagnostics["goe_reference"].as_f64().unwrap_or(0.531);
@@ -153,9 +187,13 @@ fn run_tier2_rust(data_dir: &str, expected_path: &str, start: Instant) -> Module
     let computed_r = level_spacing_ratio(&fitness_series);
     if let Some(r) = computed_r {
         let in_range = r > (poisson_ref - 0.1) && r < (goe_ref + 0.1);
-        if in_range { passed += 1; }
-        eprintln!("  [{}] Computed <r> = {r:.4} (GOE={goe_ref:.4}, Poisson={poisson_ref:.4})",
-            if in_range { "PASS" } else { "FAIL" });
+        if in_range {
+            passed += 1;
+        }
+        eprintln!(
+            "  [{}] Computed <r> = {r:.4} (GOE={goe_ref:.4}, Poisson={poisson_ref:.4})",
+            if in_range { "PASS" } else { "FAIL" }
+        );
     } else {
         eprintln!("  [FAIL] Cannot compute level-spacing ratio from fitness data");
     }
@@ -163,56 +201,88 @@ fn run_tier2_rust(data_dir: &str, expected_path: &str, start: Instant) -> Module
     total += 1;
     let wigner_at_1 = wigner_surmise_goe(1.0);
     let wigner_ok = wigner_at_1 > 0.0 && wigner_at_1 < 1.0;
-    if wigner_ok { passed += 1; }
-    eprintln!("  [{}] Wigner surmise P(s=1) = {wigner_at_1:.6} (in (0, 1))",
-        if wigner_ok { "PASS" } else { "FAIL" });
+    if wigner_ok {
+        passed += 1;
+    }
+    eprintln!(
+        "  [{}] Wigner surmise P(s=1) = {wigner_at_1:.6} (in (0, 1))",
+        if wigner_ok { "PASS" } else { "FAIL" }
+    );
 
     total += 1;
     let mean_f = fitness_series.iter().sum::<f64>() / fitness_series.len() as f64;
-    let var = fitness_series.iter().map(|&v| (v - mean_f).powi(2)).sum::<f64>()
+    let var = fitness_series
+        .iter()
+        .map(|&v| (v - mean_f).powi(2))
+        .sum::<f64>()
         / fitness_series.len() as f64;
     let std_dev = var.sqrt();
     let has_variance = std_dev > 0.0;
-    if has_variance { passed += 1; }
-    eprintln!("  [{}] Population variance: std={std_dev:.6} (expected > 0)",
-        if has_variance { "PASS" } else { "FAIL" });
+    if has_variance {
+        passed += 1;
+    }
+    eprintln!(
+        "  [{}] Population variance: std={std_dev:.6} (expected > 0)",
+        if has_variance { "PASS" } else { "FAIL" }
+    );
 
     total += 1;
     let checks = expected["validation_checks"].as_array();
     let n_pop_check = checks.and_then(|arr| {
-        arr.iter().find(|c| c["name"].as_str() == Some("n_populations"))
+        arr.iter()
+            .find(|c| c["name"].as_str() == Some("n_populations"))
     });
     let expected_n = n_pop_check
         .and_then(|c| c["expected"].as_u64())
         .unwrap_or(12);
     let n_pop_ok = expected_n == 12;
-    if n_pop_ok { passed += 1; }
-    eprintln!("  [{}] 12 replicate populations: expected={expected_n}",
-        if n_pop_ok { "PASS" } else { "FAIL" });
+    if n_pop_ok {
+        passed += 1;
+    }
+    eprintln!(
+        "  [{}] 12 replicate populations: expected={expected_n}",
+        if n_pop_ok { "PASS" } else { "FAIL" }
+    );
 
     if let Some(ref dfe) = dfe_params {
-        if let Some(dfe_inner) = dfe.get("dfe_parameters") {
-            if let Some(shape) = dfe_inner.get("shape_parameter").and_then(serde_json::Value::as_f64) {
-                total += 1;
-                let shape_ok = shape > 0.1 && shape < 1.0;
-                if shape_ok { passed += 1; }
-                eprintln!("  [{}] DFE shape parameter: {shape:.4} (expected 0.1–1.0 for LTEE beneficial mutations)",
-                    if shape_ok { "PASS" } else { "FAIL" });
+        if let Some(dfe_inner) = dfe.get("dfe_parameters")
+            && let Some(shape) = dfe_inner
+                .get("shape_parameter")
+                .and_then(serde_json::Value::as_f64)
+        {
+            total += 1;
+            let shape_ok = shape > 0.1 && shape < 1.0;
+            if shape_ok {
+                passed += 1;
             }
+            eprintln!(
+                "  [{}] DFE shape parameter: {shape:.4} (expected 0.1–1.0 for LTEE beneficial mutations)",
+                if shape_ok { "PASS" } else { "FAIL" }
+            );
         }
 
-        if let Some(anderson_conn) = dfe.get("anderson_connection") {
-            if let Some(wv) = anderson_conn.get("disorder_parameter_W_over_V").and_then(serde_json::Value::as_f64) {
-                total += 1;
-                let wv_ok = wv > 1.0 && wv < 6.0;
-                if wv_ok { passed += 1; }
-                eprintln!("  [{}] DFE W/V from hotSpring: {wv:.2} (expected 1.0–6.0)",
-                    if wv_ok { "PASS" } else { "FAIL" });
+        if let Some(anderson_conn) = dfe.get("anderson_connection")
+            && let Some(wv) = anderson_conn
+                .get("disorder_parameter_W_over_V")
+                .and_then(serde_json::Value::as_f64)
+        {
+            total += 1;
+            let wv_ok = wv > 1.0 && wv < 6.0;
+            if wv_ok {
+                passed += 1;
             }
+            eprintln!(
+                "  [{}] DFE W/V from hotSpring: {wv:.2} (expected 1.0–6.0)",
+                if wv_ok { "PASS" } else { "FAIL" }
+            );
         }
     }
 
-    let status = if passed == total { ValidationStatus::Pass } else { ValidationStatus::Fail };
+    let status = if passed == total {
+        ValidationStatus::Pass
+    } else {
+        ValidationStatus::Fail
+    };
     ModuleResult {
         name: "anderson_qs_predictions".to_string(),
         status,
@@ -244,7 +314,10 @@ mod tests {
         let r = level_spacing_ratio(&vals);
         assert!(r.is_some());
         let ratio = r.unwrap();
-        assert!(ratio > 0.0 && ratio <= 1.0, "ratio {ratio} must be in (0, 1]");
+        assert!(
+            ratio > 0.0 && ratio <= 1.0,
+            "ratio {ratio} must be in (0, 1]"
+        );
     }
 
     #[test]

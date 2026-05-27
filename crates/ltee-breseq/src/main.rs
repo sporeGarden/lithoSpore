@@ -4,7 +4,10 @@ use clap::Parser;
 use litho_core::harness;
 
 #[derive(Parser)]
-#[command(name = "ltee-breseq", about = "264-genome breseq comparison validation")]
+#[command(
+    name = "ltee-breseq",
+    about = "264-genome breseq comparison validation"
+)]
 struct Cli {
     #[arg(long, default_value = "artifact/data/tenaillon_2016")]
     data_dir: String,

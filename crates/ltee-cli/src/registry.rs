@@ -21,23 +21,79 @@ pub struct ModuleEntry {
 
 /// LTEE instance: compiled fallback when scope.toml has no `[[module]]` entries.
 pub const LTEE_MODULES: &[(&str, &str, &str, &str)] = &[
-    ("power_law_fitness", "ltee-fitness", "artifact/data/wiser_2013", "validation/expected/module1_fitness.json"),
-    ("mutation_accumulation", "ltee-mutations", "artifact/data/barrick_2009", "validation/expected/module2_mutations.json"),
-    ("allele_trajectories", "ltee-alleles", "artifact/data/good_2017", "validation/expected/module3_alleles.json"),
-    ("citrate_innovation", "ltee-citrate", "artifact/data/blount_2012", "validation/expected/module4_citrate.json"),
-    ("biobrick_burden", "ltee-biobricks", "artifact/data/biobricks_2024", "validation/expected/module5_biobricks.json"),
-    ("breseq_264_genomes", "ltee-breseq", "artifact/data/tenaillon_2016", "validation/expected/module6_breseq.json"),
-    ("anderson_qs_predictions", "ltee-anderson", "artifact/data/anderson_predictions", "validation/expected/module7_anderson.json"),
+    (
+        "power_law_fitness",
+        "ltee-fitness",
+        "artifact/data/wiser_2013",
+        "validation/expected/module1_fitness.json",
+    ),
+    (
+        "mutation_accumulation",
+        "ltee-mutations",
+        "artifact/data/barrick_2009",
+        "validation/expected/module2_mutations.json",
+    ),
+    (
+        "allele_trajectories",
+        "ltee-alleles",
+        "artifact/data/good_2017",
+        "validation/expected/module3_alleles.json",
+    ),
+    (
+        "citrate_innovation",
+        "ltee-citrate",
+        "artifact/data/blount_2012",
+        "validation/expected/module4_citrate.json",
+    ),
+    (
+        "biobrick_burden",
+        "ltee-biobricks",
+        "artifact/data/biobricks_2024",
+        "validation/expected/module5_biobricks.json",
+    ),
+    (
+        "breseq_264_genomes",
+        "ltee-breseq",
+        "artifact/data/tenaillon_2016",
+        "validation/expected/module6_breseq.json",
+    ),
+    (
+        "anderson_qs_predictions",
+        "ltee-anderson",
+        "artifact/data/anderson_predictions",
+        "validation/expected/module7_anderson.json",
+    ),
 ];
 
 pub const LTEE_NOTEBOOKS: &[(&str, &str)] = &[
-    ("power_law_fitness", "notebooks/module1_fitness/power_law_fitness.py"),
-    ("mutation_accumulation", "notebooks/module2_mutations/mutation_accumulation.py"),
-    ("allele_trajectories", "notebooks/module3_alleles/allele_trajectories.py"),
-    ("citrate_innovation", "notebooks/module4_citrate/citrate_innovation.py"),
-    ("biobrick_burden", "notebooks/module5_biobricks/biobrick_burden.py"),
-    ("breseq_264_genomes", "notebooks/module6_breseq/breseq_comparison.py"),
-    ("anderson_qs_predictions", "notebooks/module7_anderson/anderson_predictions.py"),
+    (
+        "power_law_fitness",
+        "notebooks/module1_fitness/power_law_fitness.py",
+    ),
+    (
+        "mutation_accumulation",
+        "notebooks/module2_mutations/mutation_accumulation.py",
+    ),
+    (
+        "allele_trajectories",
+        "notebooks/module3_alleles/allele_trajectories.py",
+    ),
+    (
+        "citrate_innovation",
+        "notebooks/module4_citrate/citrate_innovation.py",
+    ),
+    (
+        "biobrick_burden",
+        "notebooks/module5_biobricks/biobrick_burden.py",
+    ),
+    (
+        "breseq_264_genomes",
+        "notebooks/module6_breseq/breseq_comparison.py",
+    ),
+    (
+        "anderson_qs_predictions",
+        "notebooks/module7_anderson/anderson_predictions.py",
+    ),
 ];
 
 pub type ModuleFn = fn(&str, &str, u8) -> litho_core::ModuleResult;
@@ -65,78 +121,91 @@ pub fn load_module_table(root: &Path) -> Vec<ModuleEntry> {
     if let Ok(scope) = litho_core::ScopeManifest::load(&scope_path) {
         // Priority 1: explicit [[module]] entries in scope.toml
         if !scope.module.is_empty() {
-            return scope.module.iter().map(|m| ModuleEntry {
-                name: m.name.clone(),
-                binary: m.binary.clone(),
-                data_dir: m.data_dir.clone(),
-                expected: m.expected.clone(),
-                tier1_notebook: m.tier1_notebook.clone(),
-            }).collect();
+            return scope
+                .module
+                .iter()
+                .map(|m| ModuleEntry {
+                    name: m.name.clone(),
+                    binary: m.binary.clone(),
+                    data_dir: m.data_dir.clone(),
+                    expected: m.expected.clone(),
+                    tier1_notebook: m.tier1_notebook.clone(),
+                })
+                .collect();
         }
 
         // Priority 2: derive from springs × data.toml
-        if let Ok(data_content) = std::fs::read_to_string(root.join("artifact/data.toml")) {
-            if let Ok(data_toml) = data_content.parse::<toml::Value>() {
-                let datasets = data_toml.get("dataset").and_then(|v| v.as_array());
-                let module_bins = scope.module_binaries();
-                let mut entries = Vec::new();
+        if let Ok(data_content) = std::fs::read_to_string(root.join("artifact/data.toml"))
+            && let Ok(data_toml) = data_content.parse::<toml::Value>()
+        {
+            let datasets = data_toml.get("dataset").and_then(|v| v.as_array());
+            let module_bins = scope.module_binaries();
+            let mut entries = Vec::new();
 
-                for bin_name in &module_bins {
-                    let matching: Vec<&toml::Value> = datasets
-                        .map(|arr| arr.iter()
+            for bin_name in &module_bins {
+                let matching: Vec<&toml::Value> = datasets
+                    .map(|arr| {
+                        arr.iter()
                             .filter(|d| d.get("module").and_then(|v| v.as_str()) == Some(bin_name))
-                            .collect())
-                        .unwrap_or_default();
+                            .collect()
+                    })
+                    .unwrap_or_default();
 
-                    let ds = matching.iter().find(|d| {
+                let ds = matching
+                    .iter()
+                    .find(|d| {
                         d.get("local_path")
                             .and_then(|v| v.as_str())
-                            .map(|p| root.join(p.trim_end_matches('/')).exists())
-                            .unwrap_or(false)
-                    }).or_else(|| matching.first());
+                            .is_some_and(|p| root.join(p.trim_end_matches('/')).exists())
+                    })
+                    .or_else(|| matching.first());
 
-                    let data_dir = ds
-                        .and_then(|d| d.get("local_path").and_then(|v| v.as_str()))
-                        .unwrap_or("")
-                        .trim_end_matches('/')
-                        .to_string();
+                let data_dir = ds
+                    .and_then(|d| d.get("local_path").and_then(|v| v.as_str()))
+                    .unwrap_or("")
+                    .trim_end_matches('/')
+                    .to_string();
 
-                    let expected = find_expected_json(root, bin_name);
+                let expected = find_expected_json(root, bin_name);
 
-                    let name = derive_logical_name(bin_name);
+                let name = derive_logical_name(bin_name);
 
-                    if !data_dir.is_empty() || !expected.is_empty() {
-                        entries.push(ModuleEntry {
-                            name,
-                            binary: bin_name.to_string(),
-                            data_dir,
-                            expected,
-                            tier1_notebook: find_notebook(&name_from_binary(bin_name)),
-                        });
-                    }
+                if !data_dir.is_empty() || !expected.is_empty() {
+                    entries.push(ModuleEntry {
+                        name,
+                        binary: bin_name.to_string(),
+                        data_dir,
+                        expected,
+                        tier1_notebook: find_notebook(&name_from_binary(bin_name)),
+                    });
                 }
+            }
 
-                if !entries.is_empty() {
-                    return entries;
-                }
+            if !entries.is_empty() {
+                return entries;
             }
         }
     }
 
     // Priority 3: compiled LTEE fallback
-    LTEE_MODULES.iter().map(|(name, binary, data_dir, expected)| ModuleEntry {
-        name: name.to_string(),
-        binary: binary.to_string(),
-        data_dir: data_dir.to_string(),
-        expected: expected.to_string(),
-        tier1_notebook: find_notebook(name),
-    }).collect()
+    LTEE_MODULES
+        .iter()
+        .map(|(name, binary, data_dir, expected)| ModuleEntry {
+            name: name.to_string(),
+            binary: binary.to_string(),
+            data_dir: data_dir.to_string(),
+            expected: expected.to_string(),
+            tier1_notebook: find_notebook(name),
+        })
+        .collect()
 }
 
 /// Load the guideStone identity name from scope.toml, with fallback.
 pub fn load_scope_name(root: &Path) -> String {
-    litho_core::ScopeManifest::load(&root.join("artifact/scope.toml"))
-        .map_or_else(|_| "ltee-guidestone".to_string(), |s| s.guidestone.name.clone())
+    litho_core::ScopeManifest::load(&root.join("artifact/scope.toml")).map_or_else(
+        |_| "ltee-guidestone".to_string(),
+        |s| s.guidestone.name.clone(),
+    )
 }
 
 /// Load the scope manifest (if available).
@@ -147,7 +216,11 @@ pub fn load_scope(root: &Path) -> Option<litho_core::ScopeManifest> {
 /// Domain-agnostic name matching: does a result module name correspond
 /// to a given binary/module identifier? Uses the module registry to
 /// resolve, falling back to the legacy LTEE mapping.
-pub fn module_name_matches(registry: &[ModuleEntry], result_name: &str, target_module: &str) -> bool {
+pub fn module_name_matches(
+    registry: &[ModuleEntry],
+    result_name: &str,
+    target_module: &str,
+) -> bool {
     // Check registry: binary → logical name
     if let Some(entry) = registry.iter().find(|e| e.binary == target_module) {
         return result_name == entry.name;
@@ -172,9 +245,10 @@ fn name_from_binary(binary: &str) -> String {
     derive_logical_name(binary)
 }
 
-/// Find notebook path from LTEE_NOTEBOOKS or return empty.
+/// Find notebook path from `LTEE_NOTEBOOKS` or return empty.
 fn find_notebook(logical_name: &str) -> String {
-    LTEE_NOTEBOOKS.iter()
+    LTEE_NOTEBOOKS
+        .iter()
         .find(|(n, _)| *n == logical_name)
         .map(|(_, p)| p.to_string())
         .unwrap_or_default()
@@ -191,24 +265,31 @@ pub fn find_expected_json(root: &Path, module_binary: &str) -> String {
         Err(_) => return String::new(),
     };
     let suffix = module_binary.replace('-', "_");
-    let short = suffix.strip_prefix("ltee_")
+    let short = suffix
+        .strip_prefix("ltee_")
         .or_else(|| suffix.strip_prefix("milc_"))
         .or_else(|| suffix.strip_prefix("lattice_"))
         .unwrap_or(&suffix);
     for entry in entries.flatten() {
         let name = entry.file_name();
         let name_str = name.to_string_lossy();
-        if name_str.ends_with(".json") && (name_str.contains(&suffix) || name_str.contains(short)) {
-            if let Ok(rel) = entry.path().strip_prefix(root) {
-                return rel.to_string_lossy().to_string();
-            }
+        if name_str.ends_with(".json")
+            && (name_str.contains(&suffix) || name_str.contains(short))
+            && let Ok(rel) = entry.path().strip_prefix(root)
+        {
+            return rel.to_string_lossy().to_string();
         }
     }
     String::new()
 }
 
 /// Dispatch to a module's in-process validation function by binary name.
-pub fn dispatch_module(binary: &str, data_dir: &str, expected: &str, max_tier: u8) -> litho_core::ModuleResult {
+pub fn dispatch_module(
+    binary: &str,
+    data_dir: &str,
+    expected: &str,
+    max_tier: u8,
+) -> litho_core::ModuleResult {
     if let Some((_, func)) = MODULE_DISPATCH.iter().find(|(name, _)| *name == binary) {
         func(data_dir, expected, max_tier)
     } else {
@@ -234,10 +315,16 @@ mod tests {
         assert_eq!(LTEE_NOTEBOOKS.len(), 7);
         assert_eq!(MODULE_DISPATCH.len(), 7);
         for (name, _, _, _) in LTEE_MODULES {
-            assert!(LTEE_NOTEBOOKS.iter().any(|(n, _)| n == name), "missing notebook for {name}");
+            assert!(
+                LTEE_NOTEBOOKS.iter().any(|(n, _)| n == name),
+                "missing notebook for {name}"
+            );
         }
         for (_, binary, _, _) in LTEE_MODULES {
-            assert!(MODULE_DISPATCH.iter().any(|(n, _)| n == binary), "missing dispatch for {binary}");
+            assert!(
+                MODULE_DISPATCH.iter().any(|(n, _)| n == binary),
+                "missing dispatch for {binary}"
+            );
         }
     }
 
@@ -251,17 +338,23 @@ mod tests {
 
     #[test]
     fn module_name_matches_from_registry() {
-        let registry = vec![
-            ModuleEntry {
-                name: "power_law_fitness".into(),
-                binary: "ltee-fitness".into(),
-                data_dir: String::new(),
-                expected: String::new(),
-                tier1_notebook: String::new(),
-            },
-        ];
-        assert!(module_name_matches(&registry, "power_law_fitness", "ltee-fitness"));
-        assert!(!module_name_matches(&registry, "mutation_accumulation", "ltee-fitness"));
+        let registry = vec![ModuleEntry {
+            name: "power_law_fitness".into(),
+            binary: "ltee-fitness".into(),
+            data_dir: String::new(),
+            expected: String::new(),
+            tier1_notebook: String::new(),
+        }];
+        assert!(module_name_matches(
+            &registry,
+            "power_law_fitness",
+            "ltee-fitness"
+        ));
+        assert!(!module_name_matches(
+            &registry,
+            "mutation_accumulation",
+            "ltee-fitness"
+        ));
     }
 
     #[test]

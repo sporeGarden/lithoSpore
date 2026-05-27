@@ -5,6 +5,10 @@
 Chronological log of lithoSpore experiments. Each experiment has a unique
 numeric prefix for ordering and a `_TOPIC_DESCRIPTOR` suffix.
 
+Experiment narratives are documented **inline in this file** (see
+[Experiment Log](#experiment-log-may-2026) below), not as separate
+per-experiment markdown files under `experiments/`.
+
 ## Naming Convention
 
 ```
@@ -136,8 +140,10 @@ migrated. `derive_logical_name()` handles arbitrary binary prefixes.
 Graph and target staging paths parameterized from scope.toml.
 
 **Phase 4**: `viz/` moved from litho-core to ltee-cli (instance layer).
-LTEE test fixtures isolated in `tests/fixtures/`. `litho-core` reaches
-100% chassis — 11 modules, zero LTEE-specific code. 125 tests pass.
+LTEE test fixtures isolated in `crates/litho-core/tests/fixtures/`.
+`litho-core` reaches 100% chassis — 12 modules (including deprecated
+`pseudospore` re-export), zero LTEE-specific code. 189 workspace tests pass
+(75/75 science checks at Tier 2).
 
 ### 012 — Hypogeal Deployment to Barrick Lab (May 18)
 
@@ -146,7 +152,7 @@ deployed to the Barrick Lab (MSU) for the LTEE Research Assistant II
 interview.
 
 **Deployment cycle**:
-1. ext4 deploy (4 USBs) — all pass 73/73 science checks
+1. ext4 deploy (4 USBs) — all pass 75/75 science checks
 2. Field test: ext4 invisible on Windows → lesson learned
 3. exFAT reformat (showcase USB, 58G) — universal mount
 4. Shim pattern: copy-to-tmpdir + chmod for no-exec filesystems
@@ -156,7 +162,8 @@ interview.
 8. MANIFEST.toml for AI agent navigation
 9. Data courier: 5.2G SRA reads for airgapped seeding
 
-**Key metrics**: 73 checks, 7 modules, <100ms, 6.3MB binary, exFAT
+**Key metrics**: 75 science checks, 189 workspace tests, 7 modules, <100ms,
+6.3MB binary, exFAT
 cross-platform, 10+ validated liveSpore.json entries.
 
 **Documented**: gen4/architecture/HYPOGEAL_DEPLOYMENT_EVOLUTION.md

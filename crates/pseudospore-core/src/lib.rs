@@ -11,8 +11,24 @@
 //! See `SPORE_OWNERSHIP_MATRIX.md` for the three-way ownership split.
 
 pub mod blake3_manifest;
+pub mod braid_envelope;
 pub mod domain_profile;
 pub mod livespore;
+pub mod receipts;
 pub mod scope;
 pub mod tarball;
 pub mod validation;
+
+pub use blake3_manifest::Blake3Manifest;
+pub use braid_envelope::FermentTranscript;
+pub use domain_profile::{
+    AuditConfig, AuditDomainFlags, AuditValidationFlags, CheckCommand, ClaimValidator, ClaimZone,
+    DerivationConfig, DerivationContract, DomainProfile, EntityGroup, FigurePlot, FiguresConfig,
+    ProfileModule, SimTimeConfig, TranslationConfig,
+};
+pub use livespore::{LiveSporeDoc, ValidationEntry};
+pub use receipts::{
+    ChecksumEntry, EnvironmentReceipt, compute_checksums, format_checksums, parse_checksums,
+};
+pub use scope::ScopeDoc;
+pub use validation::ValidationDoc;

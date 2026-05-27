@@ -9,6 +9,7 @@ use std::path::Path;
 
 pub fn run(root: &str) {
     let tmpdir = std::env::temp_dir().join("litho-deploy-test");
+    let target = tmpdir.to_string_lossy();
     let _ = std::fs::remove_dir_all(&tmpdir);
 
     println!("litho deploy-test — local deployment simulation");
@@ -18,14 +19,16 @@ pub fn run(root: &str) {
 
     // Step 1: Assemble into tmp
     println!("  [1/4] Assembling artifact...");
-    crate::assemble::run(
+    crate::assemble::run(&crate::assemble::AssembleOptions {
         root,
-        tmpdir.to_str().unwrap_or("/tmp/litho-deploy-test"),
-        true,   // skip_python
-        false,  // skip_fetch (data is needed)
-        true,   // skip_build (binaries already built)
-        false,  // dry_run
-    );
+        target: &target,
+        skip: crate::assemble::AssembleSkipFlags {
+            python: true,
+            fetch: false,
+            build: true,
+        },
+        dry_run: false,
+    });
 
     // Step 2: Verify manifest integrity
     println!("  [2/4] Verifying data integrity...");
@@ -35,14 +38,24 @@ pub fn run(root: &str) {
     // Step 3: Run validation
     println!("  [3/4] Running validation...");
     let validate_ok = run_validation_quiet(&tmpdir);
-    println!("    Validation: {}", if validate_ok { "PASS" } else { "FAIL" });
+    println!(
+        "    Validation: {}",
+        if validate_ok { "PASS" } else { "FAIL" }
+    );
 
     // Step 4: Verify liveSpore was created/updated
     println!("  [4/4] Checking liveSpore...");
     let livespore = tmpdir.join("liveSpore.json");
     let spore_ok = livespore.exists();
     // Run validation should have created it, but if not, it's non-fatal
-    println!("    liveSpore:  {}", if spore_ok { "PRESENT" } else { "ABSENT (non-fatal)" });
+    println!(
+        "    liveSpore:  {}",
+        if spore_ok {
+            "PRESENT"
+        } else {
+            "ABSENT (non-fatal)"
+        }
+    );
 
     // Cleanup
     let _ = std::fs::remove_dir_all(&tmpdir);

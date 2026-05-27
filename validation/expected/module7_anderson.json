@@ -53,7 +53,7 @@
     }
   ],
   "provenance": {
-    "notebook": "notebooks/module7_anderson/anderson_qs.py",
+    "notebook": "notebooks/module7_anderson/anderson_predictions.py",
     "scenario": "crates/ltee-anderson/src/lib.rs",
     "date": "2026-05-11",
     "tier_1": "Python (numpy + scipy + matplotlib)",

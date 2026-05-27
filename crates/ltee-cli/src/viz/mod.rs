@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! DataBinding adapter for petalTongue visualization.
+//! `DataBinding` adapter for petalTongue visualization.
 //!
 //! Maps each lithoSpore module's expected JSON into petalTongue-compatible
 //! `DataBinding` JSON arrays. Pure data transformation — no compile-time
@@ -8,59 +8,254 @@
 //!   `petal-tongue-types::DataBinding` (channel_type-tagged enum)
 //!
 //! Supported channel types: timeseries, bar, scatter, gauge, distribution,
-//! heatmap, genome_track, circular_map.
+//! heatmap, `genome_track`, `circular_map`.
 //!
 //! Baseline adapters read `baselines/<tool>/reference_data.json` and produce
-//! DataBindings that reproduce each Barrick Lab tool's key visualizations.
+//! `DataBindings` that reproduce each Barrick Lab tool's key visualizations.
 
 mod baselines;
 mod modules;
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 // ─── DataBinding builder helpers ─────────────────────────────────────────────
 // These reduce repetitive json!({}) construction across baseline and module
 // adapters. Each returns a single DataBinding JSON value.
 
-pub(crate) fn bar(id: &str, label: &str, categories: Vec<String>, values: Vec<f64>, unit: &str) -> Value {
+pub(crate) fn bar(
+    id: &str,
+    label: &str,
+    categories: &[String],
+    values: &[f64],
+    unit: &str,
+) -> Value {
     json!({ "channel_type": "bar", "id": id, "label": label, "categories": categories, "values": values, "unit": unit })
 }
 
-pub(crate) fn bar_from_object(id: &str, label: &str, obj: &serde_json::Map<String, Value>, unit: &str) -> Value {
+pub(crate) fn bar_from_object(
+    id: &str,
+    label: &str,
+    obj: &serde_json::Map<String, Value>,
+    unit: &str,
+) -> Value {
     let cats: Vec<String> = obj.keys().cloned().collect();
-    let vals: Vec<f64> = obj.values().filter_map(|v| v.as_f64()).collect();
-    bar(id, label, cats, vals, unit)
+    let vals: Vec<f64> = obj.values().filter_map(serde_json::Value::as_f64).collect();
+    bar(id, label, &cats, &vals, unit)
 }
 
-pub(crate) fn gauge(id: &str, label: &str, value: f64, min: f64, max: f64, unit: &str, normal: [f64; 2], warning: [f64; 2]) -> Value {
-    json!({ "channel_type": "gauge", "id": id, "label": label, "value": value, "min": min, "max": max, "unit": unit, "normal_range": normal, "warning_range": warning })
+pub(crate) struct GaugeBinding<'a> {
+    pub id: &'a str,
+    pub label: &'a str,
+    pub value: f64,
+    pub min: f64,
+    pub max: f64,
+    pub unit: &'a str,
+    pub normal: [f64; 2],
+    pub warning: [f64; 2],
 }
 
-pub(crate) fn timeseries(id: &str, label: &str, x_label: &str, y_label: &str, unit: &str, x: Vec<f64>, y: Vec<f64>) -> Value {
+pub(crate) fn gauge_binding(b: &GaugeBinding<'_>) -> Value {
+    json!({
+        "channel_type": "gauge",
+        "id": b.id,
+        "label": b.label,
+        "value": b.value,
+        "min": b.min,
+        "max": b.max,
+        "unit": b.unit,
+        "normal_range": b.normal,
+        "warning_range": b.warning
+    })
+}
+
+pub(crate) fn timeseries(
+    id: &str,
+    label: &str,
+    x_label: &str,
+    y_label: &str,
+    unit: &str,
+    x: &[f64],
+    y: &[f64],
+) -> Value {
     json!({ "channel_type": "timeseries", "id": id, "label": label, "x_label": x_label, "y_label": y_label, "unit": unit, "x_values": x, "y_values": y })
 }
 
-pub(crate) fn scatter(id: &str, label: &str, x: Vec<f64>, y: Vec<f64>, x_label: &str, y_label: &str, point_labels: Vec<String>, unit: &str) -> Value {
-    json!({ "channel_type": "scatter", "id": id, "label": label, "x": x, "y": y, "x_label": x_label, "y_label": y_label, "point_labels": point_labels, "unit": unit })
+pub(crate) struct ScatterBinding<'a> {
+    pub id: &'a str,
+    pub label: &'a str,
+    pub x: &'a [f64],
+    pub y: &'a [f64],
+    pub x_label: &'a str,
+    pub y_label: &'a str,
+    pub point_labels: &'a [String],
+    pub unit: &'a str,
 }
 
-pub(crate) fn heatmap(id: &str, label: &str, x_labels: Vec<String>, y_labels: Vec<String>, values: Vec<f64>, unit: &str) -> Value {
+pub(crate) fn scatter_binding(b: &ScatterBinding<'_>) -> Value {
+    json!({
+        "channel_type": "scatter",
+        "id": b.id,
+        "label": b.label,
+        "x": b.x,
+        "y": b.y,
+        "x_label": b.x_label,
+        "y_label": b.y_label,
+        "point_labels": b.point_labels,
+        "unit": b.unit
+    })
+}
+
+pub(crate) fn heatmap(
+    id: &str,
+    label: &str,
+    x_labels: &[String],
+    y_labels: &[String],
+    values: &[f64],
+    unit: &str,
+) -> Value {
     json!({ "channel_type": "heatmap", "id": id, "label": label, "x_labels": x_labels, "y_labels": y_labels, "values": values, "unit": unit })
 }
 
-pub(crate) fn distribution(id: &str, label: &str, values: Vec<f64>, mean: f64, std: f64, unit: &str) -> Value {
+pub(crate) fn distribution(
+    id: &str,
+    label: &str,
+    values: &[f64],
+    mean: f64,
+    std: f64,
+    unit: &str,
+) -> Value {
     json!({ "channel_type": "distribution", "id": id, "label": label, "values": values, "mean": mean, "std": std, "unit": unit })
 }
 
-pub(crate) fn genome_track(id: &str, label: &str, seq_len: f64, tracks: Vec<String>, segments: Vec<Value>, unit: &str) -> Value {
+pub(crate) fn genome_track(
+    id: &str,
+    label: &str,
+    seq_len: f64,
+    tracks: &[String],
+    segments: &[Value],
+    unit: &str,
+) -> Value {
     json!({ "channel_type": "genome_track", "id": id, "label": label, "sequence_length": seq_len, "tracks": tracks, "segments": segments, "unit": unit })
+}
+
+/// Owned-vector bar helper for baseline adapters.
+#[allow(clippy::needless_pass_by_value)]
+pub(crate) fn bar_owned(
+    id: &str,
+    label: &str,
+    categories: Vec<String>,
+    values: Vec<f64>,
+    unit: &str,
+) -> Value {
+    bar(id, label, &categories, &values, unit)
+}
+
+/// Owned-vector timeseries helper for baseline adapters.
+#[allow(clippy::needless_pass_by_value)]
+pub(crate) fn timeseries_owned(
+    id: &str,
+    label: &str,
+    x_label: &str,
+    y_label: &str,
+    unit: &str,
+    x: Vec<f64>,
+    y: Vec<f64>,
+) -> Value {
+    timeseries(id, label, x_label, y_label, unit, &x, &y)
+}
+
+/// Owned-vector heatmap helper for baseline adapters.
+#[allow(clippy::needless_pass_by_value)]
+pub(crate) fn heatmap_owned(
+    id: &str,
+    label: &str,
+    x_labels: Vec<String>,
+    y_labels: Vec<String>,
+    values: Vec<f64>,
+    unit: &str,
+) -> Value {
+    heatmap(id, label, &x_labels, &y_labels, &values, unit)
+}
+
+/// Owned-vector distribution helper for baseline adapters.
+#[allow(clippy::needless_pass_by_value)]
+pub(crate) fn distribution_owned(
+    id: &str,
+    label: &str,
+    values: Vec<f64>,
+    mean: f64,
+    std: f64,
+    unit: &str,
+) -> Value {
+    distribution(id, label, &values, mean, std, unit)
+}
+
+/// Owned-vector genome track helper for baseline adapters.
+#[allow(clippy::needless_pass_by_value)]
+pub(crate) fn genome_track_owned(
+    id: &str,
+    label: &str,
+    seq_len: f64,
+    tracks: Vec<String>,
+    segments: Vec<Value>,
+    unit: &str,
+) -> Value {
+    genome_track(id, label, seq_len, &tracks, &segments, unit)
+}
+
+/// Eight-argument gauge helper for baseline adapters (consumes owned series).
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn gauge(
+    id: &str,
+    label: &str,
+    value: f64,
+    min: f64,
+    max: f64,
+    unit: &str,
+    normal: [f64; 2],
+    warning: [f64; 2],
+) -> Value {
+    gauge_binding(&GaugeBinding {
+        id,
+        label,
+        value,
+        min,
+        max,
+        unit,
+        normal,
+        warning,
+    })
+}
+
+/// Eight-argument scatter helper for baseline adapters.
+#[allow(clippy::too_many_arguments, clippy::needless_pass_by_value)]
+pub(crate) fn scatter(
+    id: &str,
+    label: &str,
+    x: Vec<f64>,
+    y: Vec<f64>,
+    x_label: &str,
+    y_label: &str,
+    point_labels: Vec<String>,
+    unit: &str,
+) -> Value {
+    scatter_binding(&ScatterBinding {
+        id,
+        label,
+        x: &x,
+        y: &y,
+        x_label,
+        y_label,
+        point_labels: &point_labels,
+        unit,
+    })
 }
 
 pub(crate) fn track_segment(track: &str, start: f64, end: f64, strand: &str, label: &str) -> Value {
     json!({ "track": track, "start": start, "end": end, "strand": strand, "label": label })
 }
 
-/// Convert a module's expected JSON into a vec of petalTongue DataBinding objects.
+/// Convert a module's expected JSON into a vec of petalTongue `DataBinding` objects.
 pub fn module_to_bindings(module_name: &str, expected: &Value) -> Vec<Value> {
     match module_name {
         "power_law_fitness" => modules::m1_fitness(expected),
@@ -88,7 +283,7 @@ pub fn build_dashboard(modules: &[(&str, &Value)]) -> Value {
     })
 }
 
-/// Convert a baseline tool's reference_data JSON into DataBinding objects.
+/// Convert a baseline tool's `reference_data` JSON into `DataBinding` objects.
 pub fn baseline_to_bindings(tool_name: &str, data: &Value) -> Vec<Value> {
     match tool_name {
         "breseq" => baselines::breseq(data),
@@ -169,12 +364,12 @@ mod tests {
 
     #[test]
     fn dashboard_aggregates() {
-        let m1: Value = serde_json::from_str(r#"{"generations": [0, 1000], "mean_fitness": [1.0, 1.3]}"#).unwrap();
+        let m1: Value =
+            serde_json::from_str(r#"{"generations": [0, 1000], "mean_fitness": [1.0, 1.3]}"#)
+                .unwrap();
         let m2: Value = serde_json::from_str(r#"{"drift_dominance_ratio": 2.3}"#).unwrap();
-        let dashboard = build_dashboard(&[
-            ("power_law_fitness", &m1),
-            ("mutation_accumulation", &m2),
-        ]);
+        let dashboard =
+            build_dashboard(&[("power_law_fitness", &m1), ("mutation_accumulation", &m2)]);
         assert_eq!(dashboard["session_id"], "lithoSpore-dashboard");
         let bindings = dashboard["bindings"].as_array().unwrap();
         assert!(bindings.len() >= 2);
@@ -182,7 +377,8 @@ mod tests {
 
     #[test]
     fn baseline_breseq_produces_bindings() {
-        let data: Value = serde_json::from_str(r#"{
+        let data: Value = serde_json::from_str(
+            r#"{
             "genome_length": 4629812,
             "evidence_type_distribution": {"RA": 56, "JC": 30, "MC": 8},
             "mutation_spectrum": {"GC_to_AT": 0.68, "AT_to_GC": 0.08},
@@ -196,13 +392,27 @@ mod tests {
                 {"type": "large_deletion", "start": 547700, "end": 555825, "genes_affected": 9}
             ],
             "summary_statistics": {"total_predicted_mutations": 94}
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
         let bindings = baseline_to_bindings("breseq", &data);
         assert!(bindings.len() >= 5);
-        assert!(bindings.iter().any(|b| b["id"] == "bl_breseq_evidence_types"));
-        assert!(bindings.iter().any(|b| b["id"] == "bl_breseq_mutation_spectrum"));
+        assert!(
+            bindings
+                .iter()
+                .any(|b| b["id"] == "bl_breseq_evidence_types")
+        );
+        assert!(
+            bindings
+                .iter()
+                .any(|b| b["id"] == "bl_breseq_mutation_spectrum")
+        );
         assert!(bindings.iter().any(|b| b["id"] == "bl_breseq_accumulation"));
-        assert!(bindings.iter().any(|b| b["id"] == "bl_breseq_genome_overview"));
+        assert!(
+            bindings
+                .iter()
+                .any(|b| b["id"] == "bl_breseq_genome_overview")
+        );
         assert!(bindings.iter().any(|b| b["channel_type"] == "genome_track"));
     }
 
@@ -229,26 +439,32 @@ mod tests {
 
     #[test]
     fn baseline_ostir_produces_bindings() {
-        let data: Value = serde_json::from_str(r#"{
+        let data: Value = serde_json::from_str(
+            r#"{
             "rbs_strength_predictions": [
                 {"name": "BBa_B0034", "tir": 48217.3},
                 {"name": "BBa_B0032", "tir": 12543.8}
             ],
             "rate_distribution": {"values": [42.8, 127.5], "mean": 85.15, "std": 59.9}
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
         let bindings = baseline_to_bindings("ostir", &data);
         assert!(bindings.len() >= 2);
     }
 
     #[test]
     fn baseline_marker_divergence_produces_bindings() {
-        let data: Value = serde_json::from_str(r#"{
+        let data: Value = serde_json::from_str(
+            r#"{
             "divergence_curves": {
                 "transfers": [0, 10, 20],
                 "series": {"exp_1": [0.5, 0.6, 0.7]}
             },
             "fitted_parameters": {"exp_1": {"alpha": 2.15, "tau": 42.3}}
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
         let bindings = baseline_to_bindings("marker_divergence", &data);
         assert!(bindings.len() >= 2);
         assert!(bindings.iter().any(|b| b["id"] == "bl_md_divergence_exp_1"));
@@ -256,7 +472,8 @@ mod tests {
 
     #[test]
     fn baseline_rna_mi_produces_bindings() {
-        let data: Value = serde_json::from_str(r#"{
+        let data: Value = serde_json::from_str(
+            r#"{
             "significant_pairs": [
                 {"col_i": 3, "col_j": 47, "pairing": "Watson-Crick"}
             ],
@@ -264,7 +481,9 @@ mod tests {
                 "columns": [1, 2, 3],
                 "entropy_bits": [0.12, 0.45, 1.52]
             }
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
         let bindings = baseline_to_bindings("rna_mi", &data);
         assert!(bindings.len() >= 2);
         assert!(bindings.iter().any(|b| b["id"] == "bl_rna_mi_entropy"));
@@ -278,12 +497,18 @@ mod tests {
 
     #[test]
     fn baseline_dashboard_aggregates() {
-        let breseq: Value = serde_json::from_str(r#"{
+        let breseq: Value = serde_json::from_str(
+            r#"{
             "evidence_type_distribution": {"RA": 10}
-        }"#).unwrap();
-        let efm: Value = serde_json::from_str(r#"{
+        }"#,
+        )
+        .unwrap();
+        let efm: Value = serde_json::from_str(
+            r#"{
             "site_counts": {"IS_insertion": 8}
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
         let dashboard = build_baseline_dashboard(&[("breseq", &breseq), ("efm", &efm)]);
         assert_eq!(dashboard["session_id"], "barrick-baselines");
         let bindings = dashboard["bindings"].as_array().unwrap();

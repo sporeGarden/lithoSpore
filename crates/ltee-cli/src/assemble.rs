@@ -4,11 +4,37 @@
 //!
 //! Pure Rust replacement for `scripts/assemble-usb.sh`.
 //! Creates the directory tree, stages binaries, data, papers, notebooks,
-//! figures, documentation, and generates data_manifest.toml with BLAKE3 hashes.
+//! figures, documentation, and generates `data_manifest.toml` with BLAKE3 hashes.
 
-use std::path::{Path, PathBuf};
+use std::fmt::Write as _;
+use std::path::Path;
 
-pub fn run(root: &str, target: &str, skip_python: bool, skip_fetch: bool, skip_build: bool, dry_run: bool) {
+/// Skip flags for USB assembly steps.
+pub struct AssembleSkipFlags {
+    pub python: bool,
+    pub fetch: bool,
+    pub build: bool,
+}
+
+/// Options for USB artifact assembly.
+pub struct AssembleOptions<'a> {
+    pub root: &'a str,
+    pub target: &'a str,
+    pub skip: AssembleSkipFlags,
+    pub dry_run: bool,
+}
+
+pub fn run(opts: &AssembleOptions<'_>) {
+    let AssembleOptions {
+        root,
+        target,
+        skip,
+        dry_run,
+    } = opts;
+    let dry_run = *dry_run;
+    let skip_python = skip.python;
+    let skip_fetch = skip.fetch;
+    let skip_build = skip.build;
     let root_path = Path::new(root);
     let target_path = Path::new(target);
 
@@ -24,10 +50,19 @@ pub fn run(root: &str, target: &str, skip_python: bool, skip_fetch: bool, skip_b
     // 1. Create directory tree
     step("1. Creating directory tree");
     let dirs = [
-        "bin", "artifact/data", "validation/expected",
-        "projectFOUNDATION/targets", "notebooks", "figures",
-        "biomeOS/graphs", "papers", "scripts",
-        "config", "graphs", "workloads", "lineage",
+        "bin",
+        "artifact/data",
+        "validation/expected",
+        "projectFOUNDATION/targets",
+        "notebooks",
+        "figures",
+        "biomeOS/graphs",
+        "papers",
+        "scripts",
+        "config",
+        "graphs",
+        "workloads",
+        "lineage",
     ];
     for dir in &dirs {
         std::fs::create_dir_all(target_path.join(dir)).ok();
@@ -40,8 +75,18 @@ pub fn run(root: &str, target: &str, skip_python: bool, skip_fetch: bool, skip_b
     // 2. Stage root files (testa — the seed coat)
     step("2. Staging root files");
     generate_biomeos_spore(root_path, target_path);
-    copy_if_exists(root_path, "artifact/usb-root/README.md", target_path, "README.md");
-    copy_if_exists(root_path, "artifact/usb-root/PROTOTYPE.md", target_path, "PROTOTYPE.md");
+    copy_if_exists(
+        root_path,
+        "artifact/usb-root/README.md",
+        target_path,
+        "README.md",
+    );
+    copy_if_exists(
+        root_path,
+        "artifact/usb-root/PROTOTYPE.md",
+        target_path,
+        "PROTOTYPE.md",
+    );
     touch(target_path, ".family.seed");
 
     // Create symlinks instead of copying shell shims
@@ -70,9 +115,18 @@ pub fn run(root: &str, target: &str, skip_python: bool, skip_fetch: bool, skip_b
 
     // 3. Stage biomeOS files
     step("3. Staging biomeOS files");
-    copy_if_exists(root_path, "artifact/usb-root/biomeOS/tower.toml", target_path, "biomeOS/tower.toml");
-    copy_if_exists(root_path, "artifact/usb-root/biomeOS/graphs/lithoSpore_validation.toml",
-        target_path, "biomeOS/graphs/lithoSpore_validation.toml");
+    copy_if_exists(
+        root_path,
+        "artifact/usb-root/biomeOS/tower.toml",
+        target_path,
+        "biomeOS/tower.toml",
+    );
+    copy_if_exists(
+        root_path,
+        "artifact/usb-root/biomeOS/graphs/lithoSpore_validation.toml",
+        target_path,
+        "biomeOS/graphs/lithoSpore_validation.toml",
+    );
     println!("  biomeOS files staged");
 
     // 4. Build and stage binaries
@@ -93,7 +147,8 @@ pub fn run(root: &str, target: &str, skip_python: bool, skip_fetch: bool, skip_b
                     #[cfg(unix)]
                     {
                         use std::os::unix::fs::PermissionsExt;
-                        std::fs::set_permissions(&dest, std::fs::Permissions::from_mode(0o755)).ok();
+                        std::fs::set_permissions(&dest, std::fs::Permissions::from_mode(0o755))
+                            .ok();
                     }
                     staged += 1;
                 }
@@ -112,7 +167,12 @@ pub fn run(root: &str, target: &str, skip_python: bool, skip_fetch: bool, skip_b
         copy_dir_recursive(&data_src, &target_path.join("artifact/data"));
     }
     for toml_file in ["scope.toml", "data.toml", "tolerances.toml"] {
-        copy_if_exists(root_path, &format!("artifact/{toml_file}"), target_path, &format!("artifact/{toml_file}"));
+        copy_if_exists(
+            root_path,
+            &format!("artifact/{toml_file}"),
+            target_path,
+            &format!("artifact/{toml_file}"),
+        );
     }
     println!("  Data bundles staged");
 
@@ -126,43 +186,65 @@ pub fn run(root: &str, target: &str, skip_python: bool, skip_fetch: bool, skip_b
         copy_if_exists(root_path, doc, target_path, doc);
     }
     let scope_opt = litho_core::ScopeManifest::load(&root_path.join("artifact/scope.toml")).ok();
-    let targets_file = scope_opt.as_ref()
+    let targets_file = scope_opt
+        .as_ref()
         .and_then(|s| {
             let f = &s.guidestone.targets_file;
             if f.is_empty() { None } else { Some(f.clone()) }
         })
         .unwrap_or_else(|| "data/targets/ltee_validation_targets.toml".to_string());
-    let targets_basename = Path::new(&targets_file).file_name()
-        .map(|f| f.to_string_lossy().to_string())
-        .unwrap_or_else(|| "validation_targets.toml".to_string());
-    copy_if_exists(root_path, &targets_file,
-        target_path, &format!("projectFOUNDATION/targets/{targets_basename}"));
+    let targets_basename = Path::new(&targets_file).file_name().map_or_else(
+        || "validation_targets.toml".to_string(),
+        |f| f.to_string_lossy().to_string(),
+    );
+    copy_if_exists(
+        root_path,
+        &targets_file,
+        target_path,
+        &format!("projectFOUNDATION/targets/{targets_basename}"),
+    );
 
     // NUCLEUS deployment infrastructure
-    copy_if_exists(root_path, "config/capability_registry.toml",
-        target_path, "config/capability_registry.toml");
-    let graph_file = scope_opt.as_ref()
+    copy_if_exists(
+        root_path,
+        "config/capability_registry.toml",
+        target_path,
+        "config/capability_registry.toml",
+    );
+    let graph_file = scope_opt
+        .as_ref()
         .and_then(|s| {
             let f = &s.guidestone.graph_file;
             if f.is_empty() { None } else { Some(f.clone()) }
         })
         .unwrap_or_else(|| "graphs/ltee_guidestone.toml".to_string());
-    copy_if_exists(root_path, &graph_file,
-        target_path, &graph_file);
-    copy_if_exists(root_path, "lineage/THREAD_INDEX.toml",
-        target_path, "lineage/THREAD_INDEX.toml");
+    copy_if_exists(root_path, &graph_file, target_path, &graph_file);
+    copy_if_exists(
+        root_path,
+        "lineage/THREAD_INDEX.toml",
+        target_path,
+        "lineage/THREAD_INDEX.toml",
+    );
     let workloads_src = root_path.join("workloads");
     if workloads_src.exists() {
         copy_dir_recursive(&workloads_src, &target_path.join("workloads"));
     }
 
     // Grow capability: cloud-init template for VM bootstrapping
-    copy_if_exists(root_path, "scripts/vm-cloud-init.yaml",
-        target_path, "scripts/vm-cloud-init.yaml");
+    copy_if_exists(
+        root_path,
+        "scripts/vm-cloud-init.yaml",
+        target_path,
+        "scripts/vm-cloud-init.yaml",
+    );
 
     // Cross-OS deployment: Containerfile for Docker/Podman substrate
-    copy_if_exists(root_path, "artifact/usb-root/Containerfile",
-        target_path, "Containerfile");
+    copy_if_exists(
+        root_path,
+        "artifact/usb-root/Containerfile",
+        target_path,
+        "Containerfile",
+    );
 
     // Upstream ferment transcript braids
     let braids_src = root_path.join("provenance/braids");
@@ -210,7 +292,10 @@ pub fn run(root: &str, target: &str, skip_python: bool, skip_fetch: bool, skip_b
     // 10. Generate data_manifest.toml
     step("10. Generating data_manifest.toml");
     let artifact_name = litho_core::ScopeManifest::load(&root_path.join("artifact/scope.toml"))
-        .map_or_else(|_| "ltee-guidestone".to_string(), |s| s.guidestone.name.clone());
+        .map_or_else(
+            |_| "ltee-guidestone".to_string(),
+            |s| s.guidestone.name.clone(),
+        );
     generate_manifest(target_path, &artifact_name);
 
     // Summary
@@ -241,20 +326,34 @@ fn load_binary_list(root: &Path) -> Vec<String> {
         }
         return bins;
     }
-    ["litho", "ltee-fitness", "ltee-mutations", "ltee-alleles",
-     "ltee-citrate", "ltee-biobricks", "ltee-breseq", "ltee-anderson"]
-        .iter().map(|s| s.to_string()).collect()
+    [
+        "litho",
+        "ltee-fitness",
+        "ltee-mutations",
+        "ltee-alleles",
+        "ltee-citrate",
+        "ltee-biobricks",
+        "ltee-breseq",
+        "ltee-anderson",
+    ]
+    .iter()
+    .map(std::string::ToString::to_string)
+    .collect()
 }
 
 /// Generate `.biomeos-spore` from `scope.toml` identity fields.
 /// Falls back to copying the static template if scope.toml is unavailable.
 fn generate_biomeos_spore(root: &Path, target: &Path) {
-    let scope = match litho_core::ScopeManifest::load(&root.join("artifact/scope.toml")) {
-        Ok(s) => s,
-        Err(_) => {
-            copy_if_exists(root, "artifact/usb-root/.biomeos-spore", target, ".biomeos-spore");
-            return;
-        }
+    let scope = if let Ok(s) = litho_core::ScopeManifest::load(&root.join("artifact/scope.toml")) {
+        s
+    } else {
+        copy_if_exists(
+            root,
+            "artifact/usb-root/.biomeos-spore",
+            target,
+            ".biomeos-spore",
+        );
+        return;
     };
 
     let gs = &scope.guidestone;
@@ -283,7 +382,7 @@ fn generate_biomeos_spore(root: &Path, target: &Path) {
         "prototype": "PROTOTYPE.md",
         "getting_started": "GETTING_STARTED.md",
         "science": "SCIENCE.md",
-        "license": scope.source.as_ref().map(|s| s.license.as_str()).unwrap_or("AGPL-3.0-or-later"),
+        "license": scope.source.as_ref().map_or("AGPL-3.0-or-later", |s| s.license.as_str()),
     });
 
     let spore_path = target.join(".biomeos-spore");
@@ -297,7 +396,12 @@ fn generate_biomeos_spore(root: &Path, target: &Path) {
         }
         Err(e) => {
             eprintln!("  WARNING: could not serialize .biomeos-spore: {e}");
-            copy_if_exists(root, "artifact/usb-root/.biomeos-spore", target, ".biomeos-spore");
+            copy_if_exists(
+                root,
+                "artifact/usb-root/.biomeos-spore",
+                target,
+                ".biomeos-spore",
+            );
         }
     }
 }
@@ -330,7 +434,10 @@ pub(crate) fn copy_dir_recursive_pub(src: &Path, dst: &Path) {
 }
 
 fn copy_dir_recursive(src: &Path, dst: &Path) {
-    for entry in walkdir::WalkDir::new(src).into_iter().filter_map(|e| e.ok()) {
+    for entry in walkdir::WalkDir::new(src)
+        .into_iter()
+        .filter_map(std::result::Result::ok)
+    {
         let rel = entry.path().strip_prefix(src).unwrap_or(entry.path());
         let dest = dst.join(rel);
         if entry.file_type().is_dir() {
@@ -370,9 +477,9 @@ fn generate_manifest(target: &Path, artifact_name: &str) {
 
         let mut files: Vec<_> = walkdir::WalkDir::new(&dir)
             .into_iter()
-            .filter_map(|e| e.ok())
+            .filter_map(std::result::Result::ok)
             .filter(|e| e.file_type().is_file())
-            .filter(|e| !e.file_name().to_str().map_or(false, |n| n.starts_with('.')))
+            .filter(|e| !e.file_name().to_str().is_some_and(|n| n.starts_with('.')))
             .collect();
         files.sort_by(|a, b| a.path().cmp(b.path()));
 
@@ -380,10 +487,12 @@ fn generate_manifest(target: &Path, artifact_name: &str) {
             if let Ok(content) = std::fs::read(entry.path()) {
                 let hash = blake3::hash(&content);
                 let rel = entry.path().strip_prefix(target).unwrap_or(entry.path());
-                output.push_str(&format!(
+                let _ = write!(
+                    output,
                     "[[file]]\npath = \"{}\"\nblake3 = \"{}\"\n\n",
-                    rel.display(), hash.to_hex()
-                ));
+                    rel.display(),
+                    hash.to_hex()
+                );
                 count += 1;
             }
         }
@@ -397,21 +506,31 @@ fn generate_manifest(target: &Path, artifact_name: &str) {
 
 fn count_files(dir: &Path) -> usize {
     std::fs::read_dir(dir)
-        .map(|rd| rd.filter_map(|e| e.ok()).filter(|e| e.file_type().map(|t| t.is_file()).unwrap_or(false)).count())
+        .map(|rd| {
+            rd.filter_map(std::result::Result::ok)
+                .filter(|e| e.file_type().map(|t| t.is_file()).unwrap_or(false))
+                .count()
+        })
         .unwrap_or(0)
 }
 
 fn count_subdirs(dir: &Path) -> usize {
     std::fs::read_dir(dir)
-        .map(|rd| rd.filter_map(|e| e.ok()).filter(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false)).count())
+        .map(|rd| {
+            rd.filter_map(std::result::Result::ok)
+                .filter(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
+                .count()
+        })
         .unwrap_or(0)
 }
 
 fn count_files_with_ext(dir: &Path, ext: &str) -> usize {
     std::fs::read_dir(dir)
-        .map(|rd| rd.filter_map(|e| e.ok())
-            .filter(|e| e.path().extension().map(|x| x == ext).unwrap_or(false))
-            .count())
+        .map(|rd| {
+            rd.filter_map(std::result::Result::ok)
+                .filter(|e| e.path().extension().is_some_and(|x| x == ext))
+                .count()
+        })
         .unwrap_or(0)
 }
 
@@ -421,7 +540,7 @@ fn count_files_with_ext(dir: &Path, ext: &str) -> usize {
 fn stage_bundled_python(root: &Path, target: &Path) -> bool {
     let candidates = [
         root.join("python-standalone/python"),
-        PathBuf::from("/tmp/python-standalone/python"),
+        std::env::temp_dir().join("python-standalone/python"),
     ];
 
     let python_src = match candidates.iter().find(|p| p.join("bin").exists()) {

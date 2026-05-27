@@ -7,11 +7,16 @@
 //! validation. No IPC required.
 
 /// Parse TOML content. Returns `Ok(parsed)` on success.
+///
+/// # Errors
+///
+/// Returns an error string if the content is not valid TOML.
 pub fn graph_parses(content: &str) -> Result<toml::Value, String> {
     toml::from_str::<toml::Value>(content).map_err(|e| format!("TOML parse error: {e}"))
 }
 
 /// Extract all `binary` field values from `[[graph.nodes]]`.
+#[must_use]
 pub fn graph_binaries(parsed: &toml::Value) -> Vec<String> {
     graph_nodes(parsed)
         .map(|nodes| {
@@ -24,6 +29,7 @@ pub fn graph_binaries(parsed: &toml::Value) -> Vec<String> {
 }
 
 /// Safe accessor for `graph.nodes` array.
+#[must_use]
 pub fn graph_nodes(parsed: &toml::Value) -> Option<&Vec<toml::Value>> {
     parsed
         .get("graph")
@@ -32,19 +38,21 @@ pub fn graph_nodes(parsed: &toml::Value) -> Option<&Vec<toml::Value>> {
 }
 
 /// Safe accessor for `graph.metadata`.
+#[must_use]
 pub fn graph_metadata(parsed: &toml::Value) -> Option<&toml::Value> {
     parsed.get("graph").and_then(|g| g.get("metadata"))
 }
 
 /// Check Dark Forest security invariants: `secure_by_default = true`,
 /// `security_model = "btsp_enforced"`, `transport = "uds_only"`.
+#[must_use]
 pub fn check_dark_forest(parsed: &toml::Value) -> Vec<(String, bool)> {
     let metadata = graph_metadata(parsed);
     let mut checks = Vec::new();
 
     let secure = metadata
         .and_then(|m| m.get("secure_by_default"))
-        .and_then(|s| s.as_bool())
+        .and_then(toml::Value::as_bool)
         .unwrap_or(false);
     checks.push(("secure_by_default".into(), secure));
 
@@ -64,6 +72,7 @@ pub fn check_dark_forest(parsed: &toml::Value) -> Vec<(String, bool)> {
 }
 
 /// Check that every node has `by_capability` for capability routing.
+#[must_use]
 pub fn check_node_capabilities(parsed: &toml::Value) -> Vec<(String, bool)> {
     let mut checks = Vec::new();
     let Some(nodes) = graph_nodes(parsed) else {
@@ -75,10 +84,7 @@ pub fn check_node_capabilities(parsed: &toml::Value) -> Vec<(String, bool)> {
             .get("name")
             .and_then(|n| n.as_str())
             .unwrap_or("unknown");
-        let has_by_cap = node
-            .get("by_capability")
-            .and_then(|b| b.as_str())
-            .is_some();
+        let has_by_cap = node.get("by_capability").and_then(|b| b.as_str()).is_some();
         checks.push((format!("{name}:by_capability"), has_by_cap));
     }
     checks
@@ -89,10 +95,16 @@ pub fn check_graph_envelope(parsed: &toml::Value) -> Vec<(String, bool)> {
     let graph = parsed.get("graph");
     let mut checks = Vec::new();
 
-    let has_id = graph.and_then(|g| g.get("id")).and_then(|i| i.as_str()).is_some();
+    let has_id = graph
+        .and_then(|g| g.get("id"))
+        .and_then(|i| i.as_str())
+        .is_some();
     checks.push(("has_id".into(), has_id));
 
-    let has_name = graph.and_then(|g| g.get("name")).and_then(|n| n.as_str()).is_some();
+    let has_name = graph
+        .and_then(|g| g.get("name"))
+        .and_then(|n| n.as_str())
+        .is_some();
     checks.push(("has_name".into(), has_name));
 
     let has_coordination = graph
@@ -109,6 +121,7 @@ pub fn check_graph_envelope(parsed: &toml::Value) -> Vec<(String, bool)> {
 
 /// Parse capability methods from a registry TOML string, skipping
 /// `test_fixtures`, `false_positives`, and `signals`.
+#[must_use]
 pub fn parse_registry_capabilities(registry_toml: &str) -> Vec<String> {
     let parsed: toml::Value = match toml::from_str(registry_toml) {
         Ok(v) => v,
@@ -135,6 +148,7 @@ pub fn parse_registry_capabilities(registry_toml: &str) -> Vec<String> {
 
 /// Cross-check that all capabilities referenced in graph nodes are
 /// present in the registry.
+#[must_use]
 pub fn check_capabilities_registered(
     parsed: &toml::Value,
     registry_caps: &[String],

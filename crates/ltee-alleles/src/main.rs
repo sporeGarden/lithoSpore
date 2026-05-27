@@ -4,7 +4,10 @@ use clap::Parser;
 use litho_core::harness;
 
 #[derive(Parser)]
-#[command(name = "ltee-alleles", about = "Allele frequency trajectory validation")]
+#[command(
+    name = "ltee-alleles",
+    about = "Allele frequency trajectory validation"
+)]
 struct Cli {
     #[arg(long, default_value = "artifact/data/good_2017")]
     data_dir: String,

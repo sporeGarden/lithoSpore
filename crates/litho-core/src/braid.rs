@@ -101,6 +101,7 @@ pub struct BraidCheck {
 }
 
 /// Load all braids from a directory, returning them with their source filenames.
+#[must_use]
 pub fn load_braids(braids_dir: &Path) -> Vec<(String, FermentBraid)> {
     let mut braids = Vec::new();
     let entries = match std::fs::read_dir(braids_dir) {
@@ -113,7 +114,8 @@ pub fn load_braids(braids_dir: &Path) -> Vec<(String, FermentBraid)> {
         if path.extension().and_then(|e| e.to_str()) != Some("json") {
             continue;
         }
-        let filename = path.file_name()
+        let filename = path
+            .file_name()
             .and_then(|n| n.to_str())
             .unwrap_or("")
             .to_string();
@@ -143,6 +145,7 @@ pub fn load_braids(braids_dir: &Path) -> Vec<(String, FermentBraid)> {
 
 /// Validate braids against expected accessions (from data.toml SRA entries).
 /// Returns a check result for each braid that has computation metadata.
+#[must_use]
 pub fn validate_braids(
     braids: &[(String, FermentBraid)],
     expected_accessions: &[(&str, &str)],
@@ -151,16 +154,27 @@ pub fn validate_braids(
 
     for (filename, braid) in braids {
         let (tool, substrate, found_accession) = if let Some(ref comp) = braid.computation {
-            (comp.tool.clone(), comp.substrate.clone(), comp.input_accession.clone())
+            (
+                comp.tool.clone(),
+                comp.substrate.clone(),
+                comp.input_accession.clone(),
+            )
         } else {
-            let tool = if braid.total_mutations.is_some() { "breseq (baseline)" } else { "unknown" };
+            let tool = if braid.total_mutations.is_some() {
+                "breseq (baseline)"
+            } else {
+                "unknown"
+            };
             (tool.to_string(), "CPU".to_string(), String::new())
         };
 
         let (accession_ok, expected) = if found_accession.is_empty() {
             (true, String::new())
         } else {
-            match expected_accessions.iter().find(|(ds, _)| braid.dataset_id.contains(ds)) {
+            match expected_accessions
+                .iter()
+                .find(|(ds, _)| braid.dataset_id.contains(ds))
+            {
                 Some((_, exp)) => (found_accession == *exp, exp.to_string()),
                 None => (true, String::new()),
             }
@@ -182,6 +196,7 @@ pub fn validate_braids(
 }
 
 /// Display a human-readable summary of braids for CLI output.
+#[must_use]
 pub fn format_braid_summary(braids: &[(String, FermentBraid)]) -> String {
     if braids.is_empty() {
         return "  No upstream braids found".to_string();

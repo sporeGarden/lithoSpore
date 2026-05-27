@@ -14,17 +14,26 @@ use std::path::Path;
 use std::time::Instant;
 
 /// Run module 1 validation with the given paths and tier.
+#[must_use]
 pub fn run_validation(data_dir: &str, expected: &str, max_tier: u8) -> ModuleResult {
     let start = Instant::now();
 
     if !Path::new(expected).exists() {
-        return harness::skip("power_law_fitness", 1, start,
-            "Expected values not found — run groundSpring B2 first");
+        return harness::skip(
+            "power_law_fitness",
+            1,
+            start,
+            "Expected values not found — run groundSpring B2 first",
+        );
     }
 
     if !Path::new(data_dir).exists() {
-        return harness::skip("power_law_fitness", 1, start,
-            "Data not fetched — run `litho fetch --all`");
+        return harness::skip(
+            "power_law_fitness",
+            1,
+            start,
+            "Data not fetched — run `litho fetch --all`",
+        );
     }
 
     if max_tier >= 2 {
@@ -38,8 +47,12 @@ pub fn run_validation(data_dir: &str, expected: &str, max_tier: u8) -> ModuleRes
         );
     }
 
-    harness::skip("power_law_fitness", max_tier, start,
-        &format!("Tier {max_tier} not implemented yet"))
+    harness::skip(
+        "power_law_fitness",
+        max_tier,
+        start,
+        &format!("Tier {max_tier} not implemented yet"),
+    )
 }
 
 // ── Tier 2: Pure Rust curve fitting ──────────────────────────────────
@@ -68,17 +81,24 @@ fn logarithmic(t: f64, c: f64, d: f64) -> f64 {
 }
 
 fn rss_for_model(
-    gens: &[f64], fitness: &[f64],
-    model: fn(f64, f64, f64) -> f64, p: &[f64; 2],
+    gens: &[f64],
+    fitness: &[f64],
+    model: fn(f64, f64, f64) -> f64,
+    p: &[f64; 2],
 ) -> f64 {
-    gens.iter().zip(fitness)
+    gens.iter()
+        .zip(fitness)
         .filter(|&(&t, _)| t > 0.0)
-        .map(|(&t, &y)| { let d = y - model(t, p[0], p[1]); d * d })
+        .map(|(&t, &y)| {
+            let d = y - model(t, p[0], p[1]);
+            d * d
+        })
         .sum()
 }
 
 fn nelder_mead_2d(
-    gens: &[f64], fitness: &[f64],
+    gens: &[f64],
+    fitness: &[f64],
     model: fn(f64, f64, f64) -> f64,
     p0: [f64; 2],
 ) -> Option<[f64; 2]> {
@@ -100,8 +120,10 @@ fn nelder_mead_2d(
             break;
         }
 
-        let cx = [f64::midpoint(simplex[0].0[0], simplex[1].0[0]),
-                   f64::midpoint(simplex[0].0[1], simplex[1].0[1])];
+        let cx = [
+            f64::midpoint(simplex[0].0[0], simplex[1].0[0]),
+            f64::midpoint(simplex[0].0[1], simplex[1].0[1]),
+        ];
 
         let xr = [2.0 * cx[0] - simplex[2].0[0], 2.0 * cx[1] - simplex[2].0[1]];
         let fr = obj(&xr);
@@ -112,15 +134,19 @@ fn nelder_mead_2d(
         }
 
         if fr < best {
-            let xe = [3.0 * cx[0] - 2.0 * simplex[2].0[0],
-                       3.0 * cx[1] - 2.0 * simplex[2].0[1]];
+            let xe = [
+                3.0 * cx[0] - 2.0 * simplex[2].0[0],
+                3.0 * cx[1] - 2.0 * simplex[2].0[1],
+            ];
             let fe = obj(&xe);
             simplex[2] = if fe < fr { (xe, fe) } else { (xr, fr) };
             continue;
         }
 
-        let xc = [f64::midpoint(cx[0], simplex[2].0[0]),
-                   f64::midpoint(cx[1], simplex[2].0[1])];
+        let xc = [
+            f64::midpoint(cx[0], simplex[2].0[0]),
+            f64::midpoint(cx[1], simplex[2].0[1]),
+        ];
         let fc = obj(&xc);
         if fc < worst {
             simplex[2] = (xc, fc);
@@ -136,11 +162,16 @@ fn nelder_mead_2d(
     }
 
     simplex.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
-    if simplex[0].1.is_finite() { Some(simplex[0].0) } else { None }
+    if simplex[0].1.is_finite() {
+        Some(simplex[0].0)
+    } else {
+        None
+    }
 }
 
 fn fit_model(
-    gens: &[f64], fitness: &[f64],
+    gens: &[f64],
+    fitness: &[f64],
     name: &str,
     model: fn(f64, f64, f64) -> f64,
     p0: [f64; 2],
@@ -149,19 +180,28 @@ fn fit_model(
 
     let (mut ss_res, mut ss_tot, mut n) = (0.0_f64, 0.0_f64, 0_usize);
     let mean_y: f64 = {
-        let (s, c) = fitness.iter().zip(gens).filter(|&(_, &t)| t > 0.0)
+        let (s, c) = fitness
+            .iter()
+            .zip(gens)
+            .filter(|&(_, &t)| t > 0.0)
             .fold((0.0, 0), |(s, c), (&y, _)| (s + y, c + 1));
         s / f64::from(c)
     };
     for (&t, &y) in gens.iter().zip(fitness) {
-        if t <= 0.0 { continue; }
+        if t <= 0.0 {
+            continue;
+        }
         let pred = model(t, popt[0], popt[1]);
         ss_res += (y - pred).powi(2);
         ss_tot += (y - mean_y).powi(2);
         n += 1;
     }
 
-    let r_squared = if ss_tot > 0.0 { 1.0 - ss_res / ss_tot } else { 1.0 };
+    let r_squared = if ss_tot > 0.0 {
+        1.0 - ss_res / ss_tot
+    } else {
+        1.0
+    };
     let ss_res_safe = ss_res.max(1e-30);
     let k = 2;
     let nf = n as f64;
@@ -193,24 +233,44 @@ fn load_csv(data_dir: &str) -> Option<(Vec<f64>, Vec<f64>)> {
             fitness.push(f);
         }
     }
-    if gens.is_empty() { None } else { Some((gens, fitness)) }
+    if gens.is_empty() {
+        None
+    } else {
+        Some((gens, fitness))
+    }
 }
 
 fn run_tier2_rust(data_dir: &str, expected_path: &str, start: Instant) -> ModuleResult {
     let expected = match harness::load_expected(expected_path) {
         Some(v) => v,
-        None => return harness::skip("power_law_fitness", 2, start,
-            "Cannot parse expected values JSON"),
+        None => {
+            return harness::skip(
+                "power_law_fitness",
+                2,
+                start,
+                "Cannot parse expected values JSON",
+            );
+        }
     };
 
     let (gens, fitness) = match load_csv(data_dir) {
         Some(d) => d,
-        None => return harness::skip("power_law_fitness", 2, start,
-            "No fitness_data.csv in data directory"),
+        None => {
+            return harness::skip(
+                "power_law_fitness",
+                2,
+                start,
+                "No fitness_data.csv in data directory",
+            );
+        }
     };
 
-    eprintln!("  Tier 2 (Rust): {} data points, gen range {:.0}–{:.0}",
-        gens.len(), gens.first().unwrap_or(&0.0), gens.last().unwrap_or(&0.0));
+    eprintln!(
+        "  Tier 2 (Rust): {} data points, gen range {:.0}–{:.0}",
+        gens.len(),
+        gens.first().unwrap_or(&0.0),
+        gens.last().unwrap_or(&0.0)
+    );
 
     let mut passed = 0_u32;
     let mut total = 0_u32;
@@ -218,80 +278,134 @@ fn run_tier2_rust(data_dir: &str, expected_path: &str, start: Instant) -> Module
     total += 1;
     let increasing_count = fitness.windows(2).filter(|w| w[1] >= w[0]).count();
     let increasing = increasing_count >= (fitness.len() - 1) * 4 / 5;
-    if increasing { passed += 1; }
-    eprintln!("  [{}] Fitness trajectory is increasing",
-        if increasing { "PASS" } else { "FAIL" });
+    if increasing {
+        passed += 1;
+    }
+    eprintln!(
+        "  [{}] Fitness trajectory is increasing",
+        if increasing { "PASS" } else { "FAIL" }
+    );
 
     let pl = fit_model(&gens, &fitness, "power_law", power_law, [0.01, 0.5]);
     let hyp = fit_model(&gens, &fitness, "hyperbolic", hyperbolic, [1e-3, 1e-4]);
     let log = fit_model(&gens, &fitness, "logarithmic", logarithmic, [0.1, 0.0]);
 
     let mut results: Vec<&ModelFit> = Vec::new();
-    if let Some(ref r) = pl { results.push(r); }
-    if let Some(ref r) = hyp { results.push(r); }
-    if let Some(ref r) = log { results.push(r); }
+    if let Some(ref r) = pl {
+        results.push(r);
+    }
+    if let Some(ref r) = hyp {
+        results.push(r);
+    }
+    if let Some(ref r) = log {
+        results.push(r);
+    }
 
     for r in &results {
-        eprintln!("  {:<15} R²={:.5} AIC={:.3} BIC={:.3}",
-            r.model, r.r_squared, r.aic, r.bic);
+        eprintln!(
+            "  {:<15} R²={:.5} AIC={:.3} BIC={:.3}",
+            r.model, r.r_squared, r.aic, r.bic
+        );
     }
 
     total += 1;
     if let Some(best) = results.iter().min_by(|a, b| a.aic.total_cmp(&b.aic)) {
         let ok = best.model == "power_law";
-        if ok { passed += 1; }
-        eprintln!("  [{}] Best model by AIC: {} (expected: power_law)",
-            if ok { "PASS" } else { "FAIL" }, best.model);
+        if ok {
+            passed += 1;
+        }
+        eprintln!(
+            "  [{}] Best model by AIC: {} (expected: power_law)",
+            if ok { "PASS" } else { "FAIL" },
+            best.model
+        );
     }
 
     total += 1;
     if let Some(best) = results.iter().min_by(|a, b| a.bic.total_cmp(&b.bic)) {
         let ok = best.model == "power_law";
-        if ok { passed += 1; }
-        eprintln!("  [{}] Best model by BIC: {} (expected: power_law)",
-            if ok { "PASS" } else { "FAIL" }, best.model);
+        if ok {
+            passed += 1;
+        }
+        eprintln!(
+            "  [{}] Best model by BIC: {} (expected: power_law)",
+            if ok { "PASS" } else { "FAIL" },
+            best.model
+        );
     }
 
     if let Some(ref pl_fit) = pl {
         total += 1;
         let ok = pl_fit.r_squared >= 0.99;
-        if ok { passed += 1; }
-        eprintln!("  [{}] Power-law R² = {:.5} (min: 0.99)",
-            if ok { "PASS" } else { "FAIL" }, pl_fit.r_squared);
+        if ok {
+            passed += 1;
+        }
+        eprintln!(
+            "  [{}] Power-law R² = {:.5} (min: 0.99)",
+            if ok { "PASS" } else { "FAIL" },
+            pl_fit.r_squared
+        );
 
         total += 1;
         let b_exp = pl_fit.params[1];
         let ok = (0.40..=0.70).contains(&b_exp);
-        if ok { passed += 1; }
-        eprintln!("  [{}] Power-law exponent b = {:.4} (expected: [0.40, 0.70])",
-            if ok { "PASS" } else { "FAIL" }, b_exp);
+        if ok {
+            passed += 1;
+        }
+        eprintln!(
+            "  [{}] Power-law exponent b = {:.4} (expected: [0.40, 0.70])",
+            if ok { "PASS" } else { "FAIL" },
+            b_exp
+        );
 
         if let Some(ref h) = hyp {
             total += 1;
             let ok = pl_fit.aic < h.aic;
-            if ok { passed += 1; }
-            eprintln!("  [{}] AIC(power_law) < AIC(hyperbolic)",
-                if ok { "PASS" } else { "FAIL" });
+            if ok {
+                passed += 1;
+            }
+            eprintln!(
+                "  [{}] AIC(power_law) < AIC(hyperbolic)",
+                if ok { "PASS" } else { "FAIL" }
+            );
         }
 
         total += 1;
         let exp_r2 = expected["model_fits"]["power_law"]["r_squared"]
-            .as_f64().unwrap_or(0.0);
+            .as_f64()
+            .unwrap_or(0.0);
         let ok = (pl_fit.r_squared - exp_r2).abs() < 0.01;
-        if ok { passed += 1; }
-        eprintln!("  [{}] R² matches expected: {:.5} vs {:.5}",
-            if ok { "PASS" } else { "FAIL" }, pl_fit.r_squared, exp_r2);
+        if ok {
+            passed += 1;
+        }
+        eprintln!(
+            "  [{}] R² matches expected: {:.5} vs {:.5}",
+            if ok { "PASS" } else { "FAIL" },
+            pl_fit.r_squared,
+            exp_r2
+        );
 
         total += 1;
         let exp_b = expected["model_fits"]["power_law"]["params"][1]
-            .as_f64().unwrap_or(0.0);
+            .as_f64()
+            .unwrap_or(0.0);
         let ok = (b_exp - exp_b).abs() < 0.05;
-        if ok { passed += 1; }
-        eprintln!("  [{}] Exponent matches expected: {:.4} vs {:.4}",
-            if ok { "PASS" } else { "FAIL" }, b_exp, exp_b);
+        if ok {
+            passed += 1;
+        }
+        eprintln!(
+            "  [{}] Exponent matches expected: {:.4} vs {:.4}",
+            if ok { "PASS" } else { "FAIL" },
+            b_exp,
+            exp_b
+        );
     }
 
-    let status = if passed == total { ValidationStatus::Pass } else { ValidationStatus::Fail };
+    let status = if passed == total {
+        ValidationStatus::Pass
+    } else {
+        ValidationStatus::Fail
+    };
     ModuleResult {
         name: "power_law_fitness".to_string(),
         status,
@@ -299,7 +413,11 @@ fn run_tier2_rust(data_dir: &str, expected_path: &str, start: Instant) -> Module
         checks: total,
         checks_passed: passed,
         runtime_ms: start.elapsed().as_millis() as u64,
-        error: if passed < total { Some(format!("{} check(s) failed", total - passed)) } else { None },
+        error: if passed < total {
+            Some(format!("{} check(s) failed", total - passed))
+        } else {
+            None
+        },
     }
 }
 
@@ -355,5 +473,24 @@ mod tests {
         let ys: Vec<f64> = xs.iter().map(|&x| power_law(x, 0.5, 0.3)).collect();
         let rss = rss_for_model(&xs, &ys, power_law, &[0.5, 0.3]);
         assert!(rss < 1e-20, "perfect params ⇒ RSS≈0: got {rss}");
+    }
+
+    #[test]
+    fn run_validation_missing_expected_skips() {
+        let result = run_validation("/nonexistent/data", "/nonexistent/expected.json", 2);
+        assert_eq!(result.status, ValidationStatus::Skip);
+        assert_eq!(result.name, "power_law_fitness");
+    }
+
+    #[test]
+    fn run_validation_max_tier_zero_skips() {
+        let dir = std::env::temp_dir().join("litho_test_fitness_tier0");
+        let _ = std::fs::create_dir_all(&dir);
+        let expected = dir.join("expected.json");
+        std::fs::write(&expected, r#"{"generations":[],"mean_fitness":[]}"#).unwrap();
+        let data = dir.join("data");
+        let _ = std::fs::create_dir_all(&data);
+        let result = run_validation(data.to_str().unwrap(), expected.to_str().unwrap(), 0);
+        assert_eq!(result.status, ValidationStatus::Skip);
     }
 }

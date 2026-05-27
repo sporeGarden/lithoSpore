@@ -88,8 +88,10 @@ for cross-OS deployment. Primals self-container via genomeBin if needed for Tier
 
 ```
 lithoSpore/
-├── Cargo.toml                    # Workspace: 7 modules + core + CLI
+├── Cargo.toml                    # Workspace: 10 workspace crates
+├── deny.toml                     # cargo-deny policy (licenses, advisories)
 ├── crates/
+│   ├── pseudospore-core/         # pseudoSpore format: BLAKE3 manifest, braid envelope, validation
 │   ├── litho-core/               # Shared library (chassis): validation, tolerance, provenance, discovery, stats, harness, braid, scope
 │   ├── ltee-fitness/             # Module 1: power-law fitness (lib.rs + thin main.rs)
 │   ├── ltee-mutations/           # Module 2: mutation accumulation
@@ -121,6 +123,7 @@ lithoSpore/
 ├── lineage/                      # Foundation thread linkage
 ├── papers/                       # Paper registry (16 DOIs) + READING_ORDER.md
 ├── figures/                      # Publication-quality SVG figures (7 modules)
+├── profiles/                     # Domain profiles (e.g. md-metadynamics-carbohydrate.toml)
 ├── pseudospores/                 # Ingested pseudoSpore registry (lightweight braid-first artifacts)
 ├── provenance/braids/            # Upstream ferment transcript braids (from springs)
 ├── whitePaper/baseCamp/          # Python → Rust → Primal pipeline docs
@@ -164,7 +167,7 @@ the root file templates.
 
 **Pillar 4 EXIT GATE: EXCEEDED** — 7 modules PASS at Tier 2, gate required 2+.
 **First live handoff**: 4 USB drives deployed to Barrick Lab (MSU) for LTEE RA II interview. exFAT cross-platform, 3-zone structure, pre-rendered HTML browse layer.
-**Deployment-validated**: USB pipeline tested on 4+ machines — 73/73 science checks, 125 unit/integration tests, 10 chaos/fault-injection tests.
+**Deployment-validated**: USB pipeline tested on 4+ machines — 75/75 science checks, 189 unit/integration tests, 10 chaos/fault-injection tests.
 **Tier 3**: Provenance trio wired via JSON-RPC with partial completion support (requires NUCLEUS primals at runtime).
 **Cross-tier parity**: `litho parity` validates math stability between Python and Rust.
 **Upstream braids**: 3 live braids from wetSpring (sovereign GPU pipeline + breseq baseline + Tenaillon expected values). Known: braid accession normalization (SRP001569 vs PRJNA29543) evolving upstream.
@@ -174,7 +177,7 @@ the root file templates.
 | 1. ltee-fitness | **PASS** Tier 2 | 8/8 | groundSpring B2 Wiser 2013 |
 | 2. ltee-mutations | **PASS** Tier 2 | 7/7 | groundSpring B1 Barrick 2009 |
 | 3. ltee-alleles | **PASS** Tier 2 | 20/20 | groundSpring B3 Good 2017 |
-| 4. ltee-citrate | **PASS** Tier 2 | 9/9 | groundSpring B4 Blount 2008/2012 |
+| 4. ltee-citrate | **PASS** Tier 2 | 11/11 | groundSpring B4 Blount 2008/2012 |
 | 5. ltee-biobricks | **PASS** Tier 2 | 6/6 | Burden 2024 BioBrick metabolic burden |
 | 6. ltee-breseq | **PASS** Tier 2 | 16/16 | wetSpring B7 Tenaillon 2016 |
 | 7. ltee-anderson | **PASS** Tier 2 | 7/7 | hotSpring B2 Anderson disorder |
@@ -187,7 +190,8 @@ the root file templates.
 - **Module 6**: breseq 264-genome comparison, mutation accumulation analysis, parallel evolution significance
 - **Module 7**: Anderson disorder mapping, GOE/Poisson eigenvalue statistics
 
-**Infrastructure**: `litho-core` crate with 11 modules (chassis — domain-agnostic:
+**Infrastructure**: `litho-core` crate with 12 modules (chassis — domain-agnostic;
+`pseudospore` re-exports `pseudospore-core` types for backward compatibility —
 validation types including `Tier3Session`/`ParityReport`, provenance JSON-RPC client
 for trio, braid ingestion with dual wire format support, tolerance framework, spore
 tracking, capability-based discovery with `announce_self()`/`query_capabilities()`,
@@ -199,13 +203,13 @@ viz DataBinding adapters, 20 subcommands. pseudoSpore pipeline: `emit-pseudospor
 cross-ref, derivation contract, version consistency, provenance, visual evidence),
 `promote` (pseudoSpore → lithoSpore chassis with stripped binaries, auto RELEASE.md),
 `translate-config` (domain↔computation index translation).
-125 unit/integration tests + 10
+189 unit/integration tests + 10
 chaos/fault-injection tests, zero clippy warnings, `#![forbid(unsafe_code)]`
 workspace-wide, pure Rust BLAKE3 (ecoBin compliant), `liveSpore.json` operational
 with corruption resilience and backup.
 
 **Architecture** (May 14 geo-delocalization absorption):
-- `unsafe_code = "forbid"` enforced at workspace lint level — all 9 crates inherit
+- `unsafe_code = "forbid"` enforced at workspace lint level — all 10 crates inherit
 - Shared harness (`litho_core::harness`) eliminates ~200 LOC of duplicated skip/load/dispatch
 - Shared stats (`litho_core::stats`) deduplicates `pearson_r` with safe length checks
 - Capability-based discovery (`litho_core::discovery`) — primal resolution via

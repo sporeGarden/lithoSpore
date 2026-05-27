@@ -4,7 +4,10 @@ use clap::Parser;
 use litho_core::harness;
 
 #[derive(Parser)]
-#[command(name = "ltee-mutations", about = "Mutation accumulation curve validation")]
+#[command(
+    name = "ltee-mutations",
+    about = "Mutation accumulation curve validation"
+)]
 struct Cli {
     #[arg(long, default_value = "artifact/data/barrick_2009")]
     data_dir: String,

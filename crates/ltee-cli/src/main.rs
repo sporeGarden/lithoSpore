@@ -2,8 +2,10 @@
 
 //! Unified CLI entry point for lithoSpore.
 //!
-//! Subcommands: validate, parity, verify, fetch, assemble, grow, refresh, status,
-//! spore, visualize, self-test, tier, chaos-test, deploy-test, deploy-report
+//! Subcommands (20): validate, parity, verify, fetch, assemble, grow, refresh,
+//! status, spore, visualize, self-test, tier, chaos-test, deploy-test,
+//! deploy-report, audit, promote, emit-pseudospore, ingest-pseudospore,
+//! translate-config
 
 mod assemble;
 mod audit;
@@ -215,7 +217,12 @@ enum Commands {
         skip_fetch: bool,
     },
 
-    /// Ingest a pseudoSpore: validate structure, import braids, register
+    /// Ingest a pseudoSpore: validate structure, import braids, register.
+    ///
+    /// This is the transitional local ingest path. Once biomeOS lands
+    /// `biomeos nucleus ingest`, that becomes the primary tier and this
+    /// command becomes the offline/airgapped fallback. Both paths validate
+    /// via pseudospore-core; NUCLEUS adds provenance trio registration.
     IngestPseudospore {
         /// Path to the pseudoSpore directory
         path: String,
@@ -229,7 +236,7 @@ enum Commands {
     },
 
     /// Emit a pseudoSpore: assemble standard directory structure from module outputs.
-    /// Works for any spring — driven by domain_profile.toml when provided.
+    /// Works for any spring — driven by `domain_profile.toml` when provided.
     EmitPseudospore {
         /// Artifact name
         #[arg(long)]
@@ -267,8 +274,8 @@ enum Commands {
         #[arg(long)]
         data: Option<String>,
 
-        /// Path to a domain_profile.toml — drives domain-specific emit logic.
-        /// Per SPORE_OWNERSHIP_MATRIX.md: each spring provides its own profile.
+        /// Path to a `domain_profile.toml` — drives domain-specific emit logic.
+        /// Per `SPORE_OWNERSHIP_MATRIX.md`: each spring provides its own profile.
         #[arg(long, alias = "domain-profile")]
         profile: Option<String>,
     },
@@ -313,7 +320,7 @@ enum Commands {
 
     /// Translate config file indices between domain and computation frames
     TranslateConfig {
-        /// Path to index_map.toml
+        /// Path to `index_map.toml`
         #[arg(long)]
         index_map: String,
 
@@ -384,26 +391,34 @@ fn main() {
             "grow" => {
                 let args: Vec<String> = std::env::args().collect();
                 let container = args.iter().any(|a| a == "--container");
-                let target = args.windows(2)
-                    .find(|w| w[0] == "--target")
-                    .map(|w| w[1].clone())
-                    .unwrap_or_else(|| {
-                        if container { ".".to_string() } else {
-                            eprintln!("ERROR: --target <DIR> is required for grow");
-                            eprintln!("Usage: ./grow --target ~/Development/lithoSpore");
-                            eprintln!("       ./grow --container   (Docker/Podman, any OS)");
-                            std::process::exit(1);
-                        }
-                    });
+                let target = if let Some(w) = args.windows(2).find(|w| w[0] == "--target") {
+                    w[1].clone()
+                } else if container {
+                    ".".to_string()
+                } else {
+                    eprintln!("ERROR: --target <DIR> is required for grow");
+                    eprintln!("Usage: ./grow --target ~/Development/lithoSpore");
+                    eprintln!("       ./grow --container   (Docker/Podman, any OS)");
+                    std::process::exit(1);
+                };
                 let vm = args.iter().any(|a| a == "--vm");
                 let ecosystem = args.iter().any(|a| a == "--ecosystem");
                 let skip_build = args.iter().any(|a| a == "--skip-build");
                 let skip_fetch = args.iter().any(|a| a == "--skip-fetch");
-                grow::run(&root, &target, vm, container, ecosystem, skip_build, skip_fetch);
+                grow::run(&grow::GrowOptions {
+                    artifact_root: &root,
+                    target: &target,
+                    mode: grow::GrowModeFlags {
+                        vm,
+                        container,
+                        ecosystem,
+                    },
+                    skip: grow::GrowSkipFlags {
+                        build: skip_build,
+                        fetch: skip_fetch,
+                    },
+                });
                 return;
-            }
-            "ltee" => {
-                // Legacy entry point — re-parse remaining args as subcommands
             }
             _ => {}
         }
@@ -412,39 +427,148 @@ fn main() {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Validate { artifact_root, json, max_tier, provenance_dir } =>
-            validate::run_with_provenance(&artifact_root, json, max_tier, provenance_dir.as_deref()),
-        Commands::Parity { artifact_root, json } => parity::run(&artifact_root, json),
+        Commands::Validate {
+            artifact_root,
+            json,
+            max_tier,
+            provenance_dir,
+        } => {
+            validate::run_with_provenance(
+                &artifact_root,
+                json,
+                max_tier,
+                provenance_dir.as_deref(),
+            );
+        }
+        Commands::Parity {
+            artifact_root,
+            json,
+        } => parity::run(&artifact_root, json),
         Commands::Refresh { artifact_root } => ops::cmd_refresh(&artifact_root),
         Commands::Status { artifact_root } => ops::cmd_status(&artifact_root),
         Commands::Spore { artifact_root } => ops::cmd_spore(&artifact_root),
-        Commands::Verify { artifact_root, json } => verify::run(&artifact_root, json),
-        Commands::Visualize { artifact_root, format, output } => visualize::run(&artifact_root, &format, &output),
+        Commands::Verify {
+            artifact_root,
+            json,
+        } => verify::run(&artifact_root, json),
+        Commands::Visualize {
+            artifact_root,
+            format,
+            output,
+        } => visualize::run(&artifact_root, &format, &output),
         Commands::SelfTest { artifact_root } => ops::cmd_self_test(&artifact_root),
         Commands::Tier { artifact_root } => ops::cmd_tier(&artifact_root),
-        Commands::Assemble { artifact_root, target, skip_python, skip_fetch, skip_build, dry_run } =>
-            assemble::run(&artifact_root, &target, skip_python, skip_fetch, skip_build, dry_run),
+        Commands::Assemble {
+            artifact_root,
+            target,
+            skip_python,
+            skip_fetch,
+            skip_build,
+            dry_run,
+        } => assemble::run(&assemble::AssembleOptions {
+            root: &artifact_root,
+            target: &target,
+            skip: assemble::AssembleSkipFlags {
+                python: skip_python,
+                fetch: skip_fetch,
+                build: skip_build,
+            },
+            dry_run,
+        }),
         Commands::ChaosTest { artifact_root } => chaos::run(&artifact_root),
         Commands::DeployTest { artifact_root } => deploy_test::run(&artifact_root),
-        Commands::Fetch { artifact_root, dataset, all, full } => fetch::run(&artifact_root, dataset.as_deref(), all, full),
-        Commands::DeployReport { artifact_root, pattern } => ops::cmd_deploy_report(&artifact_root, &pattern),
-        Commands::Grow { artifact_root, target, vm, container, ecosystem, skip_build, skip_fetch } =>
-            grow::run(&artifact_root, &target, vm, container, ecosystem, skip_build, skip_fetch),
-        Commands::IngestPseudospore { path, artifact_root, verify } =>
-            ingest_pseudospore::run(&path, &artifact_root, verify),
-        Commands::Audit { path, verbose, json } => audit::run(&path, verbose, json),
-        Commands::EmitPseudospore { name, version, origin, spring, output, outputs, configs, braids, data, profile } => {
+        Commands::Fetch {
+            artifact_root,
+            dataset,
+            all,
+            full,
+        } => fetch::run(&artifact_root, dataset.as_deref(), all, full),
+        Commands::DeployReport {
+            artifact_root,
+            pattern,
+        } => ops::cmd_deploy_report(&artifact_root, &pattern),
+        Commands::Grow {
+            artifact_root,
+            target,
+            vm,
+            container,
+            ecosystem,
+            skip_build,
+            skip_fetch,
+        } => grow::run(&grow::GrowOptions {
+            artifact_root: &artifact_root,
+            target: &target,
+            mode: grow::GrowModeFlags {
+                vm,
+                container,
+                ecosystem,
+            },
+            skip: grow::GrowSkipFlags {
+                build: skip_build,
+                fetch: skip_fetch,
+            },
+        }),
+        Commands::IngestPseudospore {
+            path,
+            artifact_root,
+            verify,
+        } => ingest_pseudospore::run(&path, &artifact_root, verify),
+        Commands::Audit {
+            path,
+            verbose,
+            json,
+        } => audit::run(&path, verbose, json),
+        Commands::EmitPseudospore {
+            name,
+            version,
+            origin,
+            spring,
+            output,
+            outputs,
+            configs,
+            braids,
+            data,
+            profile,
+        } => {
             let effective_origin = if origin.is_empty() {
-                spring.as_deref().map(|s| format!("ecoPrimals/springs/{s}")).unwrap_or_default()
+                spring
+                    .as_deref()
+                    .map(|s| format!("ecoPrimals/springs/{s}"))
+                    .unwrap_or_default()
             } else {
                 origin
             };
-            emit_pseudospore::run(&name, &version, &effective_origin, &output, outputs.as_deref(), configs.as_deref(), braids.as_deref(), data.as_deref(), profile.as_deref())
+            emit_pseudospore::run(&emit_pseudospore::EmitConfig {
+                name: &name,
+                version: &version,
+                origin: &effective_origin,
+                output_dir: &output,
+                outputs_dir: outputs.as_deref(),
+                configs_dir: configs.as_deref(),
+                braids_dir: braids.as_deref(),
+                data_dir: data.as_deref(),
+                profile_path: profile.as_deref(),
+            });
         }
-        Commands::Promote { pseudospore, output, tier2_crate, tier1_script, version } =>
-            promote::run(&pseudospore, &output, tier2_crate.as_deref(), tier1_script.as_deref(), version.as_deref()),
-        Commands::TranslateConfig { index_map, config, frame, output } =>
-            translate_config::run(&index_map, &config, &frame, output.as_deref()),
+        Commands::Promote {
+            pseudospore,
+            output,
+            tier2_crate,
+            tier1_script,
+            version,
+        } => promote::run(
+            &pseudospore,
+            &output,
+            tier2_crate.as_deref(),
+            tier1_script.as_deref(),
+            version.as_deref(),
+        ),
+        Commands::TranslateConfig {
+            index_map,
+            config,
+            frame,
+            output,
+        } => translate_config::run(&index_map, &config, &frame, output.as_deref()),
     }
 }
 

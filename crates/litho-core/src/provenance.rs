@@ -79,9 +79,7 @@ pub fn try_record_tier3(report: &ValidationReport) -> Result<Tier3Session, Strin
     let spine_ep = discovery::discover(CAP_SPINE);
     let braid_ep = discovery::discover(CAP_BRAID);
 
-    let mut primals_reached = vec![
-        format!("rhizocrypt@{}", endpoint_addr(&dag_ep)),
-    ];
+    let mut primals_reached = vec![format!("rhizocrypt@{}", endpoint_addr(&dag_ep))];
     if let Some(ref ep) = spine_ep {
         primals_reached.push(format!("loamspine@{}", endpoint_addr(ep)));
     }
@@ -90,13 +88,10 @@ pub fn try_record_tier3(report: &ValidationReport) -> Result<Tier3Session, Strin
     }
 
     // Phase 1: DAG session — create, append module events, complete
-    let create_params = serde_json::json!({"artifact": &report.artifact, "version": &report.version});
-    let dag_session_id = rpc_call_extract(
-        &dag_ep,
-        "dag.session.create",
-        &create_params,
-        "session_id",
-    )?;
+    let create_params =
+        serde_json::json!({"artifact": &report.artifact, "version": &report.version});
+    let dag_session_id =
+        rpc_call_extract(&dag_ep, "dag.session.create", &create_params, "session_id")?;
 
     for module in &report.modules {
         let event = serde_json::json!({
@@ -117,7 +112,8 @@ pub fn try_record_tier3(report: &ValidationReport) -> Result<Tier3Session, Strin
         "dag.session.complete",
         &complete_params,
         "merkle_root",
-    ).unwrap_or_else(|_| "pending".into());
+    )
+    .unwrap_or_else(|_| "pending".into());
 
     // Phase 2: Spine — degrade gracefully if loamSpine unreachable
     let spine_id = if let Some(ref ep) = spine_ep {
@@ -203,8 +199,8 @@ fn rpc_call_result(
         "params": params,
         "id": 1,
     });
-    let request_str = serde_json::to_string(&request)
-        .map_err(|e| format!("serialize {method}: {e}"))?;
+    let request_str =
+        serde_json::to_string(&request).map_err(|e| format!("serialize {method}: {e}"))?;
 
     let response = discovery::rpc_call(ep, &request_str)
         .ok_or_else(|| format!("{method}: no response from {}", endpoint_addr(ep)))?;

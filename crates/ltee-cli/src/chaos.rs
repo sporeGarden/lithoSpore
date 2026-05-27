@@ -20,8 +20,11 @@ pub fn run(root: &str) {
 
     // Copy essential artifact structure
     let dirs = [
-        "artifact/data", "validation/expected", "artifact",
-        "figures", "papers",
+        "artifact/data",
+        "validation/expected",
+        "artifact",
+        "figures",
+        "papers",
     ];
     for d in &dirs {
         let src = root_path.join(d);
@@ -29,13 +32,22 @@ pub fn run(root: &str) {
             crate::assemble::copy_dir_recursive_pub(&src, &tmpdir.join(d));
         }
     }
-    for f in ["artifact/scope.toml", "artifact/data.toml", "artifact/tolerances.toml",
-              "data_manifest.toml", "papers/registry.toml", ".biomeos-spore",
-              "SCIENCE.md", "GETTING_STARTED.md"] {
+    for f in [
+        "artifact/scope.toml",
+        "artifact/data.toml",
+        "artifact/tolerances.toml",
+        "data_manifest.toml",
+        "papers/registry.toml",
+        ".biomeos-spore",
+        "SCIENCE.md",
+        "GETTING_STARTED.md",
+    ] {
         let src = root_path.join(f);
         let dst = tmpdir.join(f);
         if src.exists() {
-            if let Some(p) = dst.parent() { std::fs::create_dir_all(p).ok(); }
+            if let Some(p) = dst.parent() {
+                std::fs::create_dir_all(p).ok();
+            }
             std::fs::copy(&src, &dst).ok();
         }
     }
@@ -76,7 +88,9 @@ pub fn run(root: &str) {
                 }
                 // Restore
                 let src = root_path.join(&first_path);
-                if src.exists() { std::fs::copy(&src, &target).ok(); }
+                if src.exists() {
+                    std::fs::copy(&src, &target).ok();
+                }
             } else {
                 println!(" SKIP (file not found)");
             }
@@ -163,12 +177,12 @@ pub fn run(root: &str) {
         std::fs::rename(&expected_dir, &expected_backup).ok();
         let result = run_validate(&tmpdir);
         // With no expected values, validation should skip/fail gracefully
-        if !result {
-            println!(" PASS (graceful degradation)");
-            passed += 1;
-        } else {
+        if result {
             println!(" FAIL (should not pass without expected values)");
             failed += 1;
+        } else {
+            println!(" PASS (graceful degradation)");
+            passed += 1;
         }
         std::fs::rename(&expected_backup, &expected_dir).ok();
     } else {
@@ -192,7 +206,7 @@ pub fn run(root: &str) {
     if science.exists() {
         std::fs::rename(&science, &sci_backup).ok();
     }
-    let _selftest = run_selftest(&tmpdir);
+    run_selftest(&tmpdir);
     if science.exists() {
         // File was missing, self-test should have reported it
         println!(" PASS");
@@ -208,7 +222,7 @@ pub fn run(root: &str) {
     // Test 9: Deploy report still generates
     total += 1;
     print!("  [9/10] Deploy report generation...");
-    let _report = run_deploy_report(&tmpdir);
+    run_deploy_report(&tmpdir);
     println!(" PASS");
     passed += 1;
 
@@ -249,15 +263,16 @@ fn run_validate(dir: &Path) -> bool {
         }
     }
 
-    report.modules.iter().all(|m| m.status == litho_core::ValidationStatus::Pass)
+    report
+        .modules
+        .iter()
+        .all(|m| m.status == litho_core::ValidationStatus::Pass)
 }
 
 fn run_verify(dir: &Path) -> bool {
     let root = dir.to_str().unwrap_or(".");
     // Redirect verify output away; capture exit behavior
-    let result = std::panic::catch_unwind(|| {
-        crate::verify::run_check(root)
-    });
+    let result = std::panic::catch_unwind(|| crate::verify::run_check(root));
     result.unwrap_or(false)
 }
 
@@ -273,11 +288,13 @@ fn extract_first_manifest_path(content: &str) -> Option<String> {
     for line in content.lines() {
         let trimmed = line.trim();
         if trimmed.starts_with("path = \"") {
-            return Some(trimmed
-                .strip_prefix("path = \"")
-                .and_then(|s| s.strip_suffix('"'))
-                .unwrap_or("")
-                .to_string());
+            return Some(
+                trimmed
+                    .strip_prefix("path = \"")
+                    .and_then(|s| s.strip_suffix('"'))
+                    .unwrap_or("")
+                    .to_string(),
+            );
         }
     }
     None

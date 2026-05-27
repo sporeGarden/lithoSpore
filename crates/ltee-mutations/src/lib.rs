@@ -15,17 +15,26 @@ use std::path::Path;
 use std::time::Instant;
 
 /// Run module 2 validation with the given paths and tier.
+#[must_use]
 pub fn run_validation(data_dir: &str, expected: &str, max_tier: u8) -> ModuleResult {
     let start = Instant::now();
 
     if !Path::new(expected).exists() {
-        return harness::skip("mutation_accumulation", 1, start,
-            "Expected values not found — run groundSpring B1 first");
+        return harness::skip(
+            "mutation_accumulation",
+            1,
+            start,
+            "Expected values not found — run groundSpring B1 first",
+        );
     }
 
     if !Path::new(data_dir).exists() {
-        return harness::skip("mutation_accumulation", 1, start,
-            "Data not fetched — run `litho fetch --all`");
+        return harness::skip(
+            "mutation_accumulation",
+            1,
+            start,
+            "Data not fetched — run `litho fetch --all`",
+        );
     }
 
     if max_tier >= 2 {
@@ -39,8 +48,12 @@ pub fn run_validation(data_dir: &str, expected: &str, max_tier: u8) -> ModuleRes
         );
     }
 
-    harness::skip("mutation_accumulation", max_tier, start,
-        &format!("Tier {max_tier} not implemented yet"))
+    harness::skip(
+        "mutation_accumulation",
+        max_tier,
+        start,
+        &format!("Tier {max_tier} not implemented yet"),
+    )
 }
 
 // ── Tier 2: Pure Rust ────────────────────────────────────────────────
@@ -109,8 +122,14 @@ fn load_mutation_params(data_dir: &str) -> Option<serde_json::Value> {
 fn run_tier2_rust(data_dir: &str, expected_path: &str, start: Instant) -> ModuleResult {
     let expected = match harness::load_expected(expected_path) {
         Some(v) => v,
-        None => return harness::skip("mutation_accumulation", 2, start,
-            "Cannot parse expected values JSON"),
+        None => {
+            return harness::skip(
+                "mutation_accumulation",
+                2,
+                start,
+                "Cannot parse expected values JSON",
+            );
+        }
     };
 
     let params = load_mutation_params(data_dir);
@@ -122,8 +141,12 @@ fn run_tier2_rust(data_dir: &str, expected_path: &str, start: Instant) -> Module
     let seed: u64 = 42;
 
     if let Some(ref p) = params {
-        if let Some(v) = p["population_size"].as_u64() { pop_size = v; }
-        if let Some(v) = p["genomic_mutation_rate"].as_f64() { mu = v; }
+        if let Some(v) = p["population_size"].as_u64() {
+            pop_size = v;
+        }
+        if let Some(v) = p["genomic_mutation_rate"].as_f64() {
+            mu = v;
+        }
     }
 
     eprintln!("  Tier 2 (Rust): N={pop_size}, μ={mu:.4e}, gens={n_gens}, reps={n_reps}");
@@ -133,15 +156,21 @@ fn run_tier2_rust(data_dir: &str, expected_path: &str, start: Instant) -> Module
 
     total += 1;
     let pfix = kimura_fixation_prob(pop_size, 0.0, None);
-    let expected_pfix = expected["kimura_fixation_prob_neutral"].as_f64().unwrap_or(0.0);
+    let expected_pfix = expected["kimura_fixation_prob_neutral"]
+        .as_f64()
+        .unwrap_or(0.0);
     let pfix_ok = if expected_pfix > 0.0 {
         (pfix - expected_pfix).abs() / expected_pfix < 0.01
     } else {
         (pfix - 1.0 / pop_size as f64).abs() < 1e-12
     };
-    if pfix_ok { passed += 1; }
-    eprintln!("  [{}] Neutral fixation probability = {pfix:.2e} (expected: {expected_pfix:.2e})",
-        if pfix_ok { "PASS" } else { "FAIL" });
+    if pfix_ok {
+        passed += 1;
+    }
+    eprintln!(
+        "  [{}] Neutral fixation probability = {pfix:.2e} (expected: {expected_pfix:.2e})",
+        if pfix_ok { "PASS" } else { "FAIL" }
+    );
 
     let mut mean_traj = vec![0.0_f64; n_gens];
     let first_traj = simulate_neutral_fixations(mu, n_gens, seed);
@@ -180,31 +209,47 @@ fn run_tier2_rust(data_dir: &str, expected_path: &str, start: Instant) -> Module
     } else {
         (slope - mu).abs() / mu < 0.05
     };
-    if rate_ok { passed += 1; }
-    eprintln!("  [{}] Molecular clock rate: slope={slope:.6e} (expected: {expected_clock:.6e})",
-        if rate_ok { "PASS" } else { "FAIL" });
+    if rate_ok {
+        passed += 1;
+    }
+    eprintln!(
+        "  [{}] Molecular clock rate: slope={slope:.6e} (expected: {expected_clock:.6e})",
+        if rate_ok { "PASS" } else { "FAIL" }
+    );
 
     total += 1;
     let linear_ok = r_val > 0.998;
-    if linear_ok { passed += 1; }
-    eprintln!("  [{}] Molecular clock is linear (r = {r_val:.6}) (min: 0.998)",
-        if linear_ok { "PASS" } else { "FAIL" });
+    if linear_ok {
+        passed += 1;
+    }
+    eprintln!(
+        "  [{}] Molecular clock is linear (r = {r_val:.6}) (min: 0.998)",
+        if linear_ok { "PASS" } else { "FAIL" }
+    );
 
     total += 1;
     let s_threshold = 1.0 / pop_size as f64;
     let pfix_small_s = kimura_fixation_prob(pop_size, s_threshold, None);
     let drift_ratio = pfix_small_s / (1.0 / pop_size as f64);
     let drift_ok = drift_ratio < 5.0;
-    if drift_ok { passed += 1; }
-    eprintln!("  [{}] Drift dominates at |s|=1/N (ratio = {drift_ratio:.2}, limit < 5×)",
-        if drift_ok { "PASS" } else { "FAIL" });
+    if drift_ok {
+        passed += 1;
+    }
+    eprintln!(
+        "  [{}] Drift dominates at |s|=1/N (ratio = {drift_ratio:.2}, limit < 5×)",
+        if drift_ok { "PASS" } else { "FAIL" }
+    );
 
     total += 1;
     let pfix_large = kimura_fixation_prob(pop_size, 0.01, None);
     let sel_ok = pfix_large > 10.0 / pop_size as f64;
-    if sel_ok { passed += 1; }
-    eprintln!("  [{}] Selection detectable at s=0.01 (P_fix = {pfix_large:.6e})",
-        if sel_ok { "PASS" } else { "FAIL" });
+    if sel_ok {
+        passed += 1;
+    }
+    eprintln!(
+        "  [{}] Selection detectable at s=0.01 (P_fix = {pfix_large:.6e})",
+        if sel_ok { "PASS" } else { "FAIL" }
+    );
 
     total += 1;
     let exp_ratio = expected["drift_dominance_ratio"].as_f64().unwrap_or(0.0);
@@ -213,18 +258,30 @@ fn run_tier2_rust(data_dir: &str, expected_path: &str, start: Instant) -> Module
     } else {
         false
     };
-    if ratio_match { passed += 1; }
-    eprintln!("  [{}] Drift ratio matches expected: {drift_ratio:.4} vs {exp_ratio:.4}",
-        if ratio_match { "PASS" } else { "FAIL" });
+    if ratio_match {
+        passed += 1;
+    }
+    eprintln!(
+        "  [{}] Drift ratio matches expected: {drift_ratio:.4} vs {exp_ratio:.4}",
+        if ratio_match { "PASS" } else { "FAIL" }
+    );
 
     total += 1;
     let traj2 = simulate_neutral_fixations(mu, n_gens, seed);
     let det_ok = first_traj == traj2;
-    if det_ok { passed += 1; }
-    eprintln!("  [{}] Deterministic (same seed → same data)",
-        if det_ok { "PASS" } else { "FAIL" });
+    if det_ok {
+        passed += 1;
+    }
+    eprintln!(
+        "  [{}] Deterministic (same seed → same data)",
+        if det_ok { "PASS" } else { "FAIL" }
+    );
 
-    let status = if passed == total { ValidationStatus::Pass } else { ValidationStatus::Fail };
+    let status = if passed == total {
+        ValidationStatus::Pass
+    } else {
+        ValidationStatus::Fail
+    };
     ModuleResult {
         name: "mutation_accumulation".to_string(),
         status,
@@ -232,7 +289,11 @@ fn run_tier2_rust(data_dir: &str, expected_path: &str, start: Instant) -> Module
         checks: total,
         checks_passed: passed,
         runtime_ms: start.elapsed().as_millis() as u64,
-        error: if passed < total { Some(format!("{} check(s) failed", total - passed)) } else { None },
+        error: if passed < total {
+            Some(format!("{} check(s) failed", total - passed))
+        } else {
+            None
+        },
     }
 }
 
@@ -288,5 +349,29 @@ mod tests {
         let t1 = simulate_neutral_fixations(8.9e-4, 1000, 42);
         let t2 = simulate_neutral_fixations(8.9e-4, 1000, 42);
         assert_eq!(t1, t2);
+    }
+
+    #[test]
+    fn run_validation_missing_expected_skips() {
+        let result = run_validation("/nonexistent/data", "/nonexistent/expected.json", 2);
+        assert_eq!(result.status, ValidationStatus::Skip);
+        assert_eq!(result.name, "mutation_accumulation");
+    }
+
+    #[test]
+    fn run_validation_max_tier_below_two_skips_tier2() {
+        let dir = std::env::temp_dir().join("litho_test_mutations_tier1");
+        let _ = std::fs::create_dir_all(&dir);
+        let expected = dir.join("expected.json");
+        std::fs::write(
+            &expected,
+            r#"{"paper":"Barrick2009","generations":[],"observed_fixations":[]}"#,
+        )
+        .unwrap();
+        let data = dir.join("data");
+        let _ = std::fs::create_dir_all(&data);
+        let result = run_validation(data.to_str().unwrap(), expected.to_str().unwrap(), 1);
+        assert_eq!(result.status, ValidationStatus::Skip);
+        assert_eq!(result.tier, 1);
     }
 }

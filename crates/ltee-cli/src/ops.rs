@@ -22,11 +22,19 @@ pub fn cmd_status(root: &str) {
     for entry in &modules {
         let has_expected = root_path.join(&entry.expected).exists();
         let has_data = root_path.join(&entry.data_dir).exists();
-        if has_expected { live += 1; }
-        println!("  Module {:<25} expected={has_expected} data={has_data}", entry.name);
+        if has_expected {
+            live += 1;
+        }
+        println!(
+            "  Module {:<25} expected={has_expected} data={has_data}",
+            entry.name
+        );
     }
 
-    println!("  Modules: {total} ({live} live, {} scaffold)", total as u32 - live);
+    println!(
+        "  Modules: {total} ({live} live, {} scaffold)",
+        total as u32 - live
+    );
     println!("  Tier support: 1 (Python) + 2 (Rust) + 3 (Primal/NUCLEUS)");
 }
 
@@ -58,8 +66,14 @@ pub fn cmd_self_test(root: &str) {
     for entry in &modules {
         total += 1;
         let exists = root_path.join(&entry.expected).exists();
-        if exists { passed += 1; }
-        println!("  [{}] {}", if exists { "OK" } else { "MISSING" }, entry.expected);
+        if exists {
+            passed += 1;
+        }
+        println!(
+            "  [{}] {}",
+            if exists { "OK" } else { "MISSING" },
+            entry.expected
+        );
     }
 
     let artifact_files = [
@@ -70,7 +84,9 @@ pub fn cmd_self_test(root: &str) {
     for f in &artifact_files {
         total += 1;
         let exists = root_path.join(f).exists();
-        if exists { passed += 1; }
+        if exists {
+            passed += 1;
+        }
         println!("  [{}] {f}", if exists { "OK" } else { "MISSING" });
     }
 
@@ -83,32 +99,60 @@ pub fn cmd_self_test(root: &str) {
     for f in &doc_files {
         total += 1;
         let exists = root_path.join(f).exists();
-        if exists { passed += 1; }
+        if exists {
+            passed += 1;
+        }
         println!("  [{}] {f}", if exists { "OK" } else { "MISSING" });
     }
 
     for entry in &modules {
         total += 1;
         let exists = root_path.join(&entry.data_dir).exists();
-        if exists { passed += 1; }
-        println!("  [{}] {}/", if exists { "OK" } else { "MISSING" }, entry.data_dir);
+        if exists {
+            passed += 1;
+        }
+        println!(
+            "  [{}] {}/",
+            if exists { "OK" } else { "MISSING" },
+            entry.data_dir
+        );
     }
 
     // Check figures
     total += 1;
     let fig_count = std::fs::read_dir(root_path.join("figures"))
-        .map(|rd| rd.filter(|e| e.as_ref().map(|e| e.path().extension().map_or(false, |ext| ext == "svg")).unwrap_or(false)).count())
+        .map(|rd| {
+            rd.filter(|e| {
+                e.as_ref()
+                    .map(|e| e.path().extension().is_some_and(|ext| ext == "svg"))
+                    .unwrap_or(false)
+            })
+            .count()
+        })
         .unwrap_or(0);
     let fig_ok = fig_count >= 7;
-    if fig_ok { passed += 1; }
-    println!("  [{}] figures/*.svg: {fig_count} files (expected ≥ 7)", if fig_ok { "OK" } else { "WARN" });
+    if fig_ok {
+        passed += 1;
+    }
+    println!(
+        "  [{}] figures/*.svg: {fig_count} files (expected ≥ 7)",
+        if fig_ok { "OK" } else { "WARN" }
+    );
 
     // Check data_manifest.toml
     total += 1;
     let manifest_path = root_path.join("data_manifest.toml");
-    let has_manifest = manifest_path.exists() && std::fs::metadata(&manifest_path).map(|m| m.len() > 10).unwrap_or(false);
-    if has_manifest { passed += 1; }
-    println!("  [{}] data_manifest.toml", if has_manifest { "OK" } else { "MISSING" });
+    let has_manifest = manifest_path.exists()
+        && std::fs::metadata(&manifest_path)
+            .map(|m| m.len() > 10)
+            .unwrap_or(false);
+    if has_manifest {
+        passed += 1;
+    }
+    println!(
+        "  [{}] data_manifest.toml",
+        if has_manifest { "OK" } else { "MISSING" }
+    );
 
     println!();
     println!("  Self-test: {passed}/{total} checks passed");
@@ -129,21 +173,42 @@ pub fn cmd_tier(root: &str) {
         .output()
         .is_ok();
     let has_embedded = root_path.join("python/bin/python3").exists();
-    println!("  Tier 1 (Python):   {} {}", if has_python || has_embedded { "AVAILABLE" } else { "UNAVAILABLE" },
-        if has_embedded { "(embedded)" } else if has_python { "(system)" } else { "" });
+    println!(
+        "  Tier 1 (Python):   {} {}",
+        if has_python || has_embedded {
+            "AVAILABLE"
+        } else {
+            "UNAVAILABLE"
+        },
+        if has_embedded {
+            "(embedded)"
+        } else if has_python {
+            "(system)"
+        } else {
+            ""
+        }
+    );
 
     // Tier 2: Rust binaries
     let mut tier2_bins: Vec<&str> = modules.iter().map(|e| e.binary.as_str()).collect();
     tier2_bins.push("litho");
-    let bin_count = tier2_bins.iter()
-        .filter(|b| root_path.join(format!("bin/{b}")).exists() || root_path.join(format!("target/release/{b}")).exists())
+    let bin_count = tier2_bins
+        .iter()
+        .filter(|b| {
+            root_path.join(format!("bin/{b}")).exists()
+                || root_path.join(format!("target/release/{b}")).exists()
+        })
         .count();
     let tier2 = bin_count >= modules.len();
-    println!("  Tier 2 (Rust):     {} ({bin_count}/{} binaries)", if tier2 { "AVAILABLE" } else { "PARTIAL" }, modules.len() + 1);
+    println!(
+        "  Tier 2 (Rust):     {} ({bin_count}/{} binaries)",
+        if tier2 { "AVAILABLE" } else { "PARTIAL" },
+        modules.len() + 1
+    );
 
     // Tier 3: Primals (NUCLEUS)
-    let has_nucleus = std::env::var("NUCLEUS_ROOT").is_ok()
-        || std::env::var("CAPABILITY_PORT").is_ok();
+    let has_nucleus =
+        std::env::var("NUCLEUS_ROOT").is_ok() || std::env::var("CAPABILITY_PORT").is_ok();
     let graph_file = registry::load_scope(root_path)
         .and_then(|s| {
             let f = &s.guidestone.graph_file;
@@ -151,10 +216,22 @@ pub fn cmd_tier(root: &str) {
         })
         .unwrap_or_else(|| "graphs/ltee_guidestone.toml".to_string());
     let has_graph = root_path.join(&graph_file).exists();
-    println!("  Tier 3 (Primals):  {} (graph={has_graph}, nucleus={has_nucleus})",
-        if has_nucleus && has_graph { "AVAILABLE" } else { "UNAVAILABLE" });
+    println!(
+        "  Tier 3 (Primals):  {} (graph={has_graph}, nucleus={has_nucleus})",
+        if has_nucleus && has_graph {
+            "AVAILABLE"
+        } else {
+            "UNAVAILABLE"
+        }
+    );
 
-    let max_tier = if has_nucleus && has_graph { 3 } else if tier2 { 2 } else if has_python || has_embedded { 1 } else { 0 };
+    let max_tier = if has_nucleus && has_graph {
+        3
+    } else if tier2 {
+        2
+    } else {
+        i32::from(has_python || has_embedded)
+    };
     println!();
     println!("  Maximum tier: {max_tier}");
 }
@@ -164,31 +241,59 @@ pub fn cmd_deploy_report(root: &str, pattern: &str) {
     let modules = registry::load_module_table(root_path);
     let timestamp = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
 
-    let mut selftest_files: Vec<String> = modules
-        .iter()
-        .map(|e| e.expected.clone())
-        .collect();
-    for extra in ["artifact/scope.toml", "artifact/data.toml", "artifact/tolerances.toml",
-                   "papers/registry.toml", ".biomeos-spore"] {
+    let mut selftest_files: Vec<String> = modules.iter().map(|e| e.expected.clone()).collect();
+    for extra in [
+        "artifact/scope.toml",
+        "artifact/data.toml",
+        "artifact/tolerances.toml",
+        "papers/registry.toml",
+        ".biomeos-spore",
+    ] {
         selftest_files.push(extra.to_string());
     }
-    let selftest_passed = selftest_files.iter().filter(|f| root_path.join(f).exists()).count();
+    let selftest_passed = selftest_files
+        .iter()
+        .filter(|f| root_path.join(f).exists())
+        .count();
     let selftest_total = selftest_files.len();
 
-    let has_python = std::process::Command::new("python3").arg("--version").output().is_ok()
+    let has_python = std::process::Command::new("python3")
+        .arg("--version")
+        .output()
+        .is_ok()
         || root_path.join("python/bin/python3").exists();
-    let deploy_bins: Vec<&str> = modules.iter().map(|e| e.binary.as_str()).chain(std::iter::once("litho")).collect();
-    let bin_count = deploy_bins.iter()
-        .filter(|b| root_path.join(format!("bin/{b}")).exists() || root_path.join(format!("target/release/{b}")).exists())
+    let deploy_bins: Vec<&str> = modules
+        .iter()
+        .map(|e| e.binary.as_str())
+        .chain(std::iter::once("litho"))
+        .collect();
+    let bin_count = deploy_bins
+        .iter()
+        .filter(|b| {
+            root_path.join(format!("bin/{b}")).exists()
+                || root_path.join(format!("target/release/{b}")).exists()
+        })
         .count();
-    let max_tier = if bin_count >= modules.len() { 2 } else if has_python { 1 } else { 0 };
+    let max_tier = if bin_count >= modules.len() {
+        2
+    } else {
+        i32::from(has_python)
+    };
 
-    let data_count = modules.iter()
+    let data_count = modules
+        .iter()
         .filter(|e| root_path.join(&e.data_dir).exists())
         .count();
 
     let fig_count = std::fs::read_dir(root_path.join("figures"))
-        .map(|rd| rd.filter(|e| e.as_ref().map(|e| e.path().extension().map_or(false, |ext| ext == "svg")).unwrap_or(false)).count())
+        .map(|rd| {
+            rd.filter(|e| {
+                e.as_ref()
+                    .map(|e| e.path().extension().is_some_and(|ext| ext == "svg"))
+                    .unwrap_or(false)
+            })
+            .count()
+        })
         .unwrap_or(0);
 
     let manifest_path = root_path.join("data_manifest.toml");
@@ -211,7 +316,14 @@ pub fn cmd_deploy_report(root: &str, pattern: &str) {
     println!("[self_test]");
     println!("checks_passed = {selftest_passed}");
     println!("checks_total = {selftest_total}");
-    println!("status = \"{}\"", if selftest_passed == selftest_total { "PASS" } else { "FAIL" });
+    println!(
+        "status = \"{}\"",
+        if selftest_passed == selftest_total {
+            "PASS"
+        } else {
+            "FAIL"
+        }
+    );
     println!();
     println!("[tier]");
     println!("max_tier = {max_tier}");
@@ -240,9 +352,20 @@ pub fn cmd_deploy_report(root: &str, pattern: &str) {
         }
     }
 
-    if !modules_results.is_empty() {
-        let passed = modules_results.iter().filter(|m| m.status == litho_core::ValidationStatus::Pass).count();
-        let failed = modules_results.iter().filter(|m| m.status == litho_core::ValidationStatus::Fail).count();
+    if modules_results.is_empty() {
+        println!("[validation]");
+        println!("status = \"SKIP\"");
+        println!("reason = \"No module binaries found\"");
+        println!();
+    } else {
+        let passed = modules_results
+            .iter()
+            .filter(|m| m.status == litho_core::ValidationStatus::Pass)
+            .count();
+        let failed = modules_results
+            .iter()
+            .filter(|m| m.status == litho_core::ValidationStatus::Fail)
+            .count();
         let total_checks: u32 = modules_results.iter().map(|m| m.checks).sum();
         let passed_checks: u32 = modules_results.iter().map(|m| m.checks_passed).sum();
 
@@ -270,11 +393,6 @@ pub fn cmd_deploy_report(root: &str, pattern: &str) {
             println!("runtime_ms = {}", m.runtime_ms);
             println!();
         }
-    } else {
-        println!("[validation]");
-        println!("status = \"SKIP\"");
-        println!("reason = \"No module binaries found\"");
-        println!();
     }
 }
 
@@ -288,10 +406,19 @@ pub fn cmd_spore(root: &str) {
             for e in &entries {
                 println!(
                     "  {} — {} {} tier {} ({}/{} modules, {}ms)",
-                    e.timestamp, e.os, e.arch, e.tier_reached, e.modules_passed, e.modules_total, e.runtime_ms
+                    e.timestamp,
+                    e.os,
+                    e.arch,
+                    e.tier_reached,
+                    e.modules_passed,
+                    e.modules_total,
+                    e.runtime_ms
                 );
             }
         }
-        Err(_) => println!("No liveSpore.json found at {} — no validation runs recorded yet", spore_path.display()),
+        Err(_) => println!(
+            "No liveSpore.json found at {} — no validation runs recorded yet",
+            spore_path.display()
+        ),
     }
 }

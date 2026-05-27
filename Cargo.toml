@@ -35,8 +35,12 @@ toml = "0.8"
 blake3 = { version = "1", default-features = false, features = ["pure", "std"] }
 clap = { version = "4", features = ["derive"] }
 chrono = { version = "0.4", default-features = false, features = ["std", "serde", "now"] }
-ureq = "3"
+ureq = { version = "3", default-features = true }
 walkdir = "2"
+tar = "0.4.45"
+flate2 = { version = "1.1", default-features = false, features = ["rust_backend"] }
+# Pure-Rust deflate only — no zstd/lzma/bzip2 C backends from default features.
+zip = { version = "8.6", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 [workspace.lints.rust]
 unsafe_code = "forbid"
 

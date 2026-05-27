@@ -4,7 +4,10 @@ use clap::Parser;
 use litho_core::harness;
 
 #[derive(Parser)]
-#[command(name = "ltee-fitness", about = "Power-law fitness trajectory validation")]
+#[command(
+    name = "ltee-fitness",
+    about = "Power-law fitness trajectory validation"
+)]
 struct Cli {
     #[arg(long, default_value = "artifact/data/wiser_2013")]
     data_dir: String,

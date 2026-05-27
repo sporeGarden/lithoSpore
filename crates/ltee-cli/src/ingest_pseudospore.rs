@@ -5,9 +5,8 @@
 //! Validates the pseudoSpore structure, verifies checksums, imports braids into
 //! `provenance/braids/`, and registers it in `pseudospores/registry.toml`.
 
-use litho_core::pseudospore::{
-    self, ChecksumEntry, PseudoSporeManifest, SporeStatus,
-};
+use litho_core::pseudospore::{self, PseudoSporeManifest, SporeStatus};
+use pseudospore_core::ChecksumEntry;
 use std::path::Path;
 
 pub fn run(pseudospore_path: &str, artifact_root: &str, verify: bool) {
@@ -34,7 +33,10 @@ pub fn run(pseudospore_path: &str, artifact_root: &str, verify: bool) {
         std::process::exit(1);
     }
 
-    println!("  Artifact: {} v{}", manifest.scope.artifact.name, manifest.scope.artifact.version);
+    println!(
+        "  Artifact: {} v{}",
+        manifest.scope.artifact.name, manifest.scope.artifact.version
+    );
     println!("  Origin:   {}", manifest.scope.artifact.origin);
     println!("  Date:     {}", manifest.scope.artifact.date);
     println!("  Modules:  {}", manifest.scope.module.len());
@@ -45,6 +47,7 @@ pub fn run(pseudospore_path: &str, artifact_root: &str, verify: bool) {
         print!("  Verifying checksums... ");
         if pseudospore::verify_checksums(&mut manifest) {
             println!("OK ({} files)", manifest.checksums.len());
+            print_checksums(&manifest.checksums);
         } else {
             println!("FAILED");
             for err in &manifest.errors {
@@ -59,7 +62,10 @@ pub fn run(pseudospore_path: &str, artifact_root: &str, verify: bool) {
     let complete = pseudospore::check_completeness(&mut manifest);
     println!("  Status: {}", manifest.status);
     if !complete {
-        let in_flight: Vec<_> = manifest.validation.modules.iter()
+        let in_flight: Vec<_> = manifest
+            .validation
+            .modules
+            .iter()
             .filter(|m| m.status.to_uppercase() == "IN_FLIGHT")
             .map(|m| m.name.as_str())
             .collect();
@@ -103,12 +109,12 @@ pub fn run(pseudospore_path: &str, artifact_root: &str, verify: bool) {
         if let Ok(entries) = std::fs::read_dir(&braids_src) {
             for entry in entries.flatten() {
                 let path = entry.path();
-                if path.extension().map(|e| e == "json").unwrap_or(false) {
+                if path.extension().is_some_and(|e| e == "json") {
                     let dest = braids_dst.join(entry.file_name());
-                    if let Ok(content) = std::fs::read_to_string(&path) {
-                        if std::fs::write(&dest, &content).is_ok() {
-                            braids_imported += 1;
-                        }
+                    if let Ok(content) = std::fs::read_to_string(&path)
+                        && std::fs::write(&dest, &content).is_ok()
+                    {
+                        braids_imported += 1;
                     }
                 }
             }
@@ -121,15 +127,19 @@ pub fn run(pseudospore_path: &str, artifact_root: &str, verify: bool) {
         std::fs::create_dir_all(&braids_dst).ok();
         let ferment_name = format!(
             "{}_ferment.json",
-            manifest.scope.artifact.name.replace(' ', "_").to_lowercase()
+            manifest
+                .scope
+                .artifact
+                .name
+                .replace(' ', "_")
+                .to_lowercase()
         );
         let ferment_dst = braids_dst.join(&ferment_name);
-        if !ferment_dst.exists() {
-            if let Ok(content) = std::fs::read_to_string(&ferment_src) {
-                if std::fs::write(&ferment_dst, &content).is_ok() {
-                    braids_imported += 1;
-                }
-            }
+        if !ferment_dst.exists()
+            && let Ok(content) = std::fs::read_to_string(&ferment_src)
+            && std::fs::write(&ferment_dst, &content).is_ok()
+        {
+            braids_imported += 1;
         }
     }
 
@@ -142,21 +152,26 @@ pub fn run(pseudospore_path: &str, artifact_root: &str, verify: bool) {
 
     let entry = format_registry_entry(&manifest);
     let mut registry_content = std::fs::read_to_string(&registry_path).unwrap_or_default();
-    if !registry_content.contains(&format!("name = \"{}\"", manifest.scope.artifact.name)) {
+    if registry_content.contains(&format!("name = \"{}\"", manifest.scope.artifact.name)) {
+        println!("  Already registered (skipped)");
+    } else {
         registry_content.push_str(&entry);
         std::fs::write(&registry_path, &registry_content).ok();
         println!("  Registered in pseudospores/registry.toml");
-    } else {
-        println!("  Already registered (skipped)");
     }
 
     println!();
-    println!("Done. pseudoSpore ingested as {} ({})",
-        manifest.scope.artifact.name, manifest.status);
+    println!(
+        "Done. pseudoSpore ingested as {} ({})",
+        manifest.scope.artifact.name, manifest.status
+    );
 }
 
 fn format_registry_entry(manifest: &PseudoSporeManifest) -> String {
-    let modules_pass = manifest.validation.modules.iter()
+    let modules_pass = manifest
+        .validation
+        .modules
+        .iter()
         .filter(|m| m.status.to_uppercase() == "PASS")
         .count();
     let modules_total = manifest.validation.modules.len();
@@ -184,18 +199,17 @@ modules_total = {modules_total}
     )
 }
 
-/// Validate an index_map.toml file: parseable TOML with [meta] and [systems.*].
+/// Validate an `index_map.toml` file: parseable TOML with [meta] and [systems.*].
 fn validate_index_map(path: &Path) -> Result<usize, String> {
-    let content = std::fs::read_to_string(path)
-        .map_err(|e| format!("cannot read: {e}"))?;
-    let table: toml::Table = content.parse()
-        .map_err(|e| format!("parse error: {e}"))?;
+    let content = std::fs::read_to_string(path).map_err(|e| format!("cannot read: {e}"))?;
+    let table: toml::Table = content.parse().map_err(|e| format!("parse error: {e}"))?;
 
     if !table.contains_key("meta") {
         return Err("[meta] section missing".to_string());
     }
 
-    let systems = table.get("systems")
+    let systems = table
+        .get("systems")
         .and_then(|v| v.as_table())
         .ok_or_else(|| "[systems] section missing or not a table".to_string())?;
 
@@ -217,8 +231,7 @@ fn validate_index_map(path: &Path) -> Result<usize, String> {
     Ok(count)
 }
 
-/// Print a structured summary of checksum entries (for --verbose).
-#[allow(dead_code)]
+/// Print a structured summary of checksum entries after verification.
 fn print_checksums(checksums: &[ChecksumEntry]) {
     for entry in checksums {
         println!("    {}  {}", &entry.hash[..12], entry.path);

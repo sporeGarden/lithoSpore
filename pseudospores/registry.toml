@@ -9,3 +9,13 @@
 [meta]
 last_updated = "2026-05-24"
 total_ingested = 0
+
+[[pseudospore]]
+name = "hotSpring-CompChem-GuideStone"
+version = "1.6.1"
+origin = "ecoPrimals/springs/hotSpring"
+date = ""
+spring = "springs/hotSpring"
+status = "COMPLETE"
+modules_pass = 7
+modules_total = 8

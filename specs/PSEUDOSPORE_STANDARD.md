@@ -389,6 +389,69 @@ and "verify yourself."
 
 ---
 
+## Schema: liveSpore.json (unified)
+
+The liveSpore.json file uses a unified schema that combines emit-time metadata
+(provenance of who created the spore) with an append-only validation journal
+(where and when it was validated). Both lithoSpore and nest-validate write this
+same shape.
+
+```json
+{
+  "envelope": {
+    "artifact": "hotSpring-CompChem-GuideStone",
+    "version": "1.6.1",
+    "emit_timestamp": "2026-05-27T11:42:17Z",
+    "emit_host": "pop-os",
+    "git_sha": "6c48a43",
+    "tool": "litho emit-pseudospore",
+    "tool_version": "2.3.0",
+    "integrity": "BLAKE3 (data.toml)",
+    "provenance_chain": {
+      "parent": "pseudoSpore_hotSpring-CompChem-GuideStone_v1.6.0",
+      "parent_merkle": "cbf908fb...",
+      "evolution": "v1.5.0 → v1.6.0 → v1.6.1"
+    },
+    "software": {
+      "gromacs": "2026.0",
+      "plumed": "2.10"
+    }
+  },
+  "validations": [
+    {
+      "timestamp": "2026-05-27T14:30:00Z",
+      "hostname_hash": "blake3(hostname)",
+      "arch": "x86_64",
+      "os": "linux",
+      "tier_reached": 2,
+      "modules_passed": 7,
+      "modules_total": 8,
+      "runtime_ms": 1234
+    }
+  ]
+}
+```
+
+### Rules
+
+1. `envelope` is written once at emit time by the tool that creates the pseudoSpore
+2. `validations` is initialized as `[]` at emit time
+3. Each successful `./validate` or `litho audit` appends one entry to `validations`
+4. The BLAKE3 hash in `data.toml` covers the initial state (envelope + empty validations)
+5. Validation appends are expected to change the file hash — this is intentional
+6. The `envelope.tool` field identifies which toolchain emitted the spore
+
+### Migration from Legacy Schemas
+
+- **lithoSpore legacy** (`[]`): treated as `{"envelope": {}, "validations": []}`
+- **hotSpring legacy** (`{"liveSpore": {...}, ...}`): `liveSpore` maps to `envelope`,
+  `provenance_chain` and `software` nest inside `envelope`
+
+Tools MUST accept all three shapes on read and MUST write the unified shape on
+new emissions.
+
+---
+
 ## Design Principles
 
 1. **Braids are the core truth.** The pseudoSpore is primarily a braid carrier — everything else supports the braid's claims.

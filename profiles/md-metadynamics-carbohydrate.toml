@@ -1,0 +1,76 @@
+# Domain Profile: MD Metadynamics — Carbohydrate Puckering
+#
+# For pseudoSpores studying carbohydrate conformational free energy landscapes
+# using GROMACS + PLUMED well-tempered metadynamics with Cremer-Pople CVs.
+#
+# Place as `domain_profile.toml` at the pseudoSpore root to enable
+# domain-aware emit, audit, and promote.
+
+[profile]
+id = "md-metadynamics-carbohydrate"
+version = "1.0"
+tools = ["gromacs", "plumed"]
+
+[translation]
+enabled = true
+domain_frame = "pdb_serial"
+computation_frame = "gromacs_line_index"
+topology_format = "gro"
+
+[[translation.entity_group]]
+name = "ligand_ring"
+atoms = ["C1", "C2", "C3", "C4", "C5", "O5"]
+residue_filter = ["XYS", "BXYL", "BXY", "GLC", "GAL", "MAN", "FUC", "XYL"]
+
+[derivation]
+tool = "plumed"
+find_paths = ["PATH", "conda:gromacs-fel"]
+
+[[derivation.contract]]
+inputs = "data/{module}/HILLS"
+outputs = "outputs/{module}/fes_theta.dat"
+command = "plumed sum_hills --hills {input} --outfile {output} --mintozero"
+
+[[derivation.contract]]
+inputs = "data/{module}/HILLS_2d"
+outputs = "outputs/{module}/fes_2d.dat"
+command = "plumed sum_hills --hills {input} --outfile {output} --mintozero"
+
+[figures]
+enabled = true
+generator = "python3"
+
+[[figures.plot]]
+type = "1d_comparison"
+pattern = "outputs/*/fes_theta.dat"
+x_label = "Cremer-Pople θ (degrees)"
+y_label = "Free energy (kJ/mol)"
+
+[[figures.plot]]
+type = "2d_heatmap"
+pattern = "outputs/*/fes_2d.dat"
+x_label = "qx"
+y_label = "qy"
+
+[audit]
+config_fidelity = true
+scientific_claims = true
+simulation_time = true
+topology_crossref = true
+mdp_headers = true
+
+[audit.claims]
+
+[[audit.claims.validator]]
+key_pattern = "ground_state*"
+output_file = "fes_theta.dat"
+type = "minimum_location"
+zones = [
+  { name = "4C1", min = 0.0, max = 60.0 },
+  { name = "1C4", min = 120.0, max = 180.0 },
+]
+
+[simulation_time]
+config_format = "gromacs_mdp"
+time_fields = { nsteps = "nsteps", dt = "dt" }
+time_unit = "ps"

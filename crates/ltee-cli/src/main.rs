@@ -9,6 +9,7 @@ mod assemble;
 mod audit;
 mod chaos;
 mod deploy_test;
+pub(crate) mod domain_profile;
 mod emit_pseudospore;
 mod fetch;
 mod grow;
@@ -227,7 +228,8 @@ enum Commands {
         verify: bool,
     },
 
-    /// Emit a pseudoSpore: assemble standard directory structure from module outputs
+    /// Emit a pseudoSpore: assemble standard directory structure from module outputs.
+    /// Works for any spring — driven by domain_profile.toml when provided.
     EmitPseudospore {
         /// Artifact name
         #[arg(long)]
@@ -237,9 +239,13 @@ enum Commands {
         #[arg(long)]
         version: String,
 
-        /// Origin spring/repo path
+        /// Origin spring/repo path (e.g., "ecoPrimals/springs/hotSpring")
         #[arg(long, default_value = "")]
         origin: String,
+
+        /// Source spring name (e.g., "hotSpring", "groundSpring"). Auto-inferred from origin if omitted.
+        #[arg(long)]
+        spring: Option<String>,
 
         /// Output directory (pseudoSpore dir created inside)
         #[arg(long, default_value = ".")]
@@ -260,6 +266,11 @@ enum Commands {
         /// Directory containing raw data files (HILLS, topology) for zero-trust verification
         #[arg(long)]
         data: Option<String>,
+
+        /// Path to a domain_profile.toml — drives domain-specific emit logic.
+        /// Per SPORE_OWNERSHIP_MATRIX.md: each spring provides its own profile.
+        #[arg(long, alias = "domain-profile")]
+        profile: Option<String>,
     },
 
     /// Pre-handoff audit: check config fidelity, translation, completeness, versioning
@@ -271,6 +282,10 @@ enum Commands {
         /// Show fix suggestions for each finding
         #[arg(long)]
         verbose: bool,
+
+        /// Emit structured JSON report (guideStone validation format)
+        #[arg(long)]
+        json: bool,
     },
 
     /// Promote a pseudoSpore to a lithoSpore deployment chassis
@@ -417,9 +432,15 @@ fn main() {
             grow::run(&artifact_root, &target, vm, container, ecosystem, skip_build, skip_fetch),
         Commands::IngestPseudospore { path, artifact_root, verify } =>
             ingest_pseudospore::run(&path, &artifact_root, verify),
-        Commands::Audit { path, verbose } => audit::run(&path, verbose),
-        Commands::EmitPseudospore { name, version, origin, output, outputs, configs, braids, data } =>
-            emit_pseudospore::run(&name, &version, &origin, &output, outputs.as_deref(), configs.as_deref(), braids.as_deref(), data.as_deref()),
+        Commands::Audit { path, verbose, json } => audit::run(&path, verbose, json),
+        Commands::EmitPseudospore { name, version, origin, spring, output, outputs, configs, braids, data, profile } => {
+            let effective_origin = if origin.is_empty() {
+                spring.as_deref().map(|s| format!("ecoPrimals/springs/{s}")).unwrap_or_default()
+            } else {
+                origin
+            };
+            emit_pseudospore::run(&name, &version, &effective_origin, &output, outputs.as_deref(), configs.as_deref(), braids.as_deref(), data.as_deref(), profile.as_deref())
+        }
         Commands::Promote { pseudospore, output, tier2_crate, tier1_script, version } =>
             promote::run(&pseudospore, &output, tier2_crate.as_deref(), tier1_script.as_deref(), version.as_deref()),
         Commands::TranslateConfig { index_map, config, frame, output } =>

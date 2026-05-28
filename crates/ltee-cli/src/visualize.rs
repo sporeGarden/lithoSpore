@@ -280,7 +280,7 @@ pub(crate) fn discover_visualization_socket() -> String {
 }
 
 fn resolve_xdg_runtime() -> String {
-    std::env::var("XDG_RUNTIME_DIR").unwrap_or_else(|_| {
+    std::env::var(litho_core::env_vars::XDG_RUNTIME_DIR).unwrap_or_else(|_| {
         #[cfg(unix)]
         {
             let uid = std::fs::read_to_string("/proc/self/status")
@@ -296,7 +296,7 @@ fn resolve_xdg_runtime() -> String {
         }
         #[cfg(not(unix))]
         {
-            std::env::var("TEMP")
+            std::env::var(litho_core::env_vars::TEMP)
                 .unwrap_or_else(|_| std::env::temp_dir().to_string_lossy().to_string())
         }
     })

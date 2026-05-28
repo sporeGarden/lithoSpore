@@ -349,7 +349,7 @@ const DEFAULT_CONNECTIVITY_HOSTS: &[&str] = &[
 fn check_connectivity() -> bool {
     use std::net::{TcpStream, ToSocketAddrs};
 
-    let custom = std::env::var("LITHO_CONNECTIVITY_HOSTS").ok();
+    let custom = std::env::var(litho_core::env_vars::LITHO_CONNECTIVITY_HOSTS).ok();
     let custom_hosts: Vec<String> = custom
         .as_deref()
         .map(|s| s.split(',').map(|h| h.trim().to_string()).collect())

@@ -291,8 +291,8 @@ fn append_livespore(root: &Path, checks: usize, elapsed_ms: u64) {
         return;
     }
 
-    let hostname = std::env::var("HOSTNAME")
-        .or_else(|_| std::env::var("HOST"))
+    let hostname = std::env::var(litho_core::env_vars::HOSTNAME)
+        .or_else(|_| std::env::var(litho_core::env_vars::HOST))
         .unwrap_or_else(|_| "unknown".to_string());
     let hostname_hash = blake3::hash(hostname.as_bytes()).to_hex().to_string();
     let timestamp = chrono::Utc::now().to_rfc3339();

@@ -458,7 +458,7 @@ fn generate_from_expected(
 
 /// Root directory containing per-spring folders (`{spring}/validation/`, etc.).
 fn springs_root(artifact_root: &Path) -> PathBuf {
-    if let Ok(env_root) = std::env::var("LITHO_SPRINGS_ROOT")
+    if let Ok(env_root) = std::env::var(litho_core::env_vars::LITHO_SPRINGS_ROOT)
         && !env_root.is_empty()
     {
         return PathBuf::from(env_root);

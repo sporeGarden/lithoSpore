@@ -148,7 +148,7 @@ pub fn make_validation_entry(
 ) -> ValidationEntry {
     let hostname = std::env::var("HOSTNAME")
         .or_else(|_| std::env::var("HOST"))
-        .unwrap_or_else(|_| "unknown".to_string());
+        .unwrap_or_else(|_| "unknown".into());
     let hostname_hash = blake3::hash(hostname.as_bytes()).to_hex().to_string();
     let timestamp = chrono::Utc::now().to_rfc3339();
 

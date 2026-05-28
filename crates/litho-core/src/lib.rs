@@ -9,6 +9,7 @@
 
 pub mod braid;
 pub mod discovery;
+pub mod env_vars;
 pub mod graph_checks;
 pub mod harness;
 pub mod manifest;

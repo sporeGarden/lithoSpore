@@ -128,8 +128,8 @@ pub fn probe_operating_mode() -> (DiscoveryPath, Option<String>) {
     if discovery_socket_path().is_some() {
         return (DiscoveryPath::Uds, None);
     }
-    if let Ok(turn) =
-        std::env::var("RELAY_SERVER").or_else(|_| std::env::var("SONGBIRD_TURN_SERVER"))
+    if let Ok(turn) = std::env::var(crate::env_vars::RELAY_SERVER)
+        .or_else(|_| std::env::var(crate::env_vars::SONGBIRD_TURN_SERVER))
     {
         return (DiscoveryPath::Turn, Some(turn));
     }
@@ -160,11 +160,12 @@ fn discover_from_env(capability: &str) -> Option<PrimalEndpoint> {
 /// localhost. The environment variable is the single source of truth —
 /// no primal-specific IPs are encoded anywhere in lithoSpore.
 fn resolve_primal_host() -> String {
-    std::env::var("PRIMAL_HOST").unwrap_or_else(|_| "127.0.0.1".to_string())
+    std::env::var(crate::env_vars::PRIMAL_HOST).unwrap_or_else(|_| "127.0.0.1".to_string())
 }
 
 fn discovery_socket_path() -> Option<PathBuf> {
-    let runtime = std::env::var("XDG_RUNTIME_DIR").unwrap_or_else(|_| "/tmp".to_string());
+    let runtime =
+        std::env::var(crate::env_vars::XDG_RUNTIME_DIR).unwrap_or_else(|_| "/tmp".to_string());
     let path = PathBuf::from(runtime)
         .join(RUNTIME_SUBDIR)
         .join(DISCOVERY_SOCKET_NAME);
@@ -262,11 +263,11 @@ pub fn rpc_call(endpoint: &PrimalEndpoint, request: &str) -> Option<serde_json::
 /// Channel 2 relay. Actual TURN client integration requires the upstream
 /// relay client library.
 fn discover_from_turn(capability: &str) -> Option<DiscoveryResult> {
-    let turn_server = std::env::var("RELAY_SERVER")
-        .or_else(|_| std::env::var("SONGBIRD_TURN_SERVER"))
+    let turn_server = std::env::var(crate::env_vars::RELAY_SERVER)
+        .or_else(|_| std::env::var(crate::env_vars::SONGBIRD_TURN_SERVER))
         .ok()?;
-    let turn_port = std::env::var("RELAY_DISCOVERY_PORT")
-        .or_else(|_| std::env::var("SONGBIRD_TURN_DISCOVERY_PORT"))
+    let turn_port = std::env::var(crate::env_vars::RELAY_DISCOVERY_PORT)
+        .or_else(|_| std::env::var(crate::env_vars::SONGBIRD_TURN_DISCOVERY_PORT))
         .ok()?;
     let port: u16 = turn_port.parse().ok()?;
 

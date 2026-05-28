@@ -10,7 +10,7 @@ type ValidateRunner = Box<dyn FnMut(&[&str]) -> Option<std::process::ExitStatus>
 
 /// Default Rust cross-compile target (`LITHO_RUST_TARGET` overrides).
 fn default_rust_target() -> String {
-    std::env::var("LITHO_RUST_TARGET").unwrap_or_else(|_| {
+    std::env::var(litho_core::env_vars::LITHO_RUST_TARGET).unwrap_or_else(|_| {
         match (std::env::consts::ARCH, std::env::consts::OS) {
             ("x86_64", "linux") => "x86_64-unknown-linux-musl".into(),
             ("aarch64", "linux") => "aarch64-unknown-linux-gnu".into(),

@@ -207,8 +207,8 @@ pub fn cmd_tier(root: &str) {
     );
 
     // Tier 3: Primals (NUCLEUS)
-    let has_nucleus =
-        std::env::var("NUCLEUS_ROOT").is_ok() || std::env::var("CAPABILITY_PORT").is_ok();
+    let has_nucleus = std::env::var(litho_core::env_vars::NUCLEUS_ROOT).is_ok()
+        || std::env::var(litho_core::env_vars::CAPABILITY_PORT).is_ok();
     let graph_file = registry::load_scope(root_path)
         .and_then(|s| {
             let f = &s.guidestone.graph_file;

@@ -10,7 +10,7 @@ pub(super) fn capture_environment(
     configs_dir: Option<&Path>,
 ) -> String {
     let hostname = run_cmd("hostname", &[])
-        .or_else(|| std::env::var("HOSTNAME").ok())
+        .or_else(|| std::env::var(litho_core::env_vars::HOSTNAME).ok())
         .unwrap_or_else(|| {
             std::fs::read_to_string("/etc/hostname")
                 .unwrap_or_else(|_| "unknown".to_string())

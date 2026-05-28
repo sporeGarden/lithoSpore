@@ -2,8 +2,7 @@
 
 //! Domain-specific fidelity checks — PLUMED/HILLS, translation maps, derivation, validation claims, MDP headers.
 
-use std::fs;
-use std::path::Path;
+use std::{fs, path::Path};
 
 use super::{Finding, Severity};
 /// Verify validation.json claims against actual FES output data.
@@ -781,7 +780,7 @@ fn find_plumed() -> Option<String> {
     if alive("plumed") {
         return Some("plumed".to_string());
     }
-    let home = std::env::var("HOME").unwrap_or_default();
+    let home = std::env::var(litho_core::env_vars::HOME).unwrap_or_default();
     let suffixes = [
         "miniconda3/envs/gromacs-fel",
         "miniconda3",

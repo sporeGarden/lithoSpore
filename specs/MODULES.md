@@ -29,7 +29,7 @@ Cross-tier parity testable for all 7 modules.
 
 ## Shared Infrastructure
 
-- **`litho-core`** (chassis — 100% domain-agnostic, 12 modules):
+- **`litho-core`** (chassis — 100% domain-agnostic, 13 modules):
   validation types (`ModuleResult`, `ValidationReport`, `Tier3Session`, `ParityReport`),
   tolerance framework, provenance chain + JSON-RPC client for trio,
   braid ingestion with dual wire format support,
@@ -94,7 +94,7 @@ Each carries `doi`, `source_figures`, and tolerance specifications.
 
 ## Test Coverage
 
-200 tests across 10 crates:
+204 tests across 10 crates:
 - `litho-core`: 58 unit tests (discovery, provenance, validation, braid, spore, scope, graph, harness, pseudospore deprecation, etc.)
 - `pseudospore-core`: 44 unit tests (manifest, validation, tarball, braid envelope, receipts, scope, domain profile, envelope load+validate, error types, etc.)
 - `ltee-cli`: 56 unit + integration tests (lib 29, integration 20, cli_integration 7)

@@ -383,7 +383,7 @@ fn main() {
                 return;
             }
             "spore" | "spore.sh" => {
-                if std::env::var("BIOMEOS_ORCHESTRATOR").is_ok() {
+                if std::env::var(litho_core::env_vars::BIOMEOS_ORCHESTRATOR).is_ok() {
                     println!("lithoSpore: biomeOS orchestration detected");
                     println!("  Spore class: hypogeal-cotyledon");
                     println!("  Graph: biomeOS/graphs/lithoSpore_validation.toml");
@@ -637,5 +637,48 @@ fn resolve_emit_from_dir(
             );
             std::process::exit(1);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn from_dir_reads_scope_toml() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let scope = r#"
+[artifact]
+name = "hotSpring-exp115"
+version = "1.7.0"
+origin = "ecoPrimals/springs/hotSpring"
+"#;
+        std::fs::write(dir.path().join("scope.toml"), scope).expect("write");
+        let (name, ver, origin) =
+            resolve_emit_from_dir(dir.path().to_str().unwrap(), None, None, "");
+        assert_eq!(name, "hotSpring-exp115");
+        assert_eq!(ver, "1.7.0");
+        assert_eq!(origin, "ecoPrimals/springs/hotSpring");
+    }
+
+    #[test]
+    fn from_dir_cli_overrides_scope() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let scope = r#"
+[artifact]
+name = "hotSpring-exp115"
+version = "1.7.0"
+origin = "ecoPrimals/springs/hotSpring"
+"#;
+        std::fs::write(dir.path().join("scope.toml"), scope).expect("write");
+        let (name, ver, origin) = resolve_emit_from_dir(
+            dir.path().to_str().unwrap(),
+            Some("custom-name"),
+            Some("2.0.0"),
+            "custom/origin",
+        );
+        assert_eq!(name, "custom-name");
+        assert_eq!(ver, "2.0.0");
+        assert_eq!(origin, "custom/origin");
     }
 }

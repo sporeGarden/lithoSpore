@@ -38,7 +38,7 @@ A guideStone-grade artifact satisfies five properties (per primals.eco):
 ## Crate Architecture
 
 ```
-litho-core          ← shared library (CHASSIS — 100% domain-agnostic, 12 modules)
+litho-core          ← shared library (CHASSIS — 100% domain-agnostic, 13 modules)
   ├── validation/     ModuleResult, ValidationReport, Tier3Session, ParityReport
   ├── tolerance/      named tolerances with scientific justification
   ├── provenance/     ProvenanceChain + JSON-RPC client for trio (dag/spine/braid)
@@ -128,7 +128,7 @@ only `scope.toml` + `data.toml` + module crates. No changes to `litho-core`.
 
 | Layer | What | Current Files | Agnostic? |
 |-------|------|---------------|-----------|
-| **Chassis** | Validation pipeline, data integrity, provenance, discovery, deployment, pseudoSpore | `litho-core` (12 modules), `scope.toml`, `data.toml`, `tolerances.toml`, `liveSpore.json` | **Yes** |
+| **Chassis** | Validation pipeline, data integrity, provenance, discovery, deployment, pseudoSpore | `litho-core` (13 modules), `scope.toml`, `data.toml`, `tolerances.toml`, `liveSpore.json` | **Yes** |
 | **Registry** | Scope-driven module resolution, dispatch, name mapping | `ltee-cli/registry.rs` — reads `[[module]]` from scope.toml, falls back to compiled LTEE defaults | **Yes** (data-driven from scope.toml) |
 | **Instance** | Science modules, expected values, datasets, viz, papers | `crates/ltee-*`, `ltee-cli/viz/`, `validation/expected/`, `artifact/data/`, `papers/` | LTEE-specific |
 

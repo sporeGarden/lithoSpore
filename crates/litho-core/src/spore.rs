@@ -72,7 +72,7 @@ fn hostname_hash() -> String {
 /// Capability-based hostname discovery — tries multiple platform-agnostic
 /// sources in priority order, never assumes a specific OS layout.
 fn discover_hostname() -> String {
-    if let Ok(val) = std::env::var("HOSTNAME") {
+    if let Ok(val) = std::env::var(crate::env_vars::HOSTNAME) {
         let trimmed = val.trim().to_string();
         if !trimmed.is_empty() {
             return trimmed;
@@ -81,7 +81,7 @@ fn discover_hostname() -> String {
 
     #[cfg(target_os = "windows")]
     {
-        if let Ok(val) = std::env::var("COMPUTERNAME") {
+        if let Ok(val) = std::env::var(crate::env_vars::COMPUTERNAME) {
             let trimmed = val.trim().to_string();
             if !trimmed.is_empty() {
                 return trimmed;

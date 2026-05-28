@@ -8,7 +8,7 @@ const DEFAULT_LIBVIRT_IMAGES: &str = "/var/lib/libvirt/images";
 
 /// Libvirt image storage directory (`LITHO_LIBVIRT_IMAGES` overrides the default).
 fn libvirt_images_dir() -> PathBuf {
-    std::env::var("LITHO_LIBVIRT_IMAGES")
+    std::env::var(litho_core::env_vars::LITHO_LIBVIRT_IMAGES)
         .map_or_else(|_| PathBuf::from(DEFAULT_LIBVIRT_IMAGES), PathBuf::from)
 }
 
@@ -150,7 +150,7 @@ pub(super) fn stage_vm(root: &Path) {
         return;
     }
 
-    let home = std::env::var("HOME").unwrap_or_else(|_| "/root".into());
+    let home = std::env::var(litho_core::env_vars::HOME).unwrap_or_else(|_| "/root".into());
     let libvirt_images = libvirt_images_dir();
     let tmp_cloud_image = std::env::temp_dir().join("ubuntu-24.04-server-cloudimg-amd64.img");
     let cloud_image_candidates = [

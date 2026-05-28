@@ -315,4 +315,39 @@ type = "pseudoSpore"
             "legacy array rejected"
         );
     }
+
+    #[test]
+    fn test_golden_round_trip() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let root = dir.path();
+
+        fs::write(root.join("scope.toml"), VALID_SCOPE).expect("scope");
+        fs::create_dir_all(root.join("outputs")).expect("outputs");
+        fs::create_dir_all(root.join("configs")).expect("configs");
+
+        let payload = b"golden-payload-data";
+        fs::write(root.join("outputs/results.csv"), payload).expect("payload");
+
+        let hash = blake3::hash(payload).to_hex().to_string();
+        let data_toml = format!("[present]\n\"outputs/results.csv\" = \"{hash}\"\n");
+        fs::write(root.join("data.toml"), &data_toml).expect("data.toml");
+
+        let livespore =
+            r#"{"envelope":{"artifact":"test-artifact","version":"1.0.0"},"validations":[]}"#;
+        fs::write(root.join("liveSpore.json"), livespore).expect("liveSpore");
+
+        let envelope = PseudoSporeEnvelope::load(root).expect("load golden");
+        let scope = envelope.scope.as_ref().expect("scope present");
+        assert_eq!(scope.artifact.name, "test-spore");
+        assert_eq!(scope.artifact.version, "0.1.0");
+
+        let result = envelope.validate();
+        assert!(
+            result.valid,
+            "golden round-trip failed: {:?}",
+            result.errors
+        );
+        assert_eq!(result.checksums_verified, 1);
+        assert_eq!(result.checksums_failed, 0);
+    }
 }

@@ -118,7 +118,7 @@ The interesting part is the architecture:
   a BLAKE3 hash, and an SRA accession. `provenance/braids/` contains
   computation records from the upstream pipeline.
 - **No unsafe code**: The entire Rust codebase forbids `unsafe` at the
-  workspace level. 191 tests, zero C dependencies in the critical path.
+  workspace level. 192 tests, zero C dependencies in the critical path.
 
 Look at `artifact/scope.toml` to see how the chassis separates
 "lithoSpore the framework" from "LTEE the first instance."

@@ -9,7 +9,7 @@
 use crate::registry::{self, ModuleEntry};
 use crate::resolve_livespore;
 
-pub fn run(root: &str, json: bool, max_tier: u8) {
+pub(crate) fn run(root: &str, json: bool, max_tier: u8) {
     run_with_provenance(root, json, max_tier, None);
 }
 

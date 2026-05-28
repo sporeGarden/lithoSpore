@@ -175,7 +175,7 @@ ColdSpore → LiveSpore → pseudoSpore → lithoSpore (full)
 
 **Use case**: Any computation-heavy spring producing quantitative results can ship a pseudoSpore instead of waiting for full lithoSpore module integration. The braid carries the provenance, the receipts carry the proof, the configs carry reproducibility.
 
-**Chassis support**: Canonical API — `pseudospore_core::PseudoSporeEnvelope::load()` + `validate()` with `SporeError`. Legacy `litho_core::pseudospore` re-export wrapper retired (dead code removed).
+**Chassis support**: Canonical API — `pseudospore_core::PseudoSporeEnvelope::load()` + `validate()` with `SporeError`. Includes GUIDESTONE-GRADE derivation anchoring checks (items 11-14: `tolerances.toml`, `derivations/threshold_calibration.toml`, `_anchoring` field validation). `litho emit-pseudospore` scaffolds `derivations/` directory with calibration stub.
 
 See `specs/PSEUDOSPORE_STANDARD.md` for the complete specification.
 

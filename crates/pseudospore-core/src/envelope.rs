@@ -38,6 +38,8 @@ pub struct PseudoSporeEnvelope {
     pub environment: Option<EnvironmentReceipt>,
     pub ferment: Option<FermentTranscript>,
     pub checksums: Vec<ChecksumEntry>,
+    /// Warnings accumulated during load (unparseable optional components, etc.)
+    pub load_warnings: Vec<String>,
 }
 
 impl PseudoSporeEnvelope {
@@ -67,13 +69,14 @@ impl PseudoSporeEnvelope {
             environment: None,
             ferment: None,
             checksums: Vec::new(),
+            load_warnings: Vec::new(),
         };
 
         let data_path = envelope.root.join("data.toml");
         if data_path.exists() {
             match Blake3Manifest::load(&data_path) {
                 Ok(m) => envelope.data_manifest = Some(m),
-                Err(e) => eprintln!("warning: {e}"),
+                Err(e) => envelope.load_warnings.push(e.to_string()),
             }
         }
 
@@ -81,7 +84,7 @@ impl PseudoSporeEnvelope {
         if validation_path.exists() {
             match ValidationDoc::load(&validation_path) {
                 Ok(v) => envelope.validation = Some(v),
-                Err(e) => eprintln!("warning: {e}"),
+                Err(e) => envelope.load_warnings.push(e.to_string()),
             }
         }
 
@@ -89,7 +92,7 @@ impl PseudoSporeEnvelope {
         if livespore_path.exists() {
             match LiveSporeDoc::load(&livespore_path) {
                 Ok(d) => envelope.livespore = Some(d),
-                Err(e) => eprintln!("warning: {e}"),
+                Err(e) => envelope.load_warnings.push(e.to_string()),
             }
         }
 
@@ -97,7 +100,7 @@ impl PseudoSporeEnvelope {
         if env_path.exists() {
             match EnvironmentReceipt::load(&env_path) {
                 Ok(r) => envelope.environment = Some(r),
-                Err(e) => eprintln!("warning: {e}"),
+                Err(e) => envelope.load_warnings.push(e.to_string()),
             }
         }
 
@@ -105,7 +108,9 @@ impl PseudoSporeEnvelope {
         if checksums_path.exists() {
             match std::fs::read_to_string(&checksums_path) {
                 Ok(content) => envelope.checksums = parse_checksums(&content),
-                Err(e) => eprintln!("warning: failed to read {}: {e}", checksums_path.display()),
+                Err(e) => envelope
+                    .load_warnings
+                    .push(format!("failed to read {}: {e}", checksums_path.display())),
             }
         }
 
@@ -113,7 +118,7 @@ impl PseudoSporeEnvelope {
         if ferment_path.exists() {
             match FermentTranscript::load(&ferment_path) {
                 Ok(f) => envelope.ferment = Some(f),
-                Err(e) => eprintln!("warning: {e}"),
+                Err(e) => envelope.load_warnings.push(e.to_string()),
             }
         }
 
@@ -124,7 +129,7 @@ impl PseudoSporeEnvelope {
     #[must_use]
     pub fn validate(&self) -> EnvelopeValidation {
         let mut errors = Vec::new();
-        let mut warnings = Vec::new();
+        let mut warnings = self.load_warnings.clone();
         let mut checksums_verified = 0usize;
         let mut checksums_failed = 0usize;
 
@@ -183,6 +188,25 @@ impl PseudoSporeEnvelope {
             warnings.push("no outputs/, provenance/, or configs/ directory found".to_string());
         }
 
+        let tolerances_path = self.root.join("tolerances.toml");
+        let has_tolerances = tolerances_path.is_file();
+        if !has_tolerances {
+            warnings.push("tolerances.toml not found (GUIDESTONE-GRADE item 11)".to_string());
+        }
+
+        let calibration_path = self.root.join("derivations/threshold_calibration.toml");
+        let has_calibration = calibration_path.is_file();
+        if !has_calibration {
+            warnings.push(
+                "derivations/threshold_calibration.toml not found (GUIDESTONE-GRADE item 12)"
+                    .to_string(),
+            );
+        }
+
+        if has_tolerances && let Ok(content) = std::fs::read_to_string(&tolerances_path) {
+            check_tolerance_derivation_fields(&content, &mut warnings);
+        }
+
         let valid = errors.is_empty();
         EnvelopeValidation {
             valid,
@@ -192,6 +216,59 @@ impl PseudoSporeEnvelope {
             checksums_verified,
             checksums_failed,
         }
+    }
+}
+
+/// GUIDESTONE items 13-14: check that `[[tolerance]]` entries have `derivation`
+/// fields and none carry `_anchoring = "NEEDS_CALIBRATION"`.
+fn check_tolerance_derivation_fields(content: &str, warnings: &mut Vec<String>) {
+    let table: toml::Table = if let Ok(t) = content.parse() {
+        t
+    } else {
+        warnings.push("tolerances.toml: failed to parse as TOML".to_string());
+        return;
+    };
+    let Some(tolerances) = table.get("tolerance").and_then(|v| v.as_array()) else {
+        return;
+    };
+    let mut missing_derivation = 0u32;
+    let mut needs_calibration = 0u32;
+    for tol in tolerances {
+        let tol = match tol.as_table() {
+            Some(t) => t,
+            None => continue,
+        };
+        let name = tol
+            .get("name")
+            .and_then(|v| v.as_str())
+            .unwrap_or("<unnamed>");
+        if tol
+            .get("derivation")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.trim().is_empty())
+        {
+            missing_derivation += 1;
+        }
+        if tol
+            .get("_anchoring")
+            .and_then(|v| v.as_str())
+            .is_some_and(|v| v == "NEEDS_CALIBRATION")
+        {
+            needs_calibration += 1;
+            warnings.push(format!(
+                "tolerance '{name}' has _anchoring = \"NEEDS_CALIBRATION\" (GUIDESTONE item 14)"
+            ));
+        }
+    }
+    if missing_derivation > 0 {
+        warnings.push(format!(
+            "{missing_derivation} tolerance(s) missing 'derivation' field (GUIDESTONE item 13)"
+        ));
+    }
+    if needs_calibration > 0 {
+        warnings.push(format!(
+            "{needs_calibration} tolerance(s) still NEEDS_CALIBRATION (GUIDESTONE item 14)"
+        ));
     }
 }
 
@@ -256,6 +333,7 @@ type = "pseudoSpore"
             environment: None,
             ferment: None,
             checksums: Vec::new(),
+            load_warnings: Vec::new(),
         };
         let result = envelope.validate();
         assert!(!result.valid);
@@ -349,5 +427,64 @@ type = "pseudoSpore"
         );
         assert_eq!(result.checksums_verified, 1);
         assert_eq!(result.checksums_failed, 0);
+        assert!(
+            result
+                .warnings
+                .iter()
+                .any(|w| w.contains("tolerances.toml")),
+            "should warn about missing tolerances"
+        );
+        assert!(
+            result
+                .warnings
+                .iter()
+                .any(|w| w.contains("threshold_calibration")),
+            "should warn about missing derivation anchoring"
+        );
+    }
+
+    #[test]
+    fn guidestone_grade_tolerance_checks() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let root = dir.path();
+
+        fs::write(root.join("scope.toml"), VALID_SCOPE).expect("scope");
+        fs::create_dir_all(root.join("outputs")).expect("outputs");
+        fs::create_dir_all(root.join("derivations")).expect("derivations");
+        fs::write(
+            root.join("derivations/threshold_calibration.toml"),
+            "[metadata]\nstandard = \"v1.0\"\n",
+        )
+        .expect("calibration");
+
+        let tol = "[[tolerance]]\nname = \"rmsd\"\nvalue = 2.0\n_anchoring = \"NEEDS_CALIBRATION\"\n\n\
+                   [[tolerance]]\nname = \"checksum\"\nvalue = 0\nderivation = \"BLAKE3\"\n";
+        fs::write(root.join("tolerances.toml"), tol).expect("tolerances");
+
+        let envelope = PseudoSporeEnvelope::load(root).expect("load");
+        let result = envelope.validate();
+        assert!(
+            result
+                .warnings
+                .iter()
+                .any(|w| w.contains("NEEDS_CALIBRATION")),
+            "should flag NEEDS_CALIBRATION: {:?}",
+            result.warnings
+        );
+        assert!(
+            result
+                .warnings
+                .iter()
+                .any(|w| w.contains("missing 'derivation'")),
+            "should flag missing derivation: {:?}",
+            result.warnings
+        );
+        assert!(
+            !result
+                .warnings
+                .iter()
+                .any(|w| w.contains("threshold_calibration.toml not found")),
+            "should not warn about calibration when present"
+        );
     }
 }

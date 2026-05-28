@@ -151,7 +151,10 @@ pub(crate) fn run(config: &EmitConfig<'_>) {
         }
     }
 
-    // 9. Auto-generate index_map.toml from topology files in data/ (profile-conditional)
+    // 9. Copy or scaffold derivations/ (GUIDESTONE-GRADE items 12-14)
+    emit_derivations(&root, profile_path.map(Path::new), profile.as_ref());
+
+    // 10. Auto-generate index_map.toml from topology files in data/ (profile-conditional)
     let do_translation = profile
         .as_ref()
         .is_none_or(DomainProfile::translation_enabled);
@@ -167,7 +170,7 @@ pub(crate) fn run(config: &EmitConfig<'_>) {
         println!("  [~] index_map.toml skipped (translation disabled in profile)");
     }
 
-    // 10. Generate ferment transcript stub
+    // 11. Generate ferment transcript stub
     let ferment_content = scripts::generate_ferment_stub(name, version, origin);
     std::fs::write(
         root.join("provenance/ferment_transcript.json"),
@@ -176,7 +179,7 @@ pub(crate) fn run(config: &EmitConfig<'_>) {
     .expect("Failed to write provenance/ferment_transcript.json");
     println!("  [+] provenance/ferment_transcript.json (stub)");
 
-    // 11. Compute checksums for outputs/, provenance/, and data/
+    // 12. Compute checksums for outputs/, provenance/, and data/
     let checksums =
         receipts::compute_checksums(&root, &["outputs", "provenance", "data", "configs"]);
     let cksum_content = receipts::format_checksums(&checksums);
@@ -187,7 +190,7 @@ pub(crate) fn run(config: &EmitConfig<'_>) {
         checksums.len()
     );
 
-    // 12. Generate README (profile-aware, domain-expert-facing)
+    // 13. Generate README (profile-aware, domain-expert-facing)
     let readme = scripts::generate_readme(
         name,
         version,
@@ -199,7 +202,7 @@ pub(crate) fn run(config: &EmitConfig<'_>) {
     std::fs::write(root.join("README.md"), &readme).expect("Failed to write README.md");
     println!("  [+] README.md");
 
-    // 13. Generate TRANSLATE.md stub (only if translation enabled)
+    // 14. Generate TRANSLATE.md stub (only if translation enabled)
     if do_translation {
         let translate = scripts::generate_translate_stub();
         std::fs::write(root.join("TRANSLATE.md"), &translate)
@@ -207,7 +210,7 @@ pub(crate) fn run(config: &EmitConfig<'_>) {
         println!("  [+] TRANSLATE.md (stub — populate with derivation commands)");
     }
 
-    // 14. Generate data.toml — data manifest (guideStone data component)
+    // 15. Generate data.toml — data manifest (guideStone data component)
     if data_root.exists() {
         let data_manifest =
             manifest::generate_data_manifest(&data_root, name, version, spring_name);
@@ -215,12 +218,12 @@ pub(crate) fn run(config: &EmitConfig<'_>) {
         println!("  [+] data.toml (data manifest)");
     }
 
-    // 15. Generate tolerances.toml with scientific justification
+    // 16. Generate tolerances.toml with scientific justification
     let tolerances = manifest::generate_tolerances_justified(profile.as_ref());
     fs::write(root.join("tolerances.toml"), &tolerances).expect("Failed to write tolerances.toml");
     println!("  [+] tolerances.toml (named tolerances with justification)");
 
-    // 16. Initialize liveSpore.json (unified schema: envelope + validations)
+    // 17. Initialize liveSpore.json (unified schema: envelope + validations)
     let livespore_initial = serde_json::json!({
         "envelope": {
             "artifact": name,
@@ -240,12 +243,12 @@ pub(crate) fn run(config: &EmitConfig<'_>) {
     .expect("Failed to write liveSpore.json");
     println!("  [+] liveSpore.json (unified schema: envelope + empty validations)");
 
-    // 17. Generate validate + refresh entry point scripts
+    // 18. Generate validate + refresh entry point scripts
     scripts::generate_entry_scripts(&root, name, version);
     println!("  [+] validate (entry point script)");
     println!("  [+] refresh (data freshness script)");
 
-    // 18. Auto-generate figures (profile-conditional)
+    // 19. Auto-generate figures (profile-conditional)
     let do_figures = profile.as_ref().is_none_or(DomainProfile::figures_enabled);
     if do_figures {
         figures::try_generate_figures(&root);
@@ -253,7 +256,7 @@ pub(crate) fn run(config: &EmitConfig<'_>) {
         println!("  [~] figures/ skipped (disabled in profile)");
     }
 
-    // 19. Re-seal checksums (include figures/ if generated)
+    // 20. Re-seal checksums (include figures/ if generated)
     let final_checksums = receipts::compute_checksums(
         &root,
         &["outputs", "provenance", "data", "configs", "figures"],
@@ -291,6 +294,34 @@ pub(crate) fn run_cmd(program: &str, args: &[&str]) -> Option<String> {
                 None
             }
         })
+}
+
+/// Emit `derivations/` directory with threshold calibration data.
+///
+/// Strategy: if the source directory (profile parent) contains
+/// `derivations/`, copy it wholesale. Otherwise scaffold a stub
+/// `threshold_calibration.toml` for the domain owner to populate.
+fn emit_derivations(root: &Path, profile_path: Option<&Path>, profile: Option<&DomainProfile>) {
+    let derivations_dir = root.join("derivations");
+
+    let source_derivations = profile_path
+        .and_then(|pp| pp.parent())
+        .map(|parent| parent.join("derivations"));
+
+    if let Some(ref src) = source_derivations
+        && src.is_dir()
+    {
+        copy_tree(src, &derivations_dir);
+        println!("  [+] derivations/ (copied from {})", src.display());
+        return;
+    }
+
+    fs::create_dir_all(&derivations_dir).ok();
+    let stub = manifest::generate_calibration_stub(profile);
+    fs::write(derivations_dir.join("threshold_calibration.toml"), &stub).ok();
+    println!(
+        "  [+] derivations/threshold_calibration.toml (stub — populate with calibration chain)"
+    );
 }
 
 fn copy_tree(src: &Path, dst: &Path) {

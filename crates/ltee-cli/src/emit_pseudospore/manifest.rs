@@ -171,3 +171,35 @@ pub(super) fn generate_tolerances_justified(
 
     output
 }
+
+/// Generate a stub `threshold_calibration.toml` per `DERIVATION_ANCHORING_STANDARD`.
+pub(super) fn generate_calibration_stub(
+    profile: Option<&pseudospore_core::DomainProfile>,
+) -> String {
+    use std::fmt::Write as _;
+
+    let mut output = String::new();
+    output.push_str("# DERIVATION ANCHORING — threshold_calibration.toml\n");
+    output.push_str("# See DERIVATION_ANCHORING_STANDARD.md for the 5-layer chain.\n");
+    output.push_str("# Populate each [[constant]] with empirical derivation data.\n\n");
+    output.push_str("[metadata]\n");
+    output.push_str("standard = \"DERIVATION_ANCHORING_STANDARD v1.0\"\n");
+    if let Some(p) = profile {
+        writeln!(output, "domain = \"{}\"", p.id).unwrap();
+    } else {
+        output.push_str("domain = \"unknown\"\n");
+    }
+    output.push_str("status = \"STUB\"\n\n");
+    output.push_str("# Example constant (replace with actual calibration):\n");
+    output.push_str("# [[constant]]\n");
+    output.push_str("# name = \"rmsd_convergence_threshold\"\n");
+    output.push_str("# value = 2.0\n");
+    output.push_str("# unit = \"kJ/mol\"\n");
+    output.push_str("# layer1_source = \"paper Table N\"\n");
+    output.push_str("# layer2_method = \"block-averaged standard error\"\n");
+    output.push_str("# layer3_calibration = \"3x SEM across N trajectories\"\n");
+    output.push_str("# layer4_validation = \"Phase 0 self-consistency\"\n");
+    output.push_str("# layer5_runtime = \"litho validate --tier 0\"\n");
+    output.push_str("# _anchoring = \"CALIBRATED\"\n");
+    output
+}

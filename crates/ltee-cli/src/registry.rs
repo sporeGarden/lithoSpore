@@ -11,7 +11,7 @@ use std::path::Path;
 
 /// A runtime-resolved module entry.
 #[derive(Debug, Clone)]
-pub struct ModuleEntry {
+pub(crate) struct ModuleEntry {
     pub name: String,
     pub binary: String,
     pub data_dir: String,

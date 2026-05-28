@@ -7,7 +7,7 @@
 
 use std::path::Path;
 
-pub fn run(root: &str) {
+pub(crate) fn run(root: &str) {
     let root_path = Path::new(root);
     let tmpdir = std::env::temp_dir().join("litho-chaos-test");
     let _ = std::fs::remove_dir_all(&tmpdir);

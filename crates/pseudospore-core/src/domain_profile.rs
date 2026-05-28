@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! Domain profile — declarative configuration for domain-specific pseudoSpore behavior.
+//! Domain profile — declarative config for domain-specific pseudoSpore behavior.
 //!
-//! A `domain_profile.toml` at the pseudoSpore root tells emit/audit/promote what
-//! domain-specific logic to apply. When absent, only core (domain-agnostic) checks run.
-//!
-//! The profile is intentionally generic: it declares WHAT to check, not HOW.
+//! A `domain_profile.toml` tells emit/audit/promote what domain-specific logic to
+//! apply. When absent, only core (domain-agnostic) checks run. Declares WHAT, not HOW.
 //! Domain-specific implementations live in their respective springs.
 
 use std::path::Path;
@@ -211,10 +209,15 @@ impl DomainProfile {
     /// # Errors
     ///
     /// Returns an error if the file cannot be read or parsed.
-    pub fn load(path: &Path) -> Result<Self, String> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| format!("Failed to read {}: {e}", path.display()))?;
-        Self::parse(&content)
+    pub fn load(path: &Path) -> Result<Self, crate::SporeError> {
+        let content = std::fs::read_to_string(path).map_err(|e| crate::SporeError::Io {
+            path: path.to_path_buf(),
+            source: e,
+        })?;
+        Self::parse(&content).map_err(|detail| crate::SporeError::Parse {
+            path: path.to_path_buf(),
+            detail,
+        })
     }
 
     /// Load from a path, returning `None` if the file is missing or cannot be parsed.
@@ -741,7 +744,7 @@ time_unit = "ns"
         fs::write(&path, "not valid {{{ toml").expect("write bad toml");
         let err = DomainProfile::load(&path).unwrap_err();
         assert!(
-            err.contains("Failed to parse"),
+            err.to_string().contains("parse"),
             "expected parse error, got: {err}"
         );
     }
@@ -753,7 +756,7 @@ time_unit = "ns"
         fs::write(&path, "[other]\nkey = 1").expect("write profile");
         let err = DomainProfile::load(&path).unwrap_err();
         assert!(
-            err.contains("Missing [profile]"),
+            err.to_string().contains("Missing [profile]"),
             "expected missing section error, got: {err}"
         );
     }
@@ -780,20 +783,16 @@ time_unit = "ns"
     }
 
     #[test]
-    fn section_defaults() {
-        let profile = load_from_content("[profile]\nid = \"minimal\"\nversion = \"0.1.0\"\n");
-        assert!(profile.figures_enabled(), "figures default to enabled");
+    fn section_defaults_and_overrides() {
+        let minimal = load_from_content("[profile]\nid = \"minimal\"\nversion = \"0.1.0\"\n");
+        assert!(minimal.figures_enabled(), "figures default to enabled");
         assert!(
-            !profile.translation_enabled(),
+            !minimal.translation_enabled(),
             "translation default to disabled"
         );
-    }
-
-    #[test]
-    fn figures_enabled_when_section_present() {
-        let profile = load_from_content(
+        let with_figs = load_from_content(
             "[profile]\nid = \"fig\"\nversion = \"0.1.0\"\n\n[figures]\nenabled = true\n",
         );
-        assert!(profile.figures_enabled());
+        assert!(with_figs.figures_enabled());
     }
 }

@@ -25,7 +25,7 @@ use std::path::{Path, PathBuf};
 
 const CHECKSUMS_FILE: &str = "CHECKSUMS.blake3";
 
-pub fn run(
+pub(crate) fn run(
     pseudospore_path: &str,
     output_dir: &str,
     tier2_crate: Option<&str>,

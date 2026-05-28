@@ -29,27 +29,27 @@ use std::path::{Path, PathBuf};
 use util::step;
 
 /// Runtime mode flags for grow.
-pub struct GrowModeFlags {
+pub(crate) struct GrowModeFlags {
     pub vm: bool,
     pub container: bool,
     pub ecosystem: bool,
 }
 
 /// Skip flags for grow pipeline stages.
-pub struct GrowSkipFlags {
+pub(crate) struct GrowSkipFlags {
     pub build: bool,
     pub fetch: bool,
 }
 
 /// Options for germinating a USB artifact into a dev environment.
-pub struct GrowOptions<'a> {
+pub(crate) struct GrowOptions<'a> {
     pub artifact_root: &'a str,
     pub target: &'a str,
     pub mode: GrowModeFlags,
     pub skip: GrowSkipFlags,
 }
 
-pub fn run(opts: &GrowOptions<'_>) {
+pub(crate) fn run(opts: &GrowOptions<'_>) {
     let GrowOptions {
         artifact_root,
         target,

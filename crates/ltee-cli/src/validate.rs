@@ -13,7 +13,12 @@ pub fn run(root: &str, json: bool, max_tier: u8) {
     run_with_provenance(root, json, max_tier, None);
 }
 
-pub fn run_with_provenance(root: &str, json: bool, max_tier: u8, provenance_dir: Option<&str>) {
+pub(crate) fn run_with_provenance(
+    root: &str,
+    json: bool,
+    max_tier: u8,
+    provenance_dir: Option<&str>,
+) {
     let root_path = std::path::Path::new(root);
 
     let scope_name = litho_core::ScopeManifest::load(&root_path.join("artifact/scope.toml"))

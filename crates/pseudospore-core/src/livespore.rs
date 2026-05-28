@@ -131,10 +131,15 @@ impl LiveSporeDoc {
     /// # Errors
     ///
     /// Returns an error if serialization or writing fails.
-    pub fn save(&self, path: &Path) -> Result<(), String> {
-        let json = serde_json::to_string_pretty(self)
-            .map_err(|e| format!("Failed to serialize liveSpore: {e}"))?;
-        std::fs::write(path, json).map_err(|e| format!("Failed to write {}: {e}", path.display()))
+    pub fn save(&self, path: &Path) -> Result<(), crate::SporeError> {
+        let json = serde_json::to_string_pretty(self).map_err(|e| crate::SporeError::Parse {
+            path: path.to_path_buf(),
+            detail: format!("serialization: {e}"),
+        })?;
+        std::fs::write(path, json).map_err(|e| crate::SporeError::Io {
+            path: path.to_path_buf(),
+            source: e,
+        })
     }
 }
 

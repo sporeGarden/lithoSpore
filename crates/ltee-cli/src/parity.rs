@@ -8,7 +8,7 @@
 
 use crate::registry;
 
-pub fn run(root: &str, json: bool) {
+pub(crate) fn run(root: &str, json: bool) {
     let root_path = std::path::Path::new(root);
 
     let scope_name = registry::load_scope_name(root_path);

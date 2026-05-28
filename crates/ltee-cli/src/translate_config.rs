@@ -26,7 +26,7 @@ struct SystemMap {
     atoms: Vec<AtomMapping>,
 }
 
-pub fn run(index_map_path: &str, config_path: &str, frame: &str, output: Option<&str>) {
+pub(crate) fn run(index_map_path: &str, config_path: &str, frame: &str, output: Option<&str>) {
     let map_path = Path::new(index_map_path);
     let cfg_path = Path::new(config_path);
 

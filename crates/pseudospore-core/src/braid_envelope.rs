@@ -45,11 +45,15 @@ impl FermentTranscript {
     /// # Errors
     ///
     /// Returns an error if the file cannot be read or parsed as JSON.
-    pub fn load(path: &Path) -> Result<Self, String> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| format!("Failed to read {}: {e}", path.display()))?;
-        serde_json::from_str(&content)
-            .map_err(|e| format!("Failed to parse ferment_transcript.json: {e}"))
+    pub fn load(path: &Path) -> Result<Self, crate::SporeError> {
+        let content = std::fs::read_to_string(path).map_err(|e| crate::SporeError::Io {
+            path: path.to_path_buf(),
+            source: e,
+        })?;
+        serde_json::from_str(&content).map_err(|e| crate::SporeError::Parse {
+            path: path.to_path_buf(),
+            detail: e.to_string(),
+        })
     }
 }
 
@@ -108,7 +112,7 @@ mod tests {
         std::fs::write(&path, "NOT JSON {{{").expect("write bad json");
         let err = FermentTranscript::load(&path).unwrap_err();
         assert!(
-            err.contains("Failed to parse"),
+            matches!(err, crate::SporeError::Parse { .. }),
             "expected parse error, got: {err}"
         );
     }
@@ -118,8 +122,8 @@ mod tests {
         let err = FermentTranscript::load(std::path::Path::new("/nonexistent/transcript.json"))
             .unwrap_err();
         assert!(
-            err.contains("Failed to read"),
-            "expected read error, got: {err}"
+            matches!(err, crate::SporeError::Io { .. }),
+            "expected IO error, got: {err}"
         );
     }
 }

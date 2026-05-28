@@ -10,21 +10,21 @@ use std::fmt::Write as _;
 use std::path::Path;
 
 /// Skip flags for USB assembly steps.
-pub struct AssembleSkipFlags {
+pub(crate) struct AssembleSkipFlags {
     pub python: bool,
     pub fetch: bool,
     pub build: bool,
 }
 
 /// Options for USB artifact assembly.
-pub struct AssembleOptions<'a> {
+pub(crate) struct AssembleOptions<'a> {
     pub root: &'a str,
     pub target: &'a str,
     pub skip: AssembleSkipFlags,
     pub dry_run: bool,
 }
 
-pub fn run(opts: &AssembleOptions<'_>) {
+pub(crate) fn run(opts: &AssembleOptions<'_>) {
     let AssembleOptions {
         root,
         target,

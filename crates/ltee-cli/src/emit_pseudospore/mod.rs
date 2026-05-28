@@ -19,7 +19,7 @@ use std::path::Path;
 
 pub(crate) const LITHOSPORE_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-pub struct EmitConfig<'a> {
+pub(crate) struct EmitConfig<'a> {
     pub name: &'a str,
     pub version: &'a str,
     pub origin: &'a str,
@@ -31,7 +31,7 @@ pub struct EmitConfig<'a> {
     pub profile_path: Option<&'a str>,
 }
 
-pub fn run(config: &EmitConfig<'_>) {
+pub(crate) fn run(config: &EmitConfig<'_>) {
     let EmitConfig {
         name,
         version,

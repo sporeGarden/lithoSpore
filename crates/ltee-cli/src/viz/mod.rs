@@ -139,7 +139,7 @@ pub(crate) fn genome_track(
 }
 
 /// Owned-vector bar helper for baseline adapters.
-#[allow(clippy::needless_pass_by_value)]
+#[expect(clippy::needless_pass_by_value)]
 pub(crate) fn bar_owned(
     id: &str,
     label: &str,
@@ -151,7 +151,7 @@ pub(crate) fn bar_owned(
 }
 
 /// Owned-vector timeseries helper for baseline adapters.
-#[allow(clippy::needless_pass_by_value)]
+#[expect(clippy::needless_pass_by_value)]
 pub(crate) fn timeseries_owned(
     id: &str,
     label: &str,
@@ -165,7 +165,7 @@ pub(crate) fn timeseries_owned(
 }
 
 /// Owned-vector heatmap helper for baseline adapters.
-#[allow(clippy::needless_pass_by_value)]
+#[expect(clippy::needless_pass_by_value)]
 pub(crate) fn heatmap_owned(
     id: &str,
     label: &str,
@@ -178,7 +178,7 @@ pub(crate) fn heatmap_owned(
 }
 
 /// Owned-vector distribution helper for baseline adapters.
-#[allow(clippy::needless_pass_by_value)]
+#[expect(clippy::needless_pass_by_value)]
 pub(crate) fn distribution_owned(
     id: &str,
     label: &str,
@@ -191,7 +191,7 @@ pub(crate) fn distribution_owned(
 }
 
 /// Owned-vector genome track helper for baseline adapters.
-#[allow(clippy::needless_pass_by_value)]
+#[expect(clippy::needless_pass_by_value)]
 pub(crate) fn genome_track_owned(
     id: &str,
     label: &str,
@@ -204,7 +204,7 @@ pub(crate) fn genome_track_owned(
 }
 
 /// Eight-argument gauge helper for baseline adapters (consumes owned series).
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 pub(crate) fn gauge(
     id: &str,
     label: &str,
@@ -228,7 +228,7 @@ pub(crate) fn gauge(
 }
 
 /// Eight-argument scatter helper for baseline adapters.
-#[allow(clippy::too_many_arguments, clippy::needless_pass_by_value)]
+#[expect(clippy::too_many_arguments, clippy::needless_pass_by_value)]
 pub(crate) fn scatter(
     id: &str,
     label: &str,

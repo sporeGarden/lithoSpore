@@ -141,7 +141,7 @@ Graph and target staging paths parameterized from scope.toml.
 
 **Phase 4**: `viz/` moved from litho-core to ltee-cli (instance layer).
 LTEE test fixtures isolated in `crates/litho-core/tests/fixtures/`.
-`litho-core` reaches 100% chassis — 13 modules (including deprecated
+`litho-core` reaches 100% chassis — 11 modules (including deprecated
 `pseudospore` re-export), zero LTEE-specific code. 198 workspace tests pass
 (75/75 science checks at Tier 2).
 

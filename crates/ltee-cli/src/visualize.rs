@@ -14,7 +14,7 @@ const BASELINE_TOOLS: &[&str] = &[
     "rna_mi",
 ];
 
-pub fn run(root: &str, format: &str, output_dir: &str) {
+pub(crate) fn run(root: &str, format: &str, output_dir: &str) {
     let root_path = std::path::Path::new(root);
     let entries = registry::load_module_table(root_path);
 

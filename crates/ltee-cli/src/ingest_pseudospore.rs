@@ -8,7 +8,7 @@
 use pseudospore_core::{ChecksumEntry, PseudoSporeEnvelope, ScopeDoc};
 use std::path::Path;
 
-pub fn run(pseudospore_path: &str, artifact_root: &str, verify: bool) {
+pub(crate) fn run(pseudospore_path: &str, artifact_root: &str, verify: bool) {
     let ps_root = Path::new(pseudospore_path);
     let litho_root = Path::new(artifact_root);
 

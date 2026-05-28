@@ -43,7 +43,7 @@ struct DatasetEntry {
     full_data_checks: String,
 }
 
-pub fn run(root: &str, dataset_filter: Option<&str>, all: bool, full: bool) {
+pub(crate) fn run(root: &str, dataset_filter: Option<&str>, all: bool, full: bool) {
     let root_path = Path::new(root);
     let data_toml = root_path.join("artifact/data.toml");
 
@@ -418,8 +418,12 @@ fn generate_from_expected(
 
     if !expected_path.exists() {
         if let Some(filename) = expected_path.file_name() {
-            let spring_name =
-                spring_for_module(root, module).unwrap_or_else(|| "groundSpring".to_string());
+            let Some(spring_name) = spring_for_module(root, module) else {
+                eprintln!(
+                    "  WARN: no [[spring]] mapping for {module} in scope.toml; skipping spring-side fetch"
+                );
+                return Err(format!("No expected JSON found for module: {module}"));
+            };
             let spring_expected = springs_root(root)
                 .join(spring_name)
                 .join("validation")

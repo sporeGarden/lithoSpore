@@ -24,7 +24,7 @@ type AuditCheckFn = fn(&Path, &mut Vec<Finding>);
 type AuditCheck = (&'static str, AuditCheckFn);
 
 #[derive(Debug)]
-pub struct Finding {
+pub(crate) struct Finding {
     pub id: String,
     pub severity: Severity,
     pub category: &'static str,
@@ -33,7 +33,7 @@ pub struct Finding {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Severity {
+pub(crate) enum Severity {
     High,
     Medium,
     Low,
@@ -49,7 +49,7 @@ impl std::fmt::Display for Severity {
     }
 }
 
-pub fn run(pseudospore_path: &str, verbose: bool, json_output: bool) {
+pub(crate) fn run(pseudospore_path: &str, verbose: bool, json_output: bool) {
     let audit_start = std::time::Instant::now();
     let root = Path::new(pseudospore_path);
 

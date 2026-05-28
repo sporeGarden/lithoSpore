@@ -1,6 +1,6 @@
 # lithoSpore Upstream Gap Registry
 
-**Last Updated**: May 27, 2026 (75/75 checks, 7/7 modules, Tier 3 wired, 204 tests, 3 live braids)
+**Last Updated**: May 27, 2026 (75/75 checks, 7/7 modules, Tier 3 wired, 191 tests, 3 live braids)
 **Phase**: Post-deployment (first live handoff to Barrick Lab May 18)
 **Scope**: lithoSpore verification chassis (LTEE first instance; chassis 100% agnostic)
 **Geo-delocalization**: Absorbed — discovery chain env → UDS → TURN → standalone
@@ -128,7 +128,7 @@ All 7 coupling points from the original inventory have been resolved:
 | `viz/` in litho-core | **RESOLVED** | Moved to `ltee-cli/src/viz/` (instance layer) — `litho-core` is 100% chassis |
 | Hardcoded graph/target paths | **RESOLVED** | `guidestone.graph_file` + `guidestone.targets_file` in scope.toml |
 | Hardcoded braid accessions | **RESOLVED** | Derived from `data.toml` `sra_accession` fields at runtime |
-| `litho-core` | **Agnostic** | 13 modules, zero LTEE-specific code |
+| `litho-core` | **Agnostic** | 11 modules, zero LTEE-specific code |
 | `scope.toml` loader | **Agnostic** | `ScopeModule` struct + `[[module]]` table + `module_binaries()` |
 | `data.toml` manifest | **Agnostic** | Dataset registry with BLAKE3, source URIs, licenses, SRA accessions |
 | `discovery.rs` / `provenance.rs` | **Agnostic** | Capability strings, JSON-RPC to capability-discovered endpoints |
@@ -329,8 +329,8 @@ currently embed (standalone CLI pattern).
   `scope.toml` `[[module]]` entries carry name/binary/data_dir/expected/tier1_notebook.
   New `registry.rs` centralizes module resolution for all 6 consumer files. `.biomeos-spore`
   generated from scope.toml. Braid accessions from data.toml. `viz/` moved from litho-core
-  to ltee-cli (instance layer). `litho-core` 13 modules, 100% chassis. Graph/target paths
-  parameterized. Test fixtures isolated. 204 tests, zero clippy warnings.
+  to ltee-cli (instance layer). `litho-core` 11 modules, 100% chassis. Graph/target paths
+  parameterized. Test fixtures isolated. 191 tests, zero clippy warnings.
 - **2026-05-17 PM**: wetSpring braid ingestion — `litho-core::braid` module (4 tests),
   sovereign + breseq baseline braids parsed, accession validated (SRP001569 PASS),
   braids displayed in `litho validate` output. URI fixes: gzip/zip content-type

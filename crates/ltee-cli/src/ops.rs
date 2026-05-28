@@ -4,12 +4,12 @@
 
 use crate::registry;
 
-pub fn cmd_refresh(root: &str) {
+pub(crate) fn cmd_refresh(root: &str) {
     println!("litho refresh: re-fetching all datasets via litho fetch...");
     crate::fetch::run(root, None, true, false);
 }
 
-pub fn cmd_status(root: &str) {
+pub(crate) fn cmd_status(root: &str) {
     let root_path = std::path::Path::new(root);
     let scope_name = registry::load_scope_name(root_path);
     let modules = registry::load_module_table(root_path);
@@ -53,7 +53,7 @@ mod tests {
     }
 }
 
-pub fn cmd_self_test(root: &str) {
+pub(crate) fn cmd_self_test(root: &str) {
     let root_path = std::path::Path::new(root);
     let modules = registry::load_module_table(root_path);
     let mut passed = 0u32;
@@ -161,7 +161,7 @@ pub fn cmd_self_test(root: &str) {
     }
 }
 
-pub fn cmd_tier(root: &str) {
+pub(crate) fn cmd_tier(root: &str) {
     let root_path = std::path::Path::new(root);
     let modules = registry::load_module_table(root_path);
 
@@ -236,7 +236,7 @@ pub fn cmd_tier(root: &str) {
     println!("  Maximum tier: {max_tier}");
 }
 
-pub fn cmd_deploy_report(root: &str, pattern: &str) {
+pub(crate) fn cmd_deploy_report(root: &str, pattern: &str) {
     let root_path = std::path::Path::new(root);
     let modules = registry::load_module_table(root_path);
     let timestamp = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
@@ -396,7 +396,7 @@ pub fn cmd_deploy_report(root: &str, pattern: &str) {
     }
 }
 
-pub fn cmd_spore(root: &str) {
+pub(crate) fn cmd_spore(root: &str) {
     let spore_path = crate::resolve_livespore(std::path::Path::new(root));
     match std::fs::read_to_string(&spore_path) {
         Ok(contents) => {

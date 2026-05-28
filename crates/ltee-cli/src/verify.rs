@@ -2,7 +2,7 @@
 
 //! `litho verify` — data integrity: rehash files against manifest, probe upstream.
 
-pub fn run(root: &str, json_output: bool) {
+pub(crate) fn run(root: &str, json_output: bool) {
     let root_path = std::path::Path::new(root);
     let manifest_path = root_path.join("data_manifest.toml");
     let data_toml_path = root_path.join("artifact/data.toml");
@@ -59,7 +59,7 @@ pub fn run(root: &str, json_output: bool) {
 }
 
 /// Run verification and return success/failure without calling `process::exit`.
-pub fn run_check(root: &str) -> bool {
+pub(crate) fn run_check(root: &str) -> bool {
     let root_path = std::path::Path::new(root);
     let manifest_path = root_path.join("data_manifest.toml");
 

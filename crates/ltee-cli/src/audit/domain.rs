@@ -356,7 +356,7 @@ pub(super) fn check_hills_height_match(root: &Path, findings: &mut Vec<Finding>)
                                             ),
                                             fix: format!("Update HEIGHT in configs/{}/{}",
                                                 mod_name,
-                                                plumed_path.file_name().unwrap().to_string_lossy()),
+                                                plumed_path.file_name().map_or("plumed.dat".into(), |f| f.to_string_lossy())),
                                         });
                                 }
                             }

@@ -30,10 +30,15 @@ impl EnvironmentReceipt {
     /// # Errors
     ///
     /// Returns an error if the file cannot be read or parsed.
-    pub fn load(path: &Path) -> Result<Self, String> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| format!("Failed to read {}: {e}", path.display()))?;
-        toml::from_str(&content).map_err(|e| format!("Failed to parse environment.toml: {e}"))
+    pub fn load(path: &Path) -> Result<Self, crate::SporeError> {
+        let content = std::fs::read_to_string(path).map_err(|e| crate::SporeError::Io {
+            path: path.to_path_buf(),
+            source: e,
+        })?;
+        toml::from_str(&content).map_err(|e| crate::SporeError::Parse {
+            path: path.to_path_buf(),
+            detail: e.to_string(),
+        })
     }
 }
 

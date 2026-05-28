@@ -178,7 +178,10 @@ pub(super) fn check_provenance(root: &Path, findings: &mut Vec<Finding>) {
                 && let Ok(content) = fs::read_to_string(&path)
                 && let Ok(v) = serde_json::from_str::<serde_json::Value>(&content)
             {
-                let fname = path.file_name().unwrap().to_string_lossy().to_string();
+                let fname = path.file_name().map_or_else(
+                    || "unknown.json".to_string(),
+                    |f| f.to_string_lossy().to_string(),
+                );
                 if let Some(bid) = v.get("braid_id").and_then(|v| v.as_str()) {
                     braid_ids.push((fname.clone(), bid.to_string()));
                 }

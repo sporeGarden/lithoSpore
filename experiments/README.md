@@ -36,6 +36,7 @@ NNN_DESCRIPTOR.{rs,md,json,toml}
 | 009 | Tier 3 NUCLEUS provenance wiring | md | Primal integration | Complete — JSON-RPC trio client |
 | 010 | Two-tier data model | md | Data strategy | Complete — `litho fetch --full`, upstream braids |
 | 011 | Chassis abstraction evolution | md | Architecture | Complete — scope-driven registry, litho-core domain-agnostic chassis |
+| 012 | Hypogeal deployment (benchScale VM) | md | Infrastructure | Complete — `litho grow` VM lifecycle |
 
 ## Planned Experiments
 
@@ -45,7 +46,7 @@ NNN_DESCRIPTOR.{rs,md,json,toml}
 | 014 | neuralSpring ML surrogate integration | md | Modules 3, 4 | neuralSpring B3/B4 models |
 | 015 | Signal dispatch collapse | md | Architecture | biomeOS signal routing |
 | 016 | FIDO2 hardware attestation | md | Security | BearDog CTAP2 library |
-| 017 | Upstream braid handoff (wetSpring) | md | Provenance | wetSpring breseq pipeline |
+| 017 | Upstream braid handoff (wetSpring) | md | Provenance | 3 braids READY; wetSpring pipeline partial |
 
 ## Experiment Log (May 2026)
 

@@ -92,7 +92,7 @@ lithoSpore/
 ├── deny.toml                     # cargo-deny policy (licenses, advisories)
 ├── crates/
 │   ├── pseudospore-core/         # pseudoSpore format: BLAKE3 manifest, braid envelope, validation
-│   ├── litho-core/               # Shared library (chassis): validation, tolerance, provenance, discovery, stats, harness, braid, scope
+│   ├── litho-core/               # Shared library (chassis): validation, tolerance, provenance, discovery, stats, harness, braid, scope, error
 │   ├── ltee-fitness/             # Module 1: power-law fitness (lib.rs + thin main.rs)
 │   ├── ltee-mutations/           # Module 2: mutation accumulation
 │   ├── ltee-alleles/             # Module 3: allele trajectories

@@ -183,7 +183,7 @@ NUCLEUS topology without per-module wiring.
 ## Chassis Abstraction
 
 The three-tier pipeline is now domain-agnostic at the infrastructure layer.
-`litho-core` (11 modules) contains zero LTEE-specific code. The LTEE instance
+`litho-core` (12 modules) contains no LTEE science logic in source. The LTEE instance
 is decoupled via:
 
 - **`scope.toml` `[[module]]` entries**: Carry name, binary, data_dir, expected,

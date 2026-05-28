@@ -4,7 +4,7 @@
 
 lithoSpore reproduces and validates seven strands of the Long-Term
 Evolution Experiment (LTEE) — a continuous evolutionary experiment with
-*Escherichia coli* that has run since February 24, 1988, through 75,000+
+*Escherichia coli* that has run since February 24, 1988, through 82,500+
 generations across 12 replicate populations.
 
 This document connects the seven science modules into a coherent

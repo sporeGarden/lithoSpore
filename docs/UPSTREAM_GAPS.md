@@ -1,8 +1,8 @@
 # lithoSpore Upstream Gap Registry
 
-**Last Updated**: May 27, 2026 (75/75 checks, 7/7 modules, Tier 3 wired, 192 tests, 3 live braids)
+**Last Updated**: May 28, 2026 (75/75 checks, 7/7 modules, Tier 3 wired, 192 tests, 3 live braids)
 **Phase**: Post-deployment (first live handoff to Barrick Lab May 18)
-**Scope**: lithoSpore verification chassis (LTEE first instance; chassis 100% agnostic)
+**Scope**: lithoSpore verification chassis (LTEE first instance; chassis domain-agnostic)
 **Geo-delocalization**: Absorbed — discovery chain env → UDS → TURN → standalone
 **Deployment**: exFAT cross-platform, 3-zone structure, Layer 0-4 model
 
@@ -34,7 +34,7 @@ all bash fetch scripts. `litho assemble` replaces `assemble-usb.sh`.
 | ID | Gap | Resolution |
 |----|-----|-----------|
 | LS-7 | `blake3` crate pulled `cc` for C assembly | Set `default-features = false, features = ["pure", "std"]` — ecoBin compliant |
-| LS-6 | Unused `thiserror` dep in litho-core | Removed from workspace + crate |
+| LS-6 | `thiserror` dep in litho-core | Now used for `LithoError` typed error hierarchy (`error.rs`) |
 | LS-8 | Missing SPDX in fetch scripts | Added `AGPL-3.0-or-later` to all fetch scripts |
 | FN-2 | CI thread-index validation was a no-op | Fixed `thread`→`threads`, `source_manifest`→`data_sources`, added ML sidecar checks |
 | FN-6 | Spec said `store.put`, scripts use `storage.store` | Aligned spec to match implementation |

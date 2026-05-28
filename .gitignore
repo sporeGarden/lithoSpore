@@ -1,5 +1,6 @@
 /target
 /usb-staging
+/python-standalone
 artifact/bin/x86_64/static/*
 artifact/bin/aarch64/static/*
 artifact/data/*/

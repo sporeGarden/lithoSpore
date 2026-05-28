@@ -487,7 +487,12 @@ fn main() {
             },
             dry_run,
         }),
-        Commands::ChaosTest { artifact_root } => chaos::run(&artifact_root),
+        Commands::ChaosTest { artifact_root } => {
+            if let Err(e) = chaos::run(&artifact_root) {
+                eprintln!("ERROR: {e}");
+                std::process::exit(1);
+            }
+        }
         Commands::DeployTest { artifact_root } => deploy_test::run(&artifact_root),
         Commands::Fetch {
             artifact_root,
@@ -561,7 +566,7 @@ fn main() {
                 resolved_origin
             };
             let effective_outputs = outputs.as_deref().or(from_dir.as_deref());
-            emit_pseudospore::run(&emit_pseudospore::EmitConfig {
+            if let Err(e) = emit_pseudospore::run(&emit_pseudospore::EmitConfig {
                 name: &resolved_name,
                 version: &resolved_version,
                 origin: &effective_origin,
@@ -571,7 +576,10 @@ fn main() {
                 braids_dir: braids.as_deref(),
                 data_dir: data.as_deref(),
                 profile_path: profile.as_deref(),
-            });
+            }) {
+                eprintln!("ERROR: {e}");
+                std::process::exit(1);
+            }
         }
         Commands::Promote {
             pseudospore,
@@ -579,19 +587,29 @@ fn main() {
             tier2_crate,
             tier1_script,
             version,
-        } => promote::run(
-            &pseudospore,
-            &output,
-            tier2_crate.as_deref(),
-            tier1_script.as_deref(),
-            version.as_deref(),
-        ),
+        } => {
+            if let Err(e) = promote::run(
+                &pseudospore,
+                &output,
+                tier2_crate.as_deref(),
+                tier1_script.as_deref(),
+                version.as_deref(),
+            ) {
+                eprintln!("ERROR: {e}");
+                std::process::exit(1);
+            }
+        }
         Commands::TranslateConfig {
             index_map,
             config,
             frame,
             output,
-        } => translate_config::run(&index_map, &config, &frame, output.as_deref()),
+        } => {
+            if let Err(e) = translate_config::run(&index_map, &config, &frame, output.as_deref()) {
+                eprintln!("ERROR: {e}");
+                std::process::exit(1);
+            }
+        }
     }
 }
 

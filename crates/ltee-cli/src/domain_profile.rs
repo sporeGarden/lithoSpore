@@ -4,7 +4,7 @@
 //!
 //! Domain-specific audit checks (PLUMED, GROMACS MDP, etc.) live in [`crate::audit::domain`].
 
-pub use pseudospore_core::DomainProfile;
+pub(crate) use pseudospore_core::DomainProfile;
 
 use std::path::Path;
 

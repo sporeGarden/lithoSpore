@@ -39,10 +39,10 @@ pub(crate) fn run(pseudospore_path: &str, artifact_root: &str, verify: bool) {
         std::process::exit(1);
     }
 
-    let scope = envelope
-        .scope
-        .as_ref()
-        .expect("scope guaranteed present after successful load");
+    let Some(scope) = &envelope.scope else {
+        eprintln!("ERROR: scope missing after successful load");
+        std::process::exit(1);
+    };
 
     println!(
         "  Artifact: {} v{}",

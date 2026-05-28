@@ -7,11 +7,11 @@
 
 use std::path::Path;
 
-pub(crate) fn run(root: &str) {
+pub(crate) fn run(root: &str) -> Result<(), String> {
     let root_path = Path::new(root);
     let tmpdir = std::env::temp_dir().join("litho-chaos-test");
     let _ = std::fs::remove_dir_all(&tmpdir);
-    std::fs::create_dir_all(&tmpdir).expect("cannot create temp dir");
+    std::fs::create_dir_all(&tmpdir).map_err(|e| format!("cannot create temp dir: {e}"))?;
 
     println!("litho chaos-test — fault injection harness");
     println!("  Source:    {root}");
@@ -239,8 +239,9 @@ pub(crate) fn run(root: &str) {
     println!();
     println!("  Chaos test: {passed}/{total} passed, {failed} failed");
     if failed > 0 {
-        std::process::exit(1);
+        return Err(format!("chaos test: {failed} failures"));
     }
+    Ok(())
 }
 
 fn run_validate(dir: &Path) -> bool {

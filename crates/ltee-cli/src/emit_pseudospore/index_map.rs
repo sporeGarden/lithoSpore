@@ -84,10 +84,10 @@ pub(super) fn auto_generate_index_map(
         // "free" modules or others use XYS/the first match
         let pdb_serials = select_pdb_serials_for_module(module, &all_pdb_residues);
 
-        writeln!(output, "[systems.\"{module}\"]").unwrap();
-        writeln!(output, "description = \"Auto-detected from {rosetta}\"").unwrap();
-        writeln!(output, "rosetta_stone = \"{rosetta}\"\n").unwrap();
-        writeln!(output, "[systems.\"{module}\".ring]").unwrap();
+        let _ = writeln!(output, "[systems.\"{module}\"]");
+        let _ = writeln!(output, "description = \"Auto-detected from {rosetta}\"");
+        let _ = writeln!(output, "rosetta_stone = \"{rosetta}\"\n");
+        let _ = writeln!(output, "[systems.\"{module}\".ring]");
 
         for (name, idx) in atoms {
             let domain_val = pdb_serials
@@ -95,11 +95,10 @@ pub(super) fn auto_generate_index_map(
                 .find(|(pdb_name, _)| pdb_name == name)
                 .map_or_else(|| "\"?\"".to_string(), |(_, serial)| format!("{serial}"));
 
-            writeln!(
+            let _ = writeln!(
                 output,
                 "{name} = {{ domain = {domain_val}, computation = {idx} }}"
-            )
-            .unwrap();
+            );
         }
 
         let note = if pdb_serials.is_empty() {
@@ -107,8 +106,8 @@ pub(super) fn auto_generate_index_map(
         } else {
             "Domain = PDB HETATM serial (auto-extracted). Computation = GROMACS topology index (auto-extracted)."
         };
-        writeln!(output, "\n[systems.\"{module}\"._note]").unwrap();
-        writeln!(output, "value = \"{note}\"\n").unwrap();
+        let _ = writeln!(output, "\n[systems.\"{module}\"._note]");
+        let _ = writeln!(output, "value = \"{note}\"\n");
     }
 
     Some(output)

@@ -96,7 +96,7 @@ pub(crate) const LTEE_NOTEBOOKS: &[(&str, &str)] = &[
     ),
 ];
 
-pub type ModuleFn = fn(&str, &str, u8) -> litho_core::ModuleResult;
+pub(crate) type ModuleFn = fn(&str, &str, u8) -> litho_core::ModuleResult;
 
 /// Compiled dispatch table. Modules are linked at compile time via Cargo deps.
 /// A future evolution would use dynamic loading or feature gates per instance.

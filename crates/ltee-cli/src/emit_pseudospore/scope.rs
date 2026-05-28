@@ -25,10 +25,10 @@ license = "AGPL-3.0-or-later"
     );
 
     if profile.is_some() {
-        writeln!(output, "[target]").unwrap();
-        writeln!(output, "# Populate from domain_profile.toml or manually").unwrap();
-        writeln!(output, "paper_doi = \"\"").unwrap();
-        writeln!(output, "paper_title = \"\"\n").unwrap();
+        let _ = writeln!(output, "[target]");
+        let _ = writeln!(output, "# Populate from domain_profile.toml or manually");
+        let _ = writeln!(output, "paper_doi = \"\"");
+        let _ = writeln!(output, "paper_title = \"\"\n");
     }
 
     if let Some(data_path) = data_dir
@@ -50,14 +50,14 @@ license = "AGPL-3.0-or-later"
 
             let (system, cv, method) = infer_module_metadata(module_name, profile);
 
-            writeln!(output, "[[module]]").unwrap();
-            writeln!(output, "name = \"{module_name}\"").unwrap();
-            writeln!(output, "status = \"PASS\"").unwrap();
-            writeln!(output, "system = \"{system}\"").unwrap();
-            writeln!(output, "cv = \"{cv}\"").unwrap();
-            writeln!(output, "method = \"{method}\"").unwrap();
+            let _ = writeln!(output, "[[module]]");
+            let _ = writeln!(output, "name = \"{module_name}\"");
+            let _ = writeln!(output, "status = \"PASS\"");
+            let _ = writeln!(output, "system = \"{system}\"");
+            let _ = writeln!(output, "cv = \"{cv}\"");
+            let _ = writeln!(output, "method = \"{method}\"");
             if let Some(ns) = sim_time_ns {
-                writeln!(output, "simulation_time_ns = {ns}").unwrap();
+                let _ = writeln!(output, "simulation_time_ns = {ns}");
             }
             output.push('\n');
         }

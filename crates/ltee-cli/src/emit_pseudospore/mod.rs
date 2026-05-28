@@ -31,7 +31,7 @@ pub(crate) struct EmitConfig<'a> {
     pub profile_path: Option<&'a str>,
 }
 
-pub(crate) fn run(config: &EmitConfig<'_>) {
+pub(crate) fn run(config: &EmitConfig<'_>) -> Result<(), String> {
     let EmitConfig {
         name,
         version,
@@ -74,11 +74,10 @@ pub(crate) fn run(config: &EmitConfig<'_>) {
     println!();
 
     // Create directory structure
-    std::fs::create_dir_all(root.join("receipts")).expect("Failed to create receipts/");
-    std::fs::create_dir_all(root.join("provenance/braids"))
-        .expect("Failed to create provenance/braids/");
-    std::fs::create_dir_all(root.join("outputs")).expect("Failed to create outputs/");
-    std::fs::create_dir_all(root.join("configs")).expect("Failed to create configs/");
+    std::fs::create_dir_all(root.join("receipts")).map_err(|e| format!("emit: {e}"))?;
+    std::fs::create_dir_all(root.join("provenance/braids")).map_err(|e| format!("emit: {e}"))?;
+    std::fs::create_dir_all(root.join("outputs")).map_err(|e| format!("emit: {e}"))?;
+    std::fs::create_dir_all(root.join("configs")).map_err(|e| format!("emit: {e}"))?;
 
     // 1. Generate scope.toml (profile-aware: auto-populates modules from data/)
     let scope_content = scope::generate_scope(
@@ -89,20 +88,20 @@ pub(crate) fn run(config: &EmitConfig<'_>) {
         data_dir.map(Path::new),
         configs_dir.map(Path::new),
     );
-    std::fs::write(root.join("scope.toml"), &scope_content).expect("Failed to write scope.toml");
+    std::fs::write(root.join("scope.toml"), &scope_content).map_err(|e| format!("emit: {e}"))?;
     println!("  [+] scope.toml");
 
     // 2. Generate stub validation.json
     let validation_content = scripts::generate_validation_stub(name, version);
     std::fs::write(root.join("validation.json"), &validation_content)
-        .expect("Failed to write validation.json");
+        .map_err(|e| format!("emit: {e}"))?;
     println!("  [+] validation.json (stub — populate with results)");
 
     // 3. Capture environment (profile-aware: probes tool versions, computes total production)
     let env_content =
         environment::capture_environment(profile.as_ref(), configs_dir.map(Path::new));
     std::fs::write(root.join("receipts/environment.toml"), &env_content)
-        .expect("Failed to write receipts/environment.toml");
+        .map_err(|e| format!("emit: {e}"))?;
     println!("  [+] receipts/environment.toml");
 
     // 4. Copy outputs if provided
@@ -136,7 +135,7 @@ pub(crate) fn run(config: &EmitConfig<'_>) {
     if let Some(src) = data_dir {
         let src_path = Path::new(src);
         if src_path.exists() {
-            std::fs::create_dir_all(root.join("data")).expect("Failed to create data/");
+            std::fs::create_dir_all(root.join("data")).map_err(|e| format!("emit: {e}"))?;
             copy_tree(src_path, &root.join("data"));
             println!("  [+] data/ (copied from {src})");
         }
@@ -163,7 +162,7 @@ pub(crate) fn run(config: &EmitConfig<'_>) {
         let entity_groups = profile.as_ref().and_then(|p| p.translation_entity_groups());
         if let Some(index_map) = index_map::auto_generate_index_map(&data_root, entity_groups) {
             std::fs::write(root.join("index_map.toml"), &index_map)
-                .expect("Failed to write index_map.toml");
+                .map_err(|e| format!("emit: {e}"))?;
             println!("  [+] index_map.toml (auto-generated from topology files)");
         }
     } else if !do_translation {
@@ -176,7 +175,7 @@ pub(crate) fn run(config: &EmitConfig<'_>) {
         root.join("provenance/ferment_transcript.json"),
         &ferment_content,
     )
-    .expect("Failed to write provenance/ferment_transcript.json");
+    .map_err(|e| format!("emit: {e}"))?;
     println!("  [+] provenance/ferment_transcript.json (stub)");
 
     // 12. Compute checksums for outputs/, provenance/, and data/
@@ -184,7 +183,7 @@ pub(crate) fn run(config: &EmitConfig<'_>) {
         receipts::compute_checksums(&root, &["outputs", "provenance", "data", "configs"]);
     let cksum_content = receipts::format_checksums(&checksums);
     std::fs::write(root.join("receipts/checksums.blake3"), &cksum_content)
-        .expect("Failed to write receipts/checksums.blake3");
+        .map_err(|e| format!("emit: {e}"))?;
     println!(
         "  [+] receipts/checksums.blake3 ({} entries)",
         checksums.len()
@@ -199,14 +198,13 @@ pub(crate) fn run(config: &EmitConfig<'_>) {
         data_dir.map(Path::new),
         configs_dir.map(Path::new),
     );
-    std::fs::write(root.join("README.md"), &readme).expect("Failed to write README.md");
+    std::fs::write(root.join("README.md"), &readme).map_err(|e| format!("emit: {e}"))?;
     println!("  [+] README.md");
 
     // 14. Generate TRANSLATE.md stub (only if translation enabled)
     if do_translation {
         let translate = scripts::generate_translate_stub();
-        std::fs::write(root.join("TRANSLATE.md"), &translate)
-            .expect("Failed to write TRANSLATE.md");
+        std::fs::write(root.join("TRANSLATE.md"), &translate).map_err(|e| format!("emit: {e}"))?;
         println!("  [+] TRANSLATE.md (stub — populate with derivation commands)");
     }
 
@@ -214,13 +212,13 @@ pub(crate) fn run(config: &EmitConfig<'_>) {
     if data_root.exists() {
         let data_manifest =
             manifest::generate_data_manifest(&data_root, name, version, spring_name);
-        fs::write(root.join("data.toml"), &data_manifest).expect("Failed to write data.toml");
+        fs::write(root.join("data.toml"), &data_manifest).map_err(|e| format!("emit: {e}"))?;
         println!("  [+] data.toml (data manifest)");
     }
 
     // 16. Generate tolerances.toml with scientific justification
     let tolerances = manifest::generate_tolerances_justified(profile.as_ref());
-    fs::write(root.join("tolerances.toml"), &tolerances).expect("Failed to write tolerances.toml");
+    fs::write(root.join("tolerances.toml"), &tolerances).map_err(|e| format!("emit: {e}"))?;
     println!("  [+] tolerances.toml (named tolerances with justification)");
 
     // 17. Initialize liveSpore.json (unified schema: envelope + validations)
@@ -240,11 +238,11 @@ pub(crate) fn run(config: &EmitConfig<'_>) {
         root.join("liveSpore.json"),
         serde_json::to_string_pretty(&livespore_initial).unwrap_or_else(|_| "{}".to_string()),
     )
-    .expect("Failed to write liveSpore.json");
+    .map_err(|e| format!("emit: {e}"))?;
     println!("  [+] liveSpore.json (unified schema: envelope + empty validations)");
 
     // 18. Generate validate + refresh entry point scripts
-    scripts::generate_entry_scripts(&root, name, version);
+    scripts::generate_entry_scripts(&root, name, version)?;
     println!("  [+] validate (entry point script)");
     println!("  [+] refresh (data freshness script)");
 
@@ -263,7 +261,7 @@ pub(crate) fn run(config: &EmitConfig<'_>) {
     );
     let final_cksum_content = receipts::format_checksums(&final_checksums);
     std::fs::write(root.join("receipts/checksums.blake3"), &final_cksum_content)
-        .expect("Failed to write final receipts/checksums.blake3");
+        .map_err(|e| format!("emit: {e}"))?;
     if final_checksums.len() > checksums.len() {
         println!(
             "  [+] receipts/checksums.blake3 re-sealed ({} entries, +{} from figures)",
@@ -280,6 +278,7 @@ pub(crate) fn run(config: &EmitConfig<'_>) {
     println!("  ./validate                  # airgapped validation + liveSpore append");
     println!("  ./refresh                   # re-fetch datasets from source_uri");
     println!("  litho audit --path . --json # structured JSON report");
+    Ok(())
 }
 
 pub(crate) fn run_cmd(program: &str, args: &[&str]) -> Option<String> {

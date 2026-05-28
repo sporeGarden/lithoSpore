@@ -14,7 +14,7 @@ pub(super) fn generate_data_manifest(
     let mut output = String::new();
     output.push_str("# Data Manifest — guideStone data component\n");
     output.push_str("# Per wateringHole/TARGETED_GUIDESTONE_STANDARD v1.0\n");
-    writeln!(output, "# Artifact: {name} v{version}\n").unwrap();
+    let _ = writeln!(output, "# Artifact: {name} v{version}\n");
     output.push_str("[manifest]\n");
     output.push_str("standard = \"wateringHole/TARGETED_GUIDESTONE_STANDARD v1.0\"\n");
     output.push_str("hash_method = \"blake3\"\n");
@@ -49,24 +49,22 @@ pub(super) fn generate_data_manifest(
 
             let id = rel_name.clone();
             output.push_str("[[dataset]]\n");
-            writeln!(output, "id = \"{id}\"").unwrap();
+            let _ = writeln!(output, "id = \"{id}\"");
             let spring_lower = spring_name.to_lowercase();
-            writeln!(output, "source_uri = \"urn:{spring_lower}:{id}\"").unwrap();
+            let _ = writeln!(output, "source_uri = \"urn:{spring_lower}:{id}\"");
             output.push_str("license = \"AGPL-3.0-or-later\"\n");
-            writeln!(output, "local_path = \"{local_path}/\"").unwrap();
-            writeln!(output, "blake3 = \"{hash}\"").unwrap();
-            writeln!(output, "retrieved = \"{date}\"").unwrap();
-            writeln!(
+            let _ = writeln!(output, "local_path = \"{local_path}/\"");
+            let _ = writeln!(output, "blake3 = \"{hash}\"");
+            let _ = writeln!(output, "retrieved = \"{date}\"");
+            let _ = writeln!(
                 output,
                 "refresh_command = \"# Re-run simulation; see configs/{id}/\""
-            )
-            .unwrap();
-            writeln!(output, "upstream_spring = \"{spring_name}\"").unwrap();
-            writeln!(
+            );
+            let _ = writeln!(output, "upstream_spring = \"{spring_name}\"");
+            let _ = writeln!(
                 output,
                 "upstream_braid = \"urn:provenance:braid:{spring_lower}-v{version}\"\n"
-            )
-            .unwrap();
+            );
         } else {
             // Single file dataset (e.g. 2D24.pdb)
             let hash = blake3_file(entry);
@@ -76,33 +74,31 @@ pub(super) fn generate_data_manifest(
                 .is_some_and(|e| e.eq_ignore_ascii_case("pdb"));
 
             output.push_str("[[dataset]]\n");
-            writeln!(output, "id = \"{id}\"").unwrap();
+            let _ = writeln!(output, "id = \"{id}\"");
             if is_pdb {
                 let pdb_id = Path::new(&rel_name)
                     .file_stem()
                     .and_then(|s| s.to_str())
                     .unwrap_or(&id);
-                writeln!(
+                let _ = writeln!(
                     output,
                     "source_uri = \"https://www.rcsb.org/structure/{pdb_id}\""
-                )
-                .unwrap();
+                );
                 output.push_str("license = \"CC0\"\n");
-                writeln!(
+                let _ = writeln!(
                     output,
                     "refresh_command = \"curl -sL https://files.rcsb.org/download/{rel_name} -o {local_path}\""
-                )
-                .unwrap();
+                );
             } else {
                 let spring_lower = spring_name.to_lowercase();
-                writeln!(output, "source_uri = \"urn:{spring_lower}:{id}\"").unwrap();
+                let _ = writeln!(output, "source_uri = \"urn:{spring_lower}:{id}\"");
                 output.push_str("license = \"AGPL-3.0-or-later\"\n");
                 output.push_str("refresh_command = \"# Manual: re-obtain from source\"\n");
             }
-            writeln!(output, "local_path = \"{local_path}\"").unwrap();
-            writeln!(output, "blake3 = \"{hash}\"").unwrap();
-            writeln!(output, "retrieved = \"{date}\"").unwrap();
-            writeln!(output, "upstream_spring = \"{spring_name}\"\n").unwrap();
+            let _ = writeln!(output, "local_path = \"{local_path}\"");
+            let _ = writeln!(output, "blake3 = \"{hash}\"");
+            let _ = writeln!(output, "retrieved = \"{date}\"");
+            let _ = writeln!(output, "upstream_spring = \"{spring_name}\"\n");
         }
     }
 
@@ -146,7 +142,7 @@ pub(super) fn generate_tolerances_justified(
     output.push_str("# Named Tolerances — guideStone validation contract\n");
     output.push_str("# Per wateringHole/TARGETED_GUIDESTONE_STANDARD v1.0\n");
     if let Some(p) = profile {
-        writeln!(output, "# Domain profile: {} v{}", p.id, p.version).unwrap();
+        let _ = writeln!(output, "# Domain profile: {} v{}", p.id, p.version);
     }
     output.push('\n');
 
@@ -160,12 +156,11 @@ pub(super) fn generate_tolerances_justified(
     // Domain-specific tolerances: populated from profile or manually post-emission.
     // The profile declares check_commands; tolerances should match those checks.
     if let Some(p) = profile {
-        writeln!(
+        let _ = writeln!(
             output,
             "# Add domain-specific tolerances for {} here.",
             p.id
-        )
-        .unwrap();
+        );
         output.push_str("# Each tolerance should have a physical or mathematical derivation.\n\n");
     }
 
@@ -185,7 +180,7 @@ pub(super) fn generate_calibration_stub(
     output.push_str("[metadata]\n");
     output.push_str("standard = \"DERIVATION_ANCHORING_STANDARD v1.0\"\n");
     if let Some(p) = profile {
-        writeln!(output, "domain = \"{}\"", p.id).unwrap();
+        let _ = writeln!(output, "domain = \"{}\"", p.id);
     } else {
         output.push_str("domain = \"unknown\"\n");
     }

@@ -292,7 +292,13 @@ fn try_http_download(uri: &str, target_dir: &Path, id: &str) -> Result<(), Strin
     eprintln!("[{id}]   Downloading from {uri}...");
 
     let mut response = ureq::get(uri)
-        .header("User-Agent", "lithoSpore/0.1 (science-validation)")
+        .header(
+            "User-Agent",
+            &format!(
+                "lithoSpore/{} (science-validation)",
+                env!("CARGO_PKG_VERSION")
+            ),
+        )
         .call()
         .map_err(|e| format!("HTTP request failed: {e}"))?;
 

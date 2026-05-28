@@ -31,7 +31,7 @@ pub(crate) fn run(
     tier2_crate: Option<&str>,
     tier1_script: Option<&str>,
     version_override: Option<&str>,
-) {
+) -> Result<(), String> {
     let ps_root = Path::new(pseudospore_path);
     let out = Path::new(output_dir);
 
@@ -87,11 +87,14 @@ pub(crate) fn run(
     println!();
 
     // Create chassis structure
-    fs::create_dir_all(root.join("proof")).expect("create proof/");
-    fs::create_dir_all(root.join("runtime/bin")).expect("create runtime/bin/");
-    fs::create_dir_all(root.join("runtime/env")).expect("create runtime/env/");
-    fs::create_dir_all(root.join("runtime/scripts")).expect("create runtime/scripts/");
-    fs::create_dir_all(root.join("expected")).expect("create expected/");
+    fs::create_dir_all(root.join("proof")).map_err(|e| format!("create proof/: {e}"))?;
+    fs::create_dir_all(root.join("runtime/bin"))
+        .map_err(|e| format!("create runtime/bin/: {e}"))?;
+    fs::create_dir_all(root.join("runtime/env"))
+        .map_err(|e| format!("create runtime/env/: {e}"))?;
+    fs::create_dir_all(root.join("runtime/scripts"))
+        .map_err(|e| format!("create runtime/scripts/: {e}"))?;
+    fs::create_dir_all(root.join("expected")).map_err(|e| format!("create expected/: {e}"))?;
 
     // 1. Copy pseudoSpore into proof/ verbatim
     print!("  [1/10] Copying pseudoSpore into proof/... ");
@@ -287,6 +290,7 @@ pub(crate) fn run(
     println!("  ./runtime/bin/litho verify --artifact-root proof/");
     println!("  ./runtime/scripts/validate.sh");
     println!("  ./runtime/scripts/translate.sh --frame domain");
+    Ok(())
 }
 
 /// Compute BLAKE3 checksums for every file under the chassis root.

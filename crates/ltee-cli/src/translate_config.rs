@@ -26,7 +26,12 @@ struct SystemMap {
     atoms: Vec<AtomMapping>,
 }
 
-pub(crate) fn run(index_map_path: &str, config_path: &str, frame: &str, output: Option<&str>) {
+pub(crate) fn run(
+    index_map_path: &str,
+    config_path: &str,
+    frame: &str,
+    output: Option<&str>,
+) -> Result<(), String> {
     let map_path = Path::new(index_map_path);
     let cfg_path = Path::new(config_path);
 
@@ -39,10 +44,10 @@ pub(crate) fn run(index_map_path: &str, config_path: &str, frame: &str, output: 
         std::process::exit(1);
     }
 
-    let map_content = fs::read_to_string(map_path).expect("Failed to read index_map.toml");
-    let config_content = fs::read_to_string(cfg_path).expect("Failed to read config file");
+    let map_content = fs::read_to_string(map_path).map_err(|e| format!("read index_map: {e}"))?;
+    let config_content = fs::read_to_string(cfg_path).map_err(|e| format!("read config: {e}"))?;
 
-    let systems = parse_index_map(&map_content);
+    let systems = parse_index_map(&map_content)?;
 
     let (from_frame, to_frame) = match frame {
         "domain" => ("computation", "domain"),
@@ -62,15 +67,18 @@ pub(crate) fn run(index_map_path: &str, config_path: &str, frame: &str, output: 
     let translated = translate(&config_content, &systems, from_frame, to_frame);
 
     if let Some(out_path) = output {
-        fs::write(out_path, &translated).expect("Failed to write output");
+        fs::write(out_path, &translated).map_err(|e| format!("write output: {e}"))?;
         println!("  Written to: {out_path}");
     } else {
         print!("{translated}");
     }
+    Ok(())
 }
 
-fn parse_index_map(content: &str) -> Vec<SystemMap> {
-    let table: toml::Table = content.parse().expect("Failed to parse index_map.toml");
+fn parse_index_map(content: &str) -> Result<Vec<SystemMap>, String> {
+    let table: toml::Table = content
+        .parse()
+        .map_err(|e| format!("parse index_map.toml: {e}"))?;
     let mut systems = Vec::new();
 
     if let Some(toml::Value::Table(systems_table)) = table.get("systems") {
@@ -117,7 +125,7 @@ fn parse_index_map(content: &str) -> Vec<SystemMap> {
         }
     }
 
-    systems
+    Ok(systems)
 }
 
 fn translate(config: &str, systems: &[SystemMap], from_frame: &str, to_frame: &str) -> String {

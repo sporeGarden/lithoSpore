@@ -40,17 +40,17 @@ pub(super) fn capture_environment(
     output.push_str("# [emit_host] = machine running `litho emit-pseudospore`\n");
     output.push_str("# [software] = tool versions on PATH during emit\n");
     output.push_str("# Simulations may have run on different hardware; see provenance braids.\n\n");
-    writeln!(output, "[emit_host]").unwrap();
-    writeln!(output, "host = \"{hostname}\"").unwrap();
-    writeln!(output, "os = \"{os_info}\"").unwrap();
+    let _ = writeln!(output, "[emit_host]");
+    let _ = writeln!(output, "host = \"{hostname}\"");
+    let _ = writeln!(output, "os = \"{os_info}\"");
     if !kernel.is_empty() {
-        writeln!(output, "kernel = \"{kernel}\"").unwrap();
+        let _ = writeln!(output, "kernel = \"{kernel}\"");
     }
     if !cpu.is_empty() {
-        writeln!(output, "cpu = \"{cpu}\"").unwrap();
+        let _ = writeln!(output, "cpu = \"{cpu}\"");
     }
     if !gpu.is_empty() {
-        writeln!(output, "gpu = \"{gpu}\"").unwrap();
+        let _ = writeln!(output, "gpu = \"{gpu}\"");
     }
     output.push('\n');
 
@@ -60,25 +60,25 @@ pub(super) fn capture_environment(
     let python_ver = detect_tool_version("python3", &["--version"]);
 
     if let Some(v) = &gromacs_ver {
-        writeln!(output, "gromacs = \"{v}\"").unwrap();
+        let _ = writeln!(output, "gromacs = \"{v}\"");
     }
     if let Some(v) = &plumed_ver {
-        writeln!(output, "plumed = \"{v}\"").unwrap();
+        let _ = writeln!(output, "plumed = \"{v}\"");
     }
     if let Some(v) = &python_ver {
-        writeln!(output, "python = \"{v}\"").unwrap();
+        let _ = writeln!(output, "python = \"{v}\"");
     }
 
     if let Some(p) = profile {
         for tool_name in &p.tools {
             if let Some(ver) = detect_tool_version(tool_name, &["--version"]) {
                 let key = tool_name.replace('-', "_");
-                writeln!(output, "{key} = \"{ver}\"").unwrap();
+                let _ = writeln!(output, "{key} = \"{ver}\"");
             }
         }
     }
 
-    writeln!(output, "litho = \"{LITHOSPORE_VERSION}\"").unwrap();
+    let _ = writeln!(output, "litho = \"{LITHOSPORE_VERSION}\"");
     output.push('\n');
 
     let total_ns = compute_total_production_ns(configs_dir);
@@ -91,16 +91,16 @@ pub(super) fn capture_environment(
                 .count()
         });
 
-    writeln!(output, "[production]").unwrap();
-    writeln!(output, "total_production_ns = {total_ns}").unwrap();
-    writeln!(output, "modules = {module_count}").unwrap();
+    let _ = writeln!(output, "[production]");
+    let _ = writeln!(output, "total_production_ns = {total_ns}");
+    let _ = writeln!(output, "modules = {module_count}");
     if let Some(p) = profile {
-        writeln!(output, "method = \"{}\"", p.id).unwrap();
+        let _ = writeln!(output, "method = \"{}\"", p.id);
     }
     output.push('\n');
 
-    writeln!(output, "[timestamps]").unwrap();
-    writeln!(output, "captured = \"{timestamp}\"").unwrap();
+    let _ = writeln!(output, "[timestamps]");
+    let _ = writeln!(output, "captured = \"{timestamp}\"");
 
     output
 }

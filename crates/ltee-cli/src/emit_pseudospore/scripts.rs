@@ -91,12 +91,11 @@ pub(super) fn generate_readme(
     for m in &modules {
         let (system, cv, _method) = scope::infer_module_metadata(m, profile);
         let ns = configs_dir.and_then(|c| scope::find_mdp_and_extract_time(&c.join(m)));
-        writeln!(
+        let _ = writeln!(
             module_table,
             "| `{m}` | {system} | {cv} | {} ns |",
             ns.unwrap_or(0)
-        )
-        .unwrap();
+        );
     }
 
     format!(
@@ -208,7 +207,7 @@ Rosetta stone: `data/<module>/npt.gro` (topology file)
 }
 
 /// Generate validate and refresh entry point scripts.
-pub(super) fn generate_entry_scripts(root: &Path, name: &str, version: &str) {
+pub(super) fn generate_entry_scripts(root: &Path, name: &str, version: &str) -> Result<(), String> {
     let validate_sh = format!(
         r#"#!/bin/bash
 set -euo pipefail
@@ -362,8 +361,8 @@ PYEOF
 "#;
     let refresh_sh = format!("{refresh_header}{refresh_body}");
 
-    fs::write(root.join("validate"), validate_sh).expect("Failed to write validate");
-    fs::write(root.join("refresh"), refresh_sh).expect("Failed to write refresh");
+    fs::write(root.join("validate"), validate_sh).map_err(|e| format!("emit: {e}"))?;
+    fs::write(root.join("refresh"), refresh_sh).map_err(|e| format!("emit: {e}"))?;
 
     #[cfg(unix)]
     {
@@ -372,4 +371,5 @@ PYEOF
         fs::set_permissions(root.join("validate"), perms.clone()).ok();
         fs::set_permissions(root.join("refresh"), perms).ok();
     }
+    Ok(())
 }

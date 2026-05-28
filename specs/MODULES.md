@@ -37,7 +37,7 @@ Cross-tier parity testable for all 7 modules.
   `announce_self()` + `query_capabilities()` for Wave 20,
   shared statistics (`pearson_r`), validation harness (`skip`, `load_expected`, `dispatch_python`),
   scope parser (`ScopeManifest`, `ScopeModule` with `[[module]]` registry), data manifest,
-  graph checks
+  env var constants
 
 - **`ltee-cli`** (instance wiring + chassis glue):
   unified `litho` binary with 20 subcommands,
@@ -95,7 +95,7 @@ Each carries `doi`, `source_figures`, and tolerance specifications.
 ## Test Coverage
 
 191 tests across 10 crates:
-- `litho-core`: 47 unit tests (discovery, provenance, validation, braid, spore, scope, graph, harness, pseudospore deprecation, etc.)
+- `litho-core`: 47 unit tests (discovery, provenance, validation, braid, spore, scope, harness, env_vars, etc.)
 - `pseudospore-core`: 44 unit tests (manifest, validation, tarball, braid envelope, receipts, scope, domain profile, envelope load+validate, error types, etc.)
 - `ltee-cli`: 56 unit + integration tests (lib 29, integration 20, cli_integration 7)
 - Module crates: 42 combined (fitness 9, mutations 9, anderson 7, biobricks 5, breseq 4, alleles 4, citrate 4)

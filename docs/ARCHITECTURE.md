@@ -48,6 +48,7 @@ litho-core          ← shared library (CHASSIS — 100% domain-agnostic, 11 mod
   ├── braid/          upstream ferment transcript braid ingestion + validation
   ├── manifest/       DataManifest (data.toml → BLAKE3 verification)
   ├── stats/          shared statistics (pearson_r)
+  ├── env_vars/       centralized environment variable constants
   └── harness/        module skip/load/dispatch helpers
 pseudospore-core    ← canonical pseudoSpore parsing, validation, checksums, tarball
 ├── blake3_manifest.rs    data.toml read/write/verify
@@ -174,7 +175,7 @@ ColdSpore → LiveSpore → pseudoSpore → lithoSpore (full)
 
 **Use case**: Any computation-heavy spring producing quantitative results can ship a pseudoSpore instead of waiting for full lithoSpore module integration. The braid carries the provenance, the receipts carry the proof, the configs carry reproducibility.
 
-**Chassis support**: Canonical API — `pseudospore_core::PseudoSporeEnvelope::load()` + `validate()` with `SporeError`. Deprecated wrapper — `litho_core::pseudospore` re-exports (`PseudoSporeManifest`, `load_pseudospore()`, `verify_checksums()`, `check_completeness()`, `compute_checksums()`).
+**Chassis support**: Canonical API — `pseudospore_core::PseudoSporeEnvelope::load()` + `validate()` with `SporeError`. Legacy `litho_core::pseudospore` re-export wrapper retired (dead code removed).
 
 See `specs/PSEUDOSPORE_STANDARD.md` for the complete specification.
 

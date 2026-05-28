@@ -25,5 +25,5 @@
   "checks_passed": 8,
   "checks_total": 8,
   "source": "groundSpring V140 control/ltee_citrate_innovation",
-  "provenance": "BLAKE3-anchored via lithoSpore fetch_blount_2012.sh"
+  "provenance": "BLAKE3-anchored via litho fetch --module citrate"
 }

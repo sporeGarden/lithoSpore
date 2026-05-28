@@ -293,6 +293,17 @@ A pseudoSpore is **COMPLETE** if additionally:
 9. All modules in `scope.toml` have status `PASS` or `SKIP` in `validation.json`
 10. No modules have status `IN_FLIGHT`
 
+A pseudoSpore is **GUIDESTONE-GRADE** if additionally:
+
+11. `tolerances.toml` exists with quantitative acceptance criteria
+12. `derivations/threshold_calibration.toml` exists and parses (5-layer chain)
+13. Every `[[tolerance]]` entry has a non-empty `derivation` field
+14. Zero entries carry `_anchoring = "NEEDS_CALIBRATION"`
+15. Validation binary implements Phase 0 (self-consistency against derivation file)
+
+See `infra/wateringHole/DERIVATION_ANCHORING_STANDARD.md` v1.0 for full spec.
+First instance: `hotSpring-CompChem-GuideStone v1.7.0` (23/23 constants anchored).
+
 ---
 
 ## Promotion Path: pseudoSpore to lithoSpore Module

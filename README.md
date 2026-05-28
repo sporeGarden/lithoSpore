@@ -191,13 +191,12 @@ the root file templates.
 - **Module 7**: Anderson disorder mapping, GOE/Poisson eigenvalue statistics
 
 **Infrastructure**: `litho-core` crate with 11 modules (chassis — domain-agnostic;
-`pseudospore` re-exports `pseudospore-core` types for backward compatibility
-(deprecated — use `pseudospore-core` directly) —
 validation types including `Tier3Session`/`ParityReport`, provenance JSON-RPC client
 for trio, braid ingestion with dual wire format support, tolerance framework, spore
 tracking, capability-based discovery with `announce_self()`/`query_capabilities()`,
-scope parser with `[[module]]` registry, data manifest, graph checks, shared stats,
-harness). `ltee-cli` adds instance layer: unified module registry (`registry.rs`),
+scope parser with `[[module]]` registry, data manifest, shared stats, env var
+constants, harness). `pseudospore-core` is the canonical crate for pseudoSpore
+parsing, validation, checksums, and domain profiles. `ltee-cli` adds instance layer: unified module registry (`registry.rs`),
 viz DataBinding adapters, 20 subcommands. pseudoSpore pipeline: `emit-pseudospore`
 (auto-figures, PDB serial extraction, BLAKE3 sealing), `ingest-pseudospore`,
 `audit` (10-check pre-handoff validation — BLAKE3 integrity, config↔data, topology

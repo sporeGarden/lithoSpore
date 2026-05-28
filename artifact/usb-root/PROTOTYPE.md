@@ -124,17 +124,16 @@ data requires SRA pulls ranging from 5 MB to 200 GB:
 | Anderson-QS | Internal predictions | n/a | Needs real LTEE data |
 
 The two-tier data model (summary for airgapped validation, full for deep
-re-analysis) is intentional. `litho fetch --full` will pull raw upstream
-data when implemented. Each dataset in `artifact/data.toml` documents
-what deeper checks become possible with full data.
+re-analysis) is intentional. `litho fetch --full` pulls raw upstream data
+for each dataset. Each dataset in `artifact/data.toml` documents what
+deeper checks become possible with full data.
 
 ### Binary Portability
 
-The `bin/litho` binary is currently dynamically linked against glibc.
-The documentation references musl-static linking, which is the target:
+The `bin/litho` binary is statically linked via musl (default target
+derived from `$LITHO_RUST_TARGET` or host triple):
 
-- **Current:** x86_64 ELF, dynamically linked (works on standard Linux)
-- **Target:** musl-static binary (runs on any Linux, Alpine, containers)
+- **Default:** x86_64-unknown-linux-musl, fully static (runs on any Linux, Alpine, containers)
 - The Containerfile provides a cross-OS fallback via Docker/Podman
 
 ---

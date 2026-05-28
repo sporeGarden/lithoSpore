@@ -67,5 +67,5 @@
   },
   "checks_total": 7,
   "source": "groundSpring V140 control/ltee_clonal_interference",
-  "provenance": "BLAKE3-anchored via lithoSpore fetch_good_2017.sh"
+  "provenance": "BLAKE3-anchored via litho fetch --module alleles"
 }

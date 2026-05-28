@@ -13,6 +13,11 @@ use litho_core::harness;
 use litho_core::stats::pearson_r;
 use litho_core::{ModuleResult, ValidationStatus};
 use std::path::Path;
+
+/// *E. coli* K-12 MG1655 reference genome length in base pairs.
+pub const E_COLI_K12_MG1655_BP: f64 = 4_629_812.0;
+/// Number of replicate populations in the LTEE.
+pub const LTEE_N_POPULATIONS: u64 = 12;
 use std::time::Instant;
 
 /// Run module 6 validation with the given paths and tier.
@@ -73,7 +78,7 @@ fn run_tier2_rust(_data_dir: &str, expected_path: &str, start: Instant) -> Modul
 
     total += 1;
     let n_pop = targets["n_populations"]["value"].as_u64().unwrap_or(0);
-    let pop_ok = n_pop == litho_core::LTEE_N_POPULATIONS;
+    let pop_ok = n_pop == LTEE_N_POPULATIONS;
     if pop_ok {
         passed += 1;
     }
@@ -98,7 +103,7 @@ fn run_tier2_rust(_data_dir: &str, expected_path: &str, start: Instant) -> Modul
     let genome_tol = targets["genome_length_bp"]["tolerance"]
         .as_f64()
         .unwrap_or(100.0);
-    let expected_len = litho_core::E_COLI_K12_MG1655_BP;
+    let expected_len = E_COLI_K12_MG1655_BP;
     let len_ok = (genome_len - expected_len).abs() <= genome_tol;
     if len_ok {
         passed += 1;

@@ -190,7 +190,7 @@ the root file templates.
 - **Module 6**: breseq 264-genome comparison, mutation accumulation analysis, parallel evolution significance
 - **Module 7**: Anderson disorder mapping, GOE/Poisson eigenvalue statistics
 
-**Infrastructure**: `litho-core` crate with 11 modules (chassis — domain-agnostic;
+**Infrastructure**: `litho-core` crate with 12 modules (chassis — domain-agnostic;
 validation types including `Tier3Session`/`ParityReport`, provenance JSON-RPC client
 for trio, braid ingestion with dual wire format support, tolerance framework, spore
 tracking, capability-based discovery with `announce_self()`/`query_capabilities()`,
@@ -236,7 +236,7 @@ capability-based IPC discovery.
 Unified `registry.rs` serves validate, parity, ops, chaos, deploy-test, and visualize.
 `.biomeos-spore` generated from scope.toml during assembly. Braid accession expectations
 derived from `data.toml`. Target coverage and graph paths parameterized. `litho-core`
-is 100% chassis — zero LTEE-specific code.
+is domain-agnostic chassis — no LTEE science logic in source.
 
 **Deployment testing** (3 paths):
 - Local: `litho deploy-test` — filesystem isolation, ~1s

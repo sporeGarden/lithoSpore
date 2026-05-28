@@ -135,9 +135,15 @@ impl ScopeManifest {
     /// # Errors
     ///
     /// Returns an error if the file cannot be read or parsed.
-    pub fn load(path: &Path) -> Result<Self, Box<dyn std::error::Error>> {
-        let contents = std::fs::read_to_string(path)?;
-        let scope: Self = toml::from_str(&contents)?;
+    pub fn load(path: &Path) -> Result<Self, crate::LithoError> {
+        let contents = std::fs::read_to_string(path).map_err(|e| crate::LithoError::Io {
+            path: path.to_path_buf(),
+            source: e,
+        })?;
+        let scope: Self = toml::from_str(&contents).map_err(|e| crate::LithoError::Parse {
+            path: path.to_path_buf(),
+            detail: e.to_string(),
+        })?;
         Ok(scope)
     }
 

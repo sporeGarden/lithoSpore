@@ -57,7 +57,7 @@ pub(crate) fn breseq(data: &Value) -> Vec<Value> {
         let genome_len = data
             .get("genome_length")
             .and_then(serde_json::Value::as_f64)
-            .unwrap_or(litho_core::E_COLI_K12_MG1655_BP);
+            .unwrap_or(ltee_breseq::E_COLI_K12_MG1655_BP);
         let segments: Vec<Value> = features
             .iter()
             .filter_map(|feat| {

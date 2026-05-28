@@ -50,6 +50,6 @@ primals responded.
 ## Code References
 
 - `discovery::discover()` → returns `Option<PrimalEndpoint>` (never panics)
-- `provenance::try_record_tier3()` → `Result<Tier3Session, String>` (Err only if DAG unreachable)
+- `provenance::try_record_tier3()` → `Result<Tier3Session, LithoError>` (Err only if DAG unreachable)
 - `discovery::rpc_call()` → `Option<Value>` (timeout/parse failure → None)
 - `validate::run_with_provenance()` → falls back to Tier 2 on any `Err`

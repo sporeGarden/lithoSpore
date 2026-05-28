@@ -164,8 +164,8 @@ fn resolve_primal_host() -> String {
 }
 
 fn discovery_socket_path() -> Option<PathBuf> {
-    let runtime =
-        std::env::var(crate::env_vars::XDG_RUNTIME_DIR).unwrap_or_else(|_| "/tmp".to_string());
+    let runtime = std::env::var(crate::env_vars::XDG_RUNTIME_DIR)
+        .unwrap_or_else(|_| std::env::temp_dir().to_string_lossy().into_owned());
     let path = PathBuf::from(runtime)
         .join(RUNTIME_SUBDIR)
         .join(DISCOVERY_SOCKET_NAME);

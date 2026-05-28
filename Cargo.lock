@@ -383,6 +383,7 @@ dependencies = [
  "pseudospore-core",
  "serde",
  "serde_json",
+ "thiserror",
  "toml",
 ]
 
@@ -416,7 +417,6 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "litho-core",
- "serde_json",
 ]
 
 [[package]]
@@ -470,8 +470,6 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "litho-core",
- "serde",
- "serde_json",
 ]
 
 [[package]]

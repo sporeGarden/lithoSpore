@@ -82,9 +82,12 @@ const CAP_BRAID: &str = "braid";
 /// # Errors
 ///
 /// Returns `Err` only when the DAG primal is unreachable — caller stays at Tier 2.
-pub fn try_record_tier3(report: &ValidationReport) -> Result<Tier3Session, String> {
-    let dag_ep = discovery::discover(CAP_DAG)
-        .ok_or("rhizoCrypt (dag) not reachable — no Tier 3 provenance possible")?;
+pub fn try_record_tier3(report: &ValidationReport) -> Result<Tier3Session, crate::LithoError> {
+    let dag_ep = discovery::discover(CAP_DAG).ok_or_else(|| {
+        crate::LithoError::Discovery(
+            "dag capability not reachable — no Tier 3 provenance possible".into(),
+        )
+    })?;
 
     let spine_ep = discovery::discover(CAP_SPINE);
     let braid_ep = discovery::discover(CAP_BRAID);
@@ -192,40 +195,50 @@ fn rpc_call_extract(
     method: &str,
     params: &serde_json::Value,
     field: &str,
-) -> Result<String, String> {
+) -> Result<String, crate::LithoError> {
     let response = rpc_call_result(ep, method, params)?;
     response
         .get(field)
         .and_then(|v| v.as_str())
         .map(String::from)
-        .ok_or_else(|| format!("{method}: missing '{field}' in response"))
+        .ok_or_else(|| crate::LithoError::Rpc {
+            method: method.into(),
+            detail: format!("missing '{field}' in response"),
+        })
 }
 
 fn rpc_call_result(
     ep: &PrimalEndpoint,
     method: &str,
     params: &serde_json::Value,
-) -> Result<serde_json::Value, String> {
+) -> Result<serde_json::Value, crate::LithoError> {
     let request = serde_json::json!({
         "jsonrpc": "2.0",
         "method": method,
         "params": params,
         "id": 1,
     });
-    let request_str =
-        serde_json::to_string(&request).map_err(|e| format!("serialize {method}: {e}"))?;
+    let request_str = serde_json::to_string(&request)?;
 
-    let response = discovery::rpc_call(ep, &request_str)
-        .ok_or_else(|| format!("{method}: no response from {}", endpoint_addr(ep)))?;
+    let response = discovery::rpc_call(ep, &request_str).ok_or_else(|| crate::LithoError::Rpc {
+        method: method.into(),
+        detail: format!("no response from {}", endpoint_addr(ep)),
+    })?;
 
     if let Some(err) = response.get("error") {
-        return Err(format!("{method}: {err}"));
+        return Err(crate::LithoError::Rpc {
+            method: method.into(),
+            detail: err.to_string(),
+        });
     }
 
     response
         .get("result")
         .cloned()
-        .ok_or_else(|| format!("{method}: no 'result' in response"))
+        .ok_or_else(|| crate::LithoError::Rpc {
+            method: method.into(),
+            detail: "no 'result' in response".into(),
+        })
 }
 
 #[cfg(test)]

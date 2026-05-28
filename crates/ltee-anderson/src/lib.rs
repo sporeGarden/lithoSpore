@@ -14,6 +14,9 @@ use litho_core::{ModuleResult, ValidationStatus};
 use std::path::Path;
 use std::time::Instant;
 
+/// Number of replicate populations in the LTEE.
+const LTEE_N_POPULATIONS: u64 = 12;
+
 /// Run module 7 validation with the given paths and tier.
 #[must_use]
 pub fn run_validation(data_dir: &str, expected: &str, max_tier: u8) -> ModuleResult {
@@ -237,8 +240,8 @@ fn run_tier2_rust(data_dir: &str, expected_path: &str, start: Instant) -> Module
     });
     let expected_n = n_pop_check
         .and_then(|c| c["expected"].as_u64())
-        .unwrap_or(litho_core::LTEE_N_POPULATIONS);
-    let n_pop_ok = expected_n == litho_core::LTEE_N_POPULATIONS;
+        .unwrap_or(LTEE_N_POPULATIONS);
+    let n_pop_ok = expected_n == LTEE_N_POPULATIONS;
     if n_pop_ok {
         passed += 1;
     }

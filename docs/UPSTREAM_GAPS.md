@@ -125,10 +125,10 @@ All 7 coupling points from the original inventory have been resolved:
 | `module_name_matches()` | **RESOLVED** | `registry::module_name_matches()` does registry lookup via `derive_logical_name()` |
 | `strip_prefix("ltee-")` assumption | **RESOLVED** | `derive_logical_name()` handles `ltee-`, `milc-`, `lattice-` prefixes generically |
 | `.biomeos-spore` hardcoded template | **RESOLVED** | `generate_biomeos_spore()` derives from scope.toml during `litho assemble` |
-| `viz/` in litho-core | **RESOLVED** | Moved to `ltee-cli/src/viz/` (instance layer) — `litho-core` is 100% chassis |
+| `viz/` in litho-core | **RESOLVED** | Moved to `ltee-cli/src/viz/` (instance layer) — `litho-core` is domain-agnostic chassis |
 | Hardcoded graph/target paths | **RESOLVED** | `guidestone.graph_file` + `guidestone.targets_file` in scope.toml |
 | Hardcoded braid accessions | **RESOLVED** | Derived from `data.toml` `sra_accession` fields at runtime |
-| `litho-core` | **Agnostic** | 11 modules, zero LTEE-specific code |
+| `litho-core` | **Agnostic** | 12 modules, no LTEE science logic in source |
 | `scope.toml` loader | **Agnostic** | `ScopeModule` struct + `[[module]]` table + `module_binaries()` |
 | `data.toml` manifest | **Agnostic** | Dataset registry with BLAKE3, source URIs, licenses, SRA accessions |
 | `discovery.rs` / `provenance.rs` | **Agnostic** | Capability strings, JSON-RPC to capability-discovered endpoints |
@@ -329,7 +329,7 @@ currently embed (standalone CLI pattern).
   `scope.toml` `[[module]]` entries carry name/binary/data_dir/expected/tier1_notebook.
   New `registry.rs` centralizes module resolution for all 6 consumer files. `.biomeos-spore`
   generated from scope.toml. Braid accessions from data.toml. `viz/` moved from litho-core
-  to ltee-cli (instance layer). `litho-core` 11 modules, 100% chassis. Graph/target paths
+  to ltee-cli (instance layer). `litho-core` 12 modules, domain-agnostic chassis. Graph/target paths
   parameterized. Test fixtures isolated. 192 tests, zero clippy warnings.
 - **2026-05-17 PM**: wetSpring braid ingestion — `litho-core::braid` module (4 tests),
   sovereign + breseq baseline braids parsed, accession validated (SRP001569 PASS),
@@ -425,7 +425,7 @@ currently embed (standalone CLI pattern).
 - **2026-05-15**: petalTongue Interactive SceneGraph Evolution — 6 phases
   (semantic data_id, click-to-select, ViewCamera, IPC bridge, data-driven
   animation, parameter controls). Full handback written.
-- **2026-05-14**: petalTongue scientific visualization — litho-core::viz module
+- **2026-05-14**: petalTongue scientific visualization — ltee-cli::viz module
   with DataBinding adapters for all 7 LTEE modules and 7 Barrick Lab baseline
   tools. Render-path convergence validation pipeline established.
 - **2026-05-13**: Deep-debt audit sweep — extracted `litho_core::{harness, stats, discovery}`,

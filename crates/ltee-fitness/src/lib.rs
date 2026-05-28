@@ -52,12 +52,10 @@ pub fn run_validation(data_dir: &str, expected: &str, max_tier: u8) -> ModuleRes
 
 // ── Tier 2: Pure Rust curve fitting ──────────────────────────────────
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug)]
 struct ModelFit {
     model: String,
     params: Vec<f64>,
-    k: usize,
-    rss: f64,
     r_squared: f64,
     aic: f64,
     bic: f64,
@@ -198,16 +196,14 @@ fn fit_model(
         1.0
     };
     let ss_res_safe = ss_res.max(1e-30);
-    let k = 2;
+    let k = 2.0_f64;
     let nf = n as f64;
-    let aic = nf * (ss_res_safe / nf).ln() + 2.0 * k as f64;
-    let bic = nf * (ss_res_safe / nf).ln() + k as f64 * nf.ln();
+    let aic = nf * (ss_res_safe / nf).ln() + 2.0 * k;
+    let bic = nf * (ss_res_safe / nf).ln() + k * nf.ln();
 
     Some(ModelFit {
         model: name.to_string(),
         params: popt.to_vec(),
-        k,
-        rss: ss_res,
         r_squared,
         aic,
         bic,

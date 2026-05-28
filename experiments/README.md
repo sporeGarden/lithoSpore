@@ -35,7 +35,7 @@ NNN_DESCRIPTOR.{rs,md,json,toml}
 | 008 | Cross-tier parity validation | md | Validation | Complete — `litho parity` all 7 modules |
 | 009 | Tier 3 NUCLEUS provenance wiring | md | Primal integration | Complete — JSON-RPC trio client |
 | 010 | Two-tier data model | md | Data strategy | Complete — `litho fetch --full`, upstream braids |
-| 011 | Chassis abstraction evolution | md | Architecture | Complete — scope-driven registry, litho-core 100% chassis |
+| 011 | Chassis abstraction evolution | md | Architecture | Complete — scope-driven registry, litho-core domain-agnostic chassis |
 
 ## Planned Experiments
 
@@ -141,7 +141,7 @@ Graph and target staging paths parameterized from scope.toml.
 
 **Phase 4**: `viz/` moved from litho-core to ltee-cli (instance layer).
 LTEE test fixtures isolated in `crates/litho-core/tests/fixtures/`.
-`litho-core` reaches 100% chassis — 11 modules, zero LTEE-specific code.
+`litho-core` reaches domain-agnostic chassis — 12 modules, no LTEE science logic in source.
 192 workspace tests pass (75/75 science checks at Tier 2).
 
 ### 012 — Hypogeal Deployment to Barrick Lab (May 18)

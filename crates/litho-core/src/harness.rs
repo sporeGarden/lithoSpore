@@ -164,9 +164,9 @@ pub fn dispatch_python(name: &str, script_path: &Path, working_dir: &Path) -> Mo
 /// # Errors
 ///
 /// Returns an error if JSON serialization fails.
-pub fn format_output(result: &ModuleResult, json: bool) -> Result<String, String> {
+pub fn format_output(result: &ModuleResult, json: bool) -> Result<String, crate::LithoError> {
     if json {
-        serde_json::to_string_pretty(result).map_err(|e| format!("Error serializing result: {e}"))
+        serde_json::to_string_pretty(result).map_err(crate::LithoError::from)
     } else {
         let status_str = match result.status {
             ValidationStatus::Pass => "PASS",

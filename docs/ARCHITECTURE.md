@@ -38,7 +38,7 @@ A guideStone-grade artifact satisfies five properties (per primals.eco):
 ## Crate Architecture
 
 ```
-litho-core          ← shared library (CHASSIS — 100% domain-agnostic, 11 modules)
+litho-core          ← shared library (CHASSIS — domain-agnostic, 12 modules)
   ├── validation/     ModuleResult, ValidationReport, Tier3Session, ParityReport
   ├── tolerance/      named tolerances with scientific justification
   ├── provenance/     ProvenanceChain + JSON-RPC client for trio (dag/spine/braid)
@@ -47,6 +47,7 @@ litho-core          ← shared library (CHASSIS — 100% domain-agnostic, 11 mod
   ├── scope/          ScopeManifest + ScopeModule parser (scope.toml → module table)
   ├── braid/          upstream ferment transcript braid ingestion + validation
   ├── manifest/       DataManifest (data.toml → BLAKE3 verification)
+  ├── error/          LithoError typed error hierarchy (thiserror)
   ├── stats/          shared statistics (pearson_r)
   ├── env_vars/       centralized environment variable constants
   └── harness/        module skip/load/dispatch helpers
@@ -121,13 +122,13 @@ to the corresponding subcommand without requiring explicit `litho <subcommand>` 
 ## Chassis vs Instance
 
 lithoSpore separates the domain-agnostic chassis from the LTEE instance.
-`litho-core` is 100% chassis — zero LTEE-specific code. The LTEE is the
+`litho-core` is domain-agnostic chassis — no LTEE science logic in source. The LTEE is the
 first instance; creating a new guideStone (e.g., Chuna, Bazavov) requires
 only `scope.toml` + `data.toml` + module crates. No changes to `litho-core`.
 
 | Layer | What | Current Files | Agnostic? |
 |-------|------|---------------|-----------|
-| **Chassis** | Validation pipeline, data integrity, provenance, discovery, deployment, pseudoSpore | `litho-core` (11 modules), `scope.toml`, `data.toml`, `tolerances.toml`, `liveSpore.json` | **Yes** |
+| **Chassis** | Validation pipeline, data integrity, provenance, discovery, deployment, pseudoSpore | `litho-core` (12 modules), `scope.toml`, `data.toml`, `tolerances.toml`, `liveSpore.json` | **Yes** |
 | **Registry** | Scope-driven module resolution, dispatch, name mapping | `ltee-cli/registry.rs` — reads `[[module]]` from scope.toml, falls back to compiled LTEE defaults | **Yes** (data-driven from scope.toml) |
 | **Instance** | Science modules, expected values, datasets, viz, papers | `crates/ltee-*`, `ltee-cli/viz/`, `validation/expected/`, `artifact/data/`, `papers/` | LTEE-specific |
 
@@ -139,7 +140,7 @@ only `scope.toml` + `data.toml` + module crates. No changes to `litho-core`.
    `registry.rs`. `.biomeos-spore` generated from scope.toml during assembly.
    Braid accessions derived from `data.toml`. Target coverage and graph paths
    parameterized. viz/ moved from `litho-core` to `ltee-cli` instance layer.
-   `litho-core` is 100% chassis.
+   `litho-core` is domain-agnostic chassis (12 modules).
 2. **DONE**: pseudoSpore standard. `pseudospore-core` is the canonical crate for
    parsing, validation, and checksum verification (legacy `pseudospore.rs` and
    `graph_checks.rs` retired). `litho ingest-pseudospore` and

@@ -8,7 +8,7 @@
 
 use super::{
     bar_from_object, bar_owned, distribution_owned, gauge, genome_track_owned, heatmap_owned,
-    scatter, timeseries_owned, track_segment,
+    scatter, timeseries, timeseries_owned, track_segment,
 };
 use serde_json::{Value, json};
 
@@ -57,7 +57,7 @@ pub(crate) fn breseq(data: &Value) -> Vec<Value> {
         let genome_len = data
             .get("genome_length")
             .and_then(serde_json::Value::as_f64)
-            .unwrap_or(4_629_812.0);
+            .unwrap_or(litho_core::E_COLI_K12_MG1655_BP);
         let segments: Vec<Value> = features
             .iter()
             .filter_map(|feat| {
@@ -522,14 +522,15 @@ pub(crate) fn marker_divergence(data: &Value) -> Vec<Value> {
             let x: Vec<f64> = t.iter().filter_map(serde_json::Value::as_f64).collect();
             for (name, vals) in s {
                 if let Some(arr) = vals.as_array() {
-                    b.push(timeseries_owned(
+                    let y: Vec<f64> = arr.iter().filter_map(serde_json::Value::as_f64).collect();
+                    b.push(timeseries(
                         &format!("bl_md_divergence_{name}"),
                         &format!("Marker Divergence: {name}"),
                         "Transfer",
                         "Marker Ratio",
                         "ratio",
-                        x.clone(),
-                        arr.iter().filter_map(serde_json::Value::as_f64).collect(),
+                        &x,
+                        &y,
                     ));
                 }
             }

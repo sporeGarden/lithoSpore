@@ -19,6 +19,12 @@ pub mod stats;
 pub mod tolerance;
 pub mod validation;
 
+// ── LTEE domain constants ──────────────────────────────────────────
+/// *E. coli* K-12 MG1655 reference genome length in base pairs.
+pub const E_COLI_K12_MG1655_BP: f64 = 4_629_812.0;
+/// Number of replicate populations in the LTEE.
+pub const LTEE_N_POPULATIONS: u64 = 12;
+
 pub use braid::{BraidCheck, BraidComputation, CloneMutationCount, FermentBraid};
 pub use discovery::{DiscoveryPath, PrimalListResponse};
 pub use manifest::DataManifest;

@@ -177,7 +177,7 @@ impl PseudoSporeEnvelope {
         if livespore_path.exists() {
             match check_livespore_unified(&livespore_path) {
                 Ok(()) => {}
-                Err(e) => errors.push(e),
+                Err(e) => errors.push(e.to_string()),
             }
         }
 
@@ -272,23 +272,28 @@ fn check_tolerance_derivation_fields(content: &str, warnings: &mut Vec<String>) 
     }
 }
 
-fn check_livespore_unified(path: &Path) -> Result<(), String> {
-    let content = std::fs::read_to_string(path)
-        .map_err(|e| format!("failed to read {}: {e}", path.display()))?;
-    let raw: serde_json::Value = serde_json::from_str(&content)
-        .map_err(|e| format!("failed to parse {}: {e}", path.display()))?;
+fn check_livespore_unified(path: &Path) -> Result<(), crate::SporeError> {
+    let content = std::fs::read_to_string(path).map_err(|e| crate::SporeError::Io {
+        path: path.to_path_buf(),
+        source: e,
+    })?;
+    let raw: serde_json::Value =
+        serde_json::from_str(&content).map_err(|e| crate::SporeError::Parse {
+            path: path.to_path_buf(),
+            detail: e.to_string(),
+        })?;
 
     if raw.is_array() {
-        return Err(
+        return Err(crate::SporeError::Validation(
             "liveSpore.json uses legacy bare-array schema; unified {envelope, validations} required"
-                .to_string(),
-        );
+                .into(),
+        ));
     }
 
     if raw.get("envelope").is_none() || raw.get("validations").is_none() {
-        return Err(
-            "liveSpore.json must contain top-level envelope and validations keys".to_string(),
-        );
+        return Err(crate::SporeError::Validation(
+            "liveSpore.json must contain top-level envelope and validations keys".into(),
+        ));
     }
 
     Ok(())

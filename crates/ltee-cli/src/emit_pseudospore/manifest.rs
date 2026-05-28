@@ -47,7 +47,7 @@ pub(super) fn generate_data_manifest(
             collect_file_hashes(entry, &mut hasher_input);
             let hash = blake3_string(&hasher_input);
 
-            let id = rel_name.clone();
+            let id = rel_name;
             output.push_str("[[dataset]]\n");
             let _ = writeln!(output, "id = \"{id}\"");
             let spring_lower = spring_name.to_lowercase();

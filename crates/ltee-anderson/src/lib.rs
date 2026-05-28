@@ -237,8 +237,8 @@ fn run_tier2_rust(data_dir: &str, expected_path: &str, start: Instant) -> Module
     });
     let expected_n = n_pop_check
         .and_then(|c| c["expected"].as_u64())
-        .unwrap_or(12);
-    let n_pop_ok = expected_n == 12;
+        .unwrap_or(litho_core::LTEE_N_POPULATIONS);
+    let n_pop_ok = expected_n == litho_core::LTEE_N_POPULATIONS;
     if n_pop_ok {
         passed += 1;
     }

@@ -250,7 +250,10 @@ fn push_to_visualization(socket_path: &str, dashboard: &serde_json::Value, label
 ///   3. `litho_core::discover("visualization")` — ecosystem UDS/env/TURN chain
 ///   4. XDG runtime dir socket scan (fallback)
 pub(crate) fn discover_visualization_socket() -> String {
-    for env_key in ["VISUALIZATION_SOCKET", "PETALTONGUE_SOCKET"] {
+    for env_key in [
+        litho_core::env_vars::VISUALIZATION_SOCKET,
+        litho_core::env_vars::PETALTONGUE_SOCKET,
+    ] {
         if let Ok(path) = std::env::var(env_key)
             && std::path::Path::new(&path).exists()
         {

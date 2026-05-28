@@ -48,6 +48,14 @@ pub const SONGBIRD_TURN_DISCOVERY_PORT: &str = "SONGBIRD_TURN_DISCOVERY_PORT";
 /// Override the host address for primal connections.
 pub const PRIMAL_HOST: &str = "PRIMAL_HOST";
 
+// ── Visualization ───────────────────────────────────────────────────
+
+/// UDS path for a visualization socket (capability-generic).
+pub const VISUALIZATION_SOCKET: &str = "VISUALIZATION_SOCKET";
+
+/// UDS path for petalTongue visualization socket (legacy compat).
+pub const PETALTONGUE_SOCKET: &str = "PETALTONGUE_SOCKET";
+
 // ── Platform / system ───────────────────────────────────────────────
 
 /// XDG runtime directory (Linux).
@@ -87,6 +95,8 @@ mod tests {
             RELAY_DISCOVERY_PORT,
             SONGBIRD_TURN_DISCOVERY_PORT,
             PRIMAL_HOST,
+            VISUALIZATION_SOCKET,
+            PETALTONGUE_SOCKET,
             XDG_RUNTIME_DIR,
             HOME,
             HOSTNAME,

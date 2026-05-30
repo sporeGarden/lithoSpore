@@ -172,26 +172,73 @@ pub(crate) fn run(pseudospore_path: &str, artifact_root: &str, verify: bool) {
 
     println!("  Braids imported: {braids_imported}");
 
-    // 5. Register in pseudospores/registry.toml
+    // 5. Register in pseudospores/registry.toml (structured TOML upsert)
     let registry_dir = litho_root.join("pseudospores");
     std::fs::create_dir_all(&registry_dir).ok();
     let registry_path = registry_dir.join("registry.toml");
 
-    let entry = format_registry_entry(scope, &envelope);
-    let mut registry_content = std::fs::read_to_string(&registry_path).unwrap_or_default();
-    if registry_content.contains(&format!("name = \"{}\"", scope.artifact.name)) {
-        println!("  Already registered (skipped)");
-    } else {
-        registry_content.push_str(&entry);
-        std::fs::write(&registry_path, &registry_content).ok();
-        println!("  Registered in pseudospores/registry.toml");
+    match upsert_registry(&registry_path, scope, &envelope) {
+        Ok(RegistryAction::Inserted) => {
+            println!("  Registered in pseudospores/registry.toml");
+        }
+        Ok(RegistryAction::Updated) => {
+            println!("  Updated existing entry in pseudospores/registry.toml");
+        }
+        Err(e) => {
+            eprintln!("  WARNING: registry update failed: {e}");
+        }
     }
 
     println!();
     println!("Done. pseudoSpore ingested: {}", scope.artifact.name);
 }
 
-fn format_registry_entry(scope: &ScopeDoc, envelope: &PseudoSporeEnvelope) -> String {
+enum RegistryAction {
+    Inserted,
+    Updated,
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+struct Registry {
+    meta: RegistryMeta,
+    #[serde(default)]
+    pseudospore: Vec<RegistryEntry>,
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+struct RegistryMeta {
+    last_updated: String,
+    total_ingested: usize,
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+struct RegistryEntry {
+    name: String,
+    version: String,
+    origin: String,
+    date: String,
+    spring: String,
+    status: String,
+    modules_pass: usize,
+    modules_total: usize,
+}
+
+fn upsert_registry(
+    registry_path: &Path,
+    scope: &ScopeDoc,
+    envelope: &PseudoSporeEnvelope,
+) -> Result<RegistryAction, String> {
+    let mut registry: Registry = std::fs::read_to_string(registry_path)
+        .ok()
+        .and_then(|s| toml::from_str(&s).ok())
+        .unwrap_or(Registry {
+            meta: RegistryMeta {
+                last_updated: String::new(),
+                total_ingested: 0,
+            },
+            pseudospore: Vec::new(),
+        });
+
     let (modules_pass, modules_total) = envelope.validation.as_ref().map_or((0, 0), |v| {
         let pass = v
             .modules
@@ -201,27 +248,67 @@ fn format_registry_entry(scope: &ScopeDoc, envelope: &PseudoSporeEnvelope) -> St
         (pass, v.modules.len())
     });
 
-    let spring = envelope
-        .ferment
-        .as_ref()
-        .map_or("unknown", |f| f.spring.as_str());
+    let spring = envelope.ferment.as_ref().map_or_else(
+        || {
+            scope
+                .artifact
+                .origin
+                .split('/')
+                .next_back()
+                .unwrap_or("unknown")
+                .to_string()
+        },
+        |f| f.spring.clone(),
+    );
 
-    format!(
-        r#"
-[[pseudospore]]
-name = "{name}"
-version = "{version}"
-origin = "{origin}"
-date = "{date}"
-spring = "{spring}"
-modules_pass = {modules_pass}
-modules_total = {modules_total}
-"#,
-        name = scope.artifact.name,
-        version = scope.artifact.version,
-        origin = scope.artifact.origin,
-        date = scope.artifact.date,
-    )
+    let status = if modules_total > 0 && modules_pass == modules_total {
+        "COMPLETE".to_string()
+    } else if modules_pass > 0 {
+        "PARTIAL".to_string()
+    } else {
+        "PENDING".to_string()
+    };
+
+    let new_entry = RegistryEntry {
+        name: scope.artifact.name.clone(),
+        version: scope.artifact.version.clone(),
+        origin: scope.artifact.origin.clone(),
+        date: scope.artifact.date.clone(),
+        spring,
+        status,
+        modules_pass,
+        modules_total,
+    };
+
+    let action = if let Some(existing) = registry
+        .pseudospore
+        .iter_mut()
+        .find(|e| e.name == new_entry.name && e.version == new_entry.version)
+    {
+        *existing = new_entry;
+        RegistryAction::Updated
+    } else {
+        registry.pseudospore.push(new_entry);
+        RegistryAction::Inserted
+    };
+
+    registry.meta.last_updated = chrono::Utc::now().format("%Y-%m-%d").to_string();
+    registry.meta.total_ingested = registry.pseudospore.len();
+
+    let header = "# pseudoSpore Registry\n\
+                  #\n\
+                  # Tracks ingested pseudoSpore artifacts. Each entry represents a lightweight\n\
+                  # braid-first deployment that has been validated and registered with lithoSpore.\n\
+                  #\n\
+                  # Added automatically by `litho ingest-pseudospore <path>`.\n\
+                  # See specs/PSEUDOSPORE_STANDARD.md for the pseudoSpore format.\n\n";
+
+    let body = toml::to_string_pretty(&registry).map_err(|e| format!("serialize registry: {e}"))?;
+
+    let content = format!("{header}{body}");
+    std::fs::write(registry_path, content).map_err(|e| format!("write registry: {e}"))?;
+
+    Ok(action)
 }
 
 /// Validate an `index_map.toml` file: parseable TOML with [meta] and [systems.*].
@@ -260,5 +347,97 @@ fn validate_index_map(path: &Path) -> Result<usize, String> {
 fn print_checksums(checksums: &[ChecksumEntry]) {
     for entry in checksums {
         println!("    {}  {}", &entry.hash[..12], entry.path);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_scope(name: &str, version: &str) -> ScopeDoc {
+        let dir = tempfile::tempdir().unwrap();
+        let scope_path = dir.path().join("scope.toml");
+        let toml_str = format!(
+            "[artifact]\nname = \"{name}\"\nversion = \"{version}\"\norigin = \"eco/springs/test\"\ndate = \"2026-05-30\"\n"
+        );
+        std::fs::write(&scope_path, &toml_str).unwrap();
+        let scope = ScopeDoc::load(&scope_path).unwrap();
+        std::mem::forget(dir);
+        scope
+    }
+
+    fn make_envelope(scope: &ScopeDoc) -> PseudoSporeEnvelope {
+        PseudoSporeEnvelope {
+            root: std::path::PathBuf::new(),
+            scope: Some(scope.clone()),
+            data_manifest: None,
+            validation: None,
+            livespore: None,
+            environment: None,
+            ferment: None,
+            checksums: vec![],
+            load_warnings: vec![],
+        }
+    }
+
+    #[test]
+    fn registry_insert_creates_entry() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("registry.toml");
+
+        let scope = make_scope("test-spore", "1.0.0");
+        let envelope = make_envelope(&scope);
+        let result = upsert_registry(&path, &scope, &envelope).unwrap();
+        assert!(matches!(result, RegistryAction::Inserted));
+
+        let reg: Registry = toml::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(reg.meta.total_ingested, 1);
+        assert_eq!(reg.pseudospore.len(), 1);
+        assert_eq!(reg.pseudospore[0].name, "test-spore");
+        assert_eq!(reg.pseudospore[0].status, "PENDING");
+    }
+
+    #[test]
+    fn registry_upsert_replaces_same_version() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("registry.toml");
+
+        let scope = make_scope("test-spore", "1.0.0");
+        let envelope = make_envelope(&scope);
+        upsert_registry(&path, &scope, &envelope).unwrap();
+
+        let result = upsert_registry(&path, &scope, &envelope).unwrap();
+        assert!(matches!(result, RegistryAction::Updated));
+
+        let reg: Registry = toml::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(reg.meta.total_ingested, 1);
+    }
+
+    #[test]
+    fn registry_insert_new_version_appends() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("registry.toml");
+
+        let s1 = make_scope("test-spore", "1.0.0");
+        upsert_registry(&path, &s1, &make_envelope(&s1)).unwrap();
+
+        let s2 = make_scope("test-spore", "2.0.0");
+        let result = upsert_registry(&path, &s2, &make_envelope(&s2)).unwrap();
+        assert!(matches!(result, RegistryAction::Inserted));
+
+        let reg: Registry = toml::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(reg.meta.total_ingested, 2);
+        assert_eq!(reg.pseudospore.len(), 2);
+    }
+
+    #[test]
+    fn existing_registry_toml_parses() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../pseudospores/registry.toml");
+        let content = std::fs::read_to_string(&root).unwrap();
+        let reg: Registry = toml::from_str(&content).unwrap();
+        assert_eq!(reg.meta.total_ingested, 1);
+        assert_eq!(reg.pseudospore.len(), 1);
+        assert_eq!(reg.pseudospore[0].name, "hotSpring-CompChem-GuideStone");
+        assert_eq!(reg.pseudospore[0].status, "COMPLETE");
     }
 }

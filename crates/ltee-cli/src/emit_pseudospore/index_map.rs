@@ -11,24 +11,23 @@ type PdbResidue = (String, String, Vec<PdbAtomSerial>);
 type PdbResidues = Vec<PdbResidue>;
 
 /// Auto-generate `index_map.toml` by scanning data/ for .gro topology files.
-/// When `entity_groups` is provided (from a domain profile), uses those definitions
-/// for atom names and residue filters. Otherwise falls back to hardcoded carbohydrate defaults.
+/// Requires `entity_groups` from a domain profile for atom names and residue filters.
 pub(super) fn auto_generate_index_map(
     data_root: &Path,
     entity_groups: Option<&[pseudospore_core::EntityGroup]>,
 ) -> Option<String> {
     let mut systems: Vec<SystemEntry> = Vec::new();
 
-    // Resolve atom names and residue filters from profile or defaults
+    // Require profile-supplied entity groups for translation; no carbohydrate fallback.
     let (atom_names, residue_filters): (Vec<String>, Vec<String>) =
         if let Some(groups) = entity_groups {
             if let Some(first) = groups.first() {
                 (first.atoms.clone(), first.residue_filter.clone())
             } else {
-                (default_atom_names(), default_residue_filters())
+                return None;
             }
         } else {
-            (default_atom_names(), default_residue_filters())
+            return None;
         };
 
     // Walk data/ subdirectories looking for .gro files
@@ -257,20 +256,6 @@ fn scan_pdb_all_residues(
     }
 
     all_residues
-}
-
-fn default_atom_names() -> Vec<String> {
-    ["C1", "C2", "C3", "C4", "C5", "O5"]
-        .iter()
-        .map(std::string::ToString::to_string)
-        .collect()
-}
-
-fn default_residue_filters() -> Vec<String> {
-    ["XYS", "BXYL", "BXY", "GLC", "GAL", "MAN", "FUC", "XYL"]
-        .iter()
-        .map(std::string::ToString::to_string)
-        .collect()
 }
 
 /// Parse a GROMACS .gro file to extract atom indices using profile-driven

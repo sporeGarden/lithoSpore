@@ -55,26 +55,28 @@ pub(super) fn capture_environment(
     output.push('\n');
 
     output.push_str("[software]\n");
-    let gromacs_ver = detect_tool_version("gmx", &["--version"]);
-    let plumed_ver = detect_tool_version("plumed", &["info", "--version"]);
-    let python_ver = detect_tool_version("python3", &["--version"]);
-
-    if let Some(v) = &gromacs_ver {
-        let _ = writeln!(output, "gromacs = \"{v}\"");
-    }
-    if let Some(v) = &plumed_ver {
-        let _ = writeln!(output, "plumed = \"{v}\"");
-    }
-    if let Some(v) = &python_ver {
+    if let Some(v) = detect_tool_version("python3", &["--version"]) {
         let _ = writeln!(output, "python = \"{v}\"");
     }
 
     if let Some(p) = profile {
         for tool_name in &p.tools {
-            if let Some(ver) = detect_tool_version(tool_name, &["--version"]) {
+            let ver = if tool_name == "plumed" {
+                detect_tool_version(tool_name, &["info", "--version"])
+            } else {
+                detect_tool_version(tool_name, &["--version"])
+            };
+            if let Some(v) = ver {
                 let key = tool_name.replace('-', "_");
-                let _ = writeln!(output, "{key} = \"{ver}\"");
+                let _ = writeln!(output, "{key} = \"{v}\"");
             }
+        }
+    } else {
+        if let Some(v) = detect_tool_version("gmx", &["--version"]) {
+            let _ = writeln!(output, "gromacs = \"{v}\"");
+        }
+        if let Some(v) = detect_tool_version("plumed", &["info", "--version"]) {
+            let _ = writeln!(output, "plumed = \"{v}\"");
         }
     }
 

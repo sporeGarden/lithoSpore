@@ -132,23 +132,37 @@ pub(crate) fn infer_module_metadata(
     module_name: &str,
     profile: Option<&pseudospore_core::DomainProfile>,
 ) -> (String, String, String) {
+    let is_md = profile.is_none()
+        || profile.is_some_and(|p| {
+            p.tools
+                .iter()
+                .any(|t| t == "gromacs" || t == "plumed" || t == "lammps")
+        });
+
     let method = if let Some(p) = profile {
         if p.id.contains("metadynamics") {
             "Well-Tempered Metadynamics".to_string()
         } else {
-            format!("{} simulation", p.id)
+            format!("{} computation", p.id)
         }
     } else {
-        "Simulation".to_string()
+        "Computation".to_string()
     };
 
-    let is_2d = module_name.contains("2d");
     let system = module_name.replace(['-', '_'], " ");
-    let cv = if is_2d {
-        "2D collective variable".to_string()
+    let detail = if is_md {
+        let is_2d = module_name.contains("2d");
+        if is_2d {
+            "2D collective variable"
+        } else {
+            "1D collective variable"
+        }
+        .to_string()
+    } else if let Some(p) = profile {
+        p.id.clone()
     } else {
-        "1D collective variable".to_string()
+        "dataset".to_string()
     };
 
-    (system, cv, method)
+    (system, detail, method)
 }

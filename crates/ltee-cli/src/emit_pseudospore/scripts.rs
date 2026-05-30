@@ -86,17 +86,78 @@ pub(super) fn generate_readme(
     let key_finding = "";
     let paper_ref = "";
 
-    // Module table
+    let is_md = profile.is_none()
+        || profile.is_some_and(|p| {
+            p.tools
+                .iter()
+                .any(|t| t == "gromacs" || t == "plumed" || t == "lammps")
+        });
+
+    let has_translation = profile.is_none_or(pseudospore_core::DomainProfile::translation_enabled);
+
+    // Module table: profile-aware column headers
     let mut module_table = String::new();
     for m in &modules {
-        let (system, cv, _method) = scope::infer_module_metadata(m, profile);
-        let ns = configs_dir.and_then(|c| scope::find_mdp_and_extract_time(&c.join(m)));
-        let _ = writeln!(
-            module_table,
-            "| `{m}` | {system} | {cv} | {} ns |",
-            ns.unwrap_or(0)
-        );
+        let (system, detail, _method) = scope::infer_module_metadata(m, profile);
+        if is_md {
+            let ns = configs_dir.and_then(|c| scope::find_mdp_and_extract_time(&c.join(m)));
+            let _ = writeln!(
+                module_table,
+                "| `{m}` | {system} | {detail} | {} ns |",
+                ns.unwrap_or(0)
+            );
+        } else {
+            let _ = writeln!(module_table, "| `{m}` | {system} | {detail} |");
+        }
     }
+
+    let module_header = if is_md {
+        format!(
+            "## Modules ({n} simulations, {total_ns} ns total)\n\n| Module | System | CV | Time |\n|--------|--------|----|----- |",
+            n = modules.len(),
+        )
+    } else {
+        format!(
+            "## Modules ({n} datasets)\n\n| Module | Description | Domain |\n|--------|-------------|--------|",
+            n = modules.len(),
+        )
+    };
+
+    let quick_start_domain = if is_md {
+        "| See the results visually | `figures/` — publication-quality FEL plots |\n\
+         | Reproduce the FES | `plumed sum_hills --hills data/<module>/HILLS --outfile fes.dat --mintozero` |"
+    } else {
+        "| See the results visually | `figures/` — publication-quality visualizations (if generated) |"
+    };
+
+    let quick_start_translation = if has_translation {
+        "\n| Understand index mapping | `TRANSLATE.md` — domain↔computation index mapping |"
+    } else {
+        ""
+    };
+
+    let data_desc = if is_md {
+        "Raw simulation data — HILLS deposits, topology (.gro), datasets"
+    } else {
+        "Source data and datasets"
+    };
+    let outputs_desc = if is_md {
+        "Derived results — free energy surfaces, analysis outputs"
+    } else {
+        "Derived results and analysis outputs"
+    };
+    let configs_desc = if is_md {
+        "Simulation input files (MDP, PLUMED) for reproduction"
+    } else {
+        "Configuration files for computation reproduction"
+    };
+
+    let translation_rows = if has_translation {
+        "| `index_map.toml` | Domain↔computation index translation table |\n\
+         | `TRANSLATE.md` | Human-readable index mapping + derivation commands |"
+    } else {
+        ""
+    };
 
     format!(
         r"# {name} v{version}
@@ -113,34 +174,27 @@ pub(super) fn generate_readme(
 
 | Want to... | Look at... |
 |-----------|------------|
-| See the results visually | `figures/` — publication-quality FEL plots |
-| Understand atom numbering | `TRANSLATE.md` — PDB↔GROMACS index mapping with derivation commands |
-| Verify data integrity | `./validate` — runs airgapped with just `b3sum` (or `litho` if available) |
-| Reproduce the FES | `plumed sum_hills --hills data/<module>/HILLS --outfile fes.dat --mintozero` |
-| Load the crystal structure | `data/2D24.pdb` — GH10 xylanase with bound β-D-xylopyranose |
+{quick_start_domain}
+| Verify data integrity | `./validate` — runs airgapped with just `b3sum` (or `litho` if available) |{quick_start_translation}
 | Read the machine-readable claims | `validation.json` — per-module scientific assertions with numbers |
 | Refresh data from source | `./refresh` — re-fetches datasets, reports hash changes |
 
-## Modules ({n_modules} simulations, {total_ns} ns total)
-
-| Module | System | CV | Time |
-|--------|--------|----|----- |
+{module_header}
 {module_table}
 ## File Inventory
 
 | Item | What it is |
 |------|-----------|
-| `figures/` | Publication-quality FEL plots (1D comparison + 2D heatmaps) |
-| `data/` | Raw simulation data — HILLS deposits, topology (.gro), crystal structure (.pdb) |
-| `outputs/` | Derived results — free energy surfaces (fes_theta.dat, fes_2d.dat) |
-| `configs/` | GROMACS MDP + PLUMED input files to reproduce each simulation |
+| `figures/` | Publication-quality visualizations |
+| `data/` | {data_desc} |
+| `outputs/` | {outputs_desc} |
+| `configs/` | {configs_desc} |
 | `provenance/` | Lineage chain — ferment transcript + braid files tracing artifact history |
 | `receipts/` | Integrity proof — BLAKE3 checksums + environment snapshot |
-| `scope.toml` | Identity document — modules, paper DOI, simulation times, license |
+| `scope.toml` | Identity document — modules, origin, license |
 | `validation.json` | Scientific claims — per-module pass/fail with specific numeric assertions |
 | `domain_profile.toml` | Machine-readable domain specification (audit/emit/promote logic) |
-| `index_map.toml` | Atom index translation table (PDB serial ↔ GROMACS line position) |
-| `TRANSLATE.md` | Human-readable atom mapping + derivation commands |
+{translation_rows}
 | `data.toml` | Data manifest — source URIs, licenses, BLAKE3 hashes, refresh commands |
 | `tolerances.toml` | Named numeric tolerances with scientific justification |
 | `liveSpore.json` | Deployment log — records each successful validation run |
@@ -173,7 +227,6 @@ a structured validation report.
 
 **Date:** {date} | **Origin:** {origin} | **License:** AGPL-3.0-or-later
 ",
-        n_modules = modules.len(),
     )
 }
 

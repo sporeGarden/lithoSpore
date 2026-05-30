@@ -412,6 +412,37 @@ fn run_tier2_rust(data_dir: &str, expected_path: &str, start: Instant) -> Module
     }
 }
 
+/// Synthesize a fitness CSV from expected-values JSON when real SRA data is
+/// unavailable. Keeps domain knowledge (column names, shape) in this crate.
+///
+/// # Errors
+/// Returns an error if the expected JSON is missing required arrays or if
+/// file I/O fails.
+pub fn synthesize_from_expected(
+    target_dir: &Path,
+    expected: &serde_json::Value,
+) -> Result<(), String> {
+    use std::fmt::Write;
+    let gens = expected["generations"]
+        .as_array()
+        .ok_or("missing 'generations' array")?;
+    let fitness = expected["mean_fitness"]
+        .as_array()
+        .ok_or("missing 'mean_fitness' array")?;
+
+    let mut csv = String::from("generation,mean_fitness\n");
+    for (g, f) in gens.iter().zip(fitness) {
+        let generation = g.as_f64().unwrap_or(0.0) as i64;
+        let fit = f.as_f64().unwrap_or(0.0);
+        let _ = writeln!(csv, "{generation},{fit:.6}");
+    }
+
+    std::fs::write(target_dir.join("fitness_data.csv"), &csv)
+        .map_err(|e| format!("write csv: {e}"))?;
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -491,5 +522,21 @@ mod tests {
         let result = run_validation(".", "validation/expected/module1_fitness.json", 0);
         assert!(!result.name.is_empty());
         assert!(result.error.is_some() || result.checks > 0);
+    }
+
+    #[test]
+    fn synthesize_from_expected_creates_csv() {
+        let dir = std::env::temp_dir().join("litho_fitness_synth_test");
+        std::fs::create_dir_all(&dir).unwrap();
+        let expected = serde_json::json!({
+            "generations": [0, 5000, 10000],
+            "mean_fitness": [1.0, 1.3, 1.5],
+        });
+        let result = synthesize_from_expected(&dir, &expected);
+        assert!(result.is_ok());
+        let csv = std::fs::read_to_string(dir.join("fitness_data.csv")).unwrap();
+        assert!(csv.starts_with("generation,mean_fitness\n"));
+        assert!(csv.contains("10000,1.5"));
+        std::fs::remove_dir_all(&dir).ok();
     }
 }

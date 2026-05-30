@@ -14,6 +14,10 @@ use litho_core::{ModuleResult, ValidationStatus};
 use std::path::Path;
 use std::time::Instant;
 
+const POPULATION_SIZE: u64 = 500_000;
+const GENOMIC_MUTATION_RATE: f64 = 8.9e-4;
+const GENERATIONS_OBSERVED: u64 = 20_000;
+
 /// Run module 2 validation with the given paths and tier.
 #[must_use]
 pub fn run_validation(data_dir: &str, expected: &str, max_tier: u8) -> ModuleResult {
@@ -129,9 +133,9 @@ fn run_tier2_rust(data_dir: &str, expected_path: &str, start: Instant) -> Module
 
     let params = load_mutation_params(data_dir);
 
-    let mut pop_size: u64 = 500_000;
-    let mut mu: f64 = 8.9e-4;
-    let n_gens: usize = 20_000;
+    let mut pop_size: u64 = POPULATION_SIZE;
+    let mut mu: f64 = GENOMIC_MUTATION_RATE;
+    let n_gens: usize = GENERATIONS_OBSERVED as usize;
     let n_reps: usize = 50;
     let seed: u64 = 42;
 
@@ -292,13 +296,42 @@ fn run_tier2_rust(data_dir: &str, expected_path: &str, start: Instant) -> Module
     }
 }
 
+/// Synthesize mutation parameters JSON from expected-values JSON when real
+/// SRA data is unavailable. Keeps domain constants (population size, mutation
+/// rate, generation count) in this crate rather than in the fetch pipeline.
+///
+/// # Errors
+/// Returns an error if serialization or file I/O fails.
+pub fn synthesize_from_expected(
+    target_dir: &Path,
+    expected: &serde_json::Value,
+) -> Result<(), String> {
+    let params = serde_json::json!({
+        "experiment": expected.get("experiment").cloned().unwrap_or(serde_json::Value::Null),
+        "paper": expected.get("paper").cloned().unwrap_or(serde_json::Value::Null),
+        "population_size": POPULATION_SIZE,
+        "genomic_mutation_rate": GENOMIC_MUTATION_RATE,
+        "generations_observed": GENERATIONS_OBSERVED,
+        "kimura_fixation_prob_neutral": expected.get("kimura_fixation_prob_neutral").cloned().unwrap_or(serde_json::Value::Null),
+        "molecular_clock_rate": expected.get("molecular_clock_rate").cloned().unwrap_or(serde_json::Value::Null),
+        "drift_dominance_ratio": expected.get("drift_dominance_ratio").cloned().unwrap_or(serde_json::Value::Null),
+        "note": "Generated from expected values — real data requires SRA download",
+    });
+
+    let json = serde_json::to_string_pretty(&params).map_err(|e| format!("serialize: {e}"))?;
+    std::fs::write(target_dir.join("mutation_parameters.json"), &json)
+        .map_err(|e| format!("write: {e}"))?;
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn kimura_neutral_is_one_over_n() {
-        let n = 500_000_u64;
+        let n = POPULATION_SIZE;
         let pfix = kimura_fixation_prob(n, 0.0, None);
         let expected = 1.0 / n as f64;
         assert!((pfix - expected).abs() < 1e-12);
@@ -306,7 +339,7 @@ mod tests {
 
     #[test]
     fn kimura_beneficial_exceeds_neutral() {
-        let n = 500_000_u64;
+        let n = POPULATION_SIZE;
         let neutral = kimura_fixation_prob(n, 0.0, None);
         let beneficial = kimura_fixation_prob(n, 0.01, None);
         assert!(beneficial > neutral * 10.0);
@@ -314,7 +347,7 @@ mod tests {
 
     #[test]
     fn kimura_deleterious_below_neutral() {
-        let n = 500_000_u64;
+        let n = POPULATION_SIZE;
         let neutral = kimura_fixation_prob(n, 0.0, None);
         let deleterious = kimura_fixation_prob(n, -0.01, None);
         assert!(deleterious < neutral);
@@ -375,5 +408,21 @@ mod tests {
         let result = run_validation(data.to_str().unwrap(), expected.to_str().unwrap(), 1);
         assert_eq!(result.status, ValidationStatus::Skip);
         assert_eq!(result.tier, 1);
+    }
+
+    #[test]
+    fn synthesize_from_expected_creates_json() {
+        let dir = std::env::temp_dir().join("litho_mutations_synth_test");
+        std::fs::create_dir_all(&dir).unwrap();
+        let expected = serde_json::json!({
+            "experiment": "LTEE",
+            "paper": "Barrick2009",
+        });
+        let result = synthesize_from_expected(&dir, &expected);
+        assert!(result.is_ok());
+        let content = std::fs::read_to_string(dir.join("mutation_parameters.json")).unwrap();
+        assert!(content.contains("population_size"));
+        assert!(content.contains("500000"));
+        std::fs::remove_dir_all(&dir).ok();
     }
 }

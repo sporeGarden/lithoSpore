@@ -94,7 +94,7 @@ Each carries `doi`, `source_figures`, and tolerance specifications.
 
 ## Test Coverage
 
-197 tests across 10 crates:
+199 tests across 10 crates:
 - `litho-core`: 47 unit tests (discovery, provenance, validation, braid, spore, scope, harness, env_vars, tolerance, manifest, stats)
 - `pseudospore-core`: 45 unit tests (manifest, validation, tarball, braid envelope, receipts, scope, domain profile, envelope load+validate, error types)
 - `ltee-cli`: 63 unit + integration tests (lib 35, cli_integration 20, integration 8)

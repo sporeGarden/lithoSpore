@@ -10,7 +10,6 @@
 //! contains per-spring folders (e.g. `groundSpring/validation/`). When unset,
 //! defaults to `{workspace}/../springs` (two parents above the artifact root).
 
-use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, serde::Deserialize)]
@@ -453,12 +452,11 @@ fn generate_from_expected(
     let expected: serde_json::Value =
         serde_json::from_str(&content).map_err(|e| format!("parse: {e}"))?;
 
-    // Generate module-specific synthetic data
+    // Delegate synthesis to domain crates; generic fallback copies expected values
     match module {
-        "ltee-fitness" => generate_fitness_csv(target_dir, &expected),
-        "ltee-mutations" => generate_mutation_params(target_dir, &expected),
+        "ltee-fitness" => ltee_fitness::synthesize_from_expected(target_dir, &expected),
+        "ltee-mutations" => ltee_mutations::synthesize_from_expected(target_dir, &expected),
         _ => {
-            // Generic: just copy expected values as the data bundle
             let dest = target_dir.join("expected_values.json");
             std::fs::write(&dest, &content).map_err(|e| format!("write: {e}"))?;
             Ok(())
@@ -514,50 +512,6 @@ fn find_expected_for_module(expected_dir: &Path, module: &str) -> Option<std::pa
     None
 }
 
-fn generate_fitness_csv(target_dir: &Path, expected: &serde_json::Value) -> Result<(), String> {
-    let gens = expected["generations"]
-        .as_array()
-        .ok_or("missing 'generations' array")?;
-    let fitness = expected["mean_fitness"]
-        .as_array()
-        .ok_or("missing 'mean_fitness' array")?;
-
-    let mut csv = String::from("generation,mean_fitness\n");
-    for (g, f) in gens.iter().zip(fitness) {
-        let generation = g.as_f64().unwrap_or(0.0) as i64;
-        let fit = f.as_f64().unwrap_or(0.0);
-        let _ = writeln!(csv, "{generation},{fit:.6}");
-    }
-
-    std::fs::write(target_dir.join("fitness_data.csv"), &csv)
-        .map_err(|e| format!("write csv: {e}"))?;
-
-    eprintln!("  Wrote synthetic fitness_data.csv ({} rows)", gens.len());
-    Ok(())
-}
-
-fn generate_mutation_params(target_dir: &Path, expected: &serde_json::Value) -> Result<(), String> {
-    let params = serde_json::json!({
-        "experiment": expected.get("experiment").cloned().unwrap_or(serde_json::Value::Null),
-        "paper": expected.get("paper").cloned().unwrap_or(serde_json::Value::Null),
-        "population_size": 500_000,
-        "genomic_mutation_rate": 8.9e-4,
-        "generations_observed": 20_000,
-        "kimura_fixation_prob_neutral": expected.get("kimura_fixation_prob_neutral").cloned().unwrap_or(serde_json::Value::Null),
-        "molecular_clock_rate": expected.get("molecular_clock_rate").cloned().unwrap_or(serde_json::Value::Null),
-        "drift_dominance_ratio": expected.get("drift_dominance_ratio").cloned().unwrap_or(serde_json::Value::Null),
-        "note": "Generated from expected values — real data requires SRA download",
-    });
-
-    let json = serde_json::to_string_pretty(&params).map_err(|e| format!("serialize: {e}"))?;
-
-    std::fs::write(target_dir.join("mutation_parameters.json"), &json)
-        .map_err(|e| format!("write: {e}"))?;
-
-    eprintln!("  Wrote synthetic mutation_parameters.json");
-    Ok(())
-}
-
 fn hash_directory(dir: &Path) -> Result<String, String> {
     let mut files: Vec<_> = walkdir::WalkDir::new(dir)
         .into_iter()
@@ -598,8 +552,8 @@ mod tests {
     }
 
     #[test]
-    fn generate_fitness_csv_works() {
-        let dir = std::env::temp_dir().join("litho_fetch_test_fitness");
+    fn fitness_synthesis_delegated_to_domain_crate() {
+        let dir = std::env::temp_dir().join("litho_fetch_test_fitness_delegate");
         let _ = std::fs::create_dir_all(&dir);
 
         let expected = serde_json::json!({
@@ -607,7 +561,7 @@ mod tests {
             "mean_fitness": [1.05, 1.15, 1.22],
         });
 
-        let result = generate_fitness_csv(&dir, &expected);
+        let result = ltee_fitness::synthesize_from_expected(&dir, &expected);
         assert!(result.is_ok());
         let csv = std::fs::read_to_string(dir.join("fitness_data.csv")).unwrap();
         assert!(csv.contains("generation,mean_fitness"));

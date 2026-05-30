@@ -2,10 +2,10 @@
 
 //! Unified CLI entry point for lithoSpore.
 //!
-//! Subcommands (20): validate, parity, verify, fetch, assemble, grow, refresh,
+//! Subcommands (21): validate, parity, verify, fetch, assemble, grow, refresh,
 //! status, spore, visualize, self-test, tier, chaos-test, deploy-test,
 //! deploy-report, audit, promote, emit-pseudospore, ingest-pseudospore,
-//! translate-config
+//! fetch-pseudospore, translate-config
 
 mod assemble;
 mod audit;
@@ -14,6 +14,7 @@ mod deploy_test;
 pub(crate) mod domain_profile;
 mod emit_pseudospore;
 mod fetch;
+mod fetch_pseudospore;
 mod grow;
 mod ingest_pseudospore;
 mod ops;
@@ -234,6 +235,27 @@ enum Commands {
         /// Verify BLAKE3 checksums after structural validation
         #[arg(long)]
         verify: bool,
+    },
+
+    /// Fetch a pseudoSpore from a remote URL (hosted gallery or direct tarball).
+    ///
+    /// Downloads, extracts, validates via pseudospore-core, and optionally
+    /// chains into `ingest-pseudospore` for registry and braid import.
+    FetchPseudospore {
+        /// URL to download (tarball: .tar.gz)
+        #[arg(long, alias = "from")]
+        url: String,
+
+        /// Output directory for extracted pseudoSpore
+        #[arg(long, default_value = ".")]
+        output: String,
+
+        #[arg(long, default_value = ".")]
+        artifact_root: String,
+
+        /// After fetch+validate, automatically ingest into lithoSpore registry
+        #[arg(long)]
+        ingest: bool,
     },
 
     /// Emit a pseudoSpore: assemble standard directory structure from module outputs.
@@ -530,6 +552,12 @@ fn main() {
             artifact_root,
             verify,
         } => ingest_pseudospore::run(&path, &artifact_root, verify),
+        Commands::FetchPseudospore {
+            url,
+            output,
+            artifact_root,
+            ingest,
+        } => fetch_pseudospore::run(&url, &output, &artifact_root, ingest),
         Commands::Audit {
             path,
             verbose,

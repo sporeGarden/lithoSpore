@@ -106,6 +106,22 @@ fn ingest_pseudospore_help_documents_verify_flag() {
 }
 
 #[test]
+fn fetch_pseudospore_help_documents_url_and_ingest_flags() {
+    let output = litho_bin()
+        .args(["fetch-pseudospore", "--help"])
+        .output()
+        .expect("fetch-pseudospore --help");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("--url"), "help should document --url");
+    assert!(stdout.contains("--ingest"), "help should document --ingest");
+    assert!(
+        stdout.contains("tarball"),
+        "help should mention tarball format"
+    );
+}
+
+#[test]
 fn audit_mock_spore_runs_core_checks() {
     let dir = tempfile::tempdir().expect("tempdir");
     let root = dir.path();

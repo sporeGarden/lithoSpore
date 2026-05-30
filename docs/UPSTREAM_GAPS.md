@@ -1,6 +1,6 @@
 # lithoSpore Upstream Gap Registry
 
-**Last Updated**: May 30, 2026 (75/75 checks, 7/7 modules, Tier 3 wired, 196 tests, 3 live braids)
+**Last Updated**: May 30, 2026 (75/75 checks, 7/7 modules, Tier 3 wired, 197 tests, 3 live braids)
 **Phase**: Post-deployment (first live handoff to Barrick Lab May 18)
 **Scope**: lithoSpore verification chassis (LTEE first instance; chassis domain-agnostic)
 **Geo-delocalization**: Absorbed — discovery chain env → UDS → TURN → standalone
@@ -330,7 +330,7 @@ currently embed (standalone CLI pattern).
   New `registry.rs` centralizes module resolution for all 6 consumer files. `.biomeos-spore`
   generated from scope.toml. Braid accessions from data.toml. `viz/` moved from litho-core
   to ltee-cli (instance layer). `litho-core` 12 modules, domain-agnostic chassis. Graph/target paths
-  parameterized. Test fixtures isolated. 196 tests, zero clippy warnings.
+  parameterized. Test fixtures isolated. 197 tests, zero clippy warnings.
 - **2026-05-17 PM**: wetSpring braid ingestion — `litho-core::braid` module (4 tests),
   sovereign + breseq baseline braids parsed, accession validated (SRP001569 PASS),
   braids displayed in `litho validate` output. URI fixes: gzip/zip content-type

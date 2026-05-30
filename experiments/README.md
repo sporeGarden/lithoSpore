@@ -143,7 +143,7 @@ Graph and target staging paths parameterized from scope.toml.
 **Phase 4**: `viz/` moved from litho-core to ltee-cli (instance layer).
 LTEE test fixtures isolated in `crates/litho-core/tests/fixtures/`.
 `litho-core` reaches domain-agnostic chassis — 12 modules, no LTEE science logic in source.
-192 workspace tests pass (75/75 science checks at Tier 2).
+199 workspace tests pass (75/75 science checks at Tier 2).
 
 ### 012 — Hypogeal Deployment to Barrick Lab (May 18)
 
@@ -162,7 +162,7 @@ interview.
 8. MANIFEST.toml for AI agent navigation
 9. Data courier: 5.2G SRA reads for airgapped seeding
 
-**Key metrics**: 75 science checks, 192 workspace tests, 7 modules, <100ms,
+**Key metrics**: 75 science checks, 199 workspace tests, 7 modules, <100ms,
 6.3MB binary, exFAT
 cross-platform, 10+ validated liveSpore.json entries.
 

@@ -40,7 +40,7 @@ Cross-tier parity testable for all 7 modules.
   typed errors (`LithoError` via `error.rs`), env var constants
 
 - **`ltee-cli`** (instance wiring + chassis glue):
-  unified `litho` binary with 20 subcommands,
+  unified `litho` binary with 21 subcommands,
   scope-driven module registry (`registry.rs` — `load_module_table()`, `dispatch_module()`,
   `module_name_matches()`), visualization adapters (`viz/` — DataBinding for all 7 LTEE
   modules + 7 Barrick baselines). `.biomeos-spore` generated from scope.toml during assembly.

@@ -100,7 +100,7 @@ lithoSpore/
 │   ├── ltee-biobricks/           # Module 5: BioBrick burden
 │   ├── ltee-breseq/              # Module 6: 264-genome comparison
 │   ├── ltee-anderson/            # Module 7: Anderson-QS predictions
-│   └── ltee-cli/                 # Unified CLI: 20 subcommands + module registry + viz (instance layer)
+│   └── ltee-cli/                 # Unified CLI: 21 subcommands + module registry + viz (instance layer)
 │
 ├── artifact/                     # The deployable artifact
 │   ├── usb-root/                 # USB root templates (.biomeos-spore, biomeOS/)

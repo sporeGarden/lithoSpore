@@ -14,7 +14,7 @@ const BASELINE_TOOLS: &[&str] = &[
     "rna_mi",
 ];
 
-pub(crate) fn run(root: &str, format: &str, output_dir: &str) {
+pub fn run(root: &str, format: &str, output_dir: &str) {
     let root_path = std::path::Path::new(root);
     let entries = registry::load_module_table(root_path);
 
@@ -249,7 +249,7 @@ fn push_to_visualization(socket_path: &str, dashboard: &serde_json::Value, label
 ///   2. `$PETALTONGUE_SOCKET` explicit path (legacy compat)
 ///   3. `litho_core::discover("visualization")` — ecosystem UDS/env/TURN chain
 ///   4. XDG runtime dir socket scan (fallback)
-pub(crate) fn discover_visualization_socket() -> String {
+pub fn discover_visualization_socket() -> String {
     for env_key in [
         litho_core::env_vars::VISUALIZATION_SOCKET,
         litho_core::env_vars::PETALTONGUE_SOCKET,
@@ -273,9 +273,9 @@ pub(crate) fn discover_visualization_socket() -> String {
         format!("{xdg_runtime}/biomeos/petaltongue.sock"),
     ];
 
-    for candidate in &candidates {
-        if std::path::Path::new(candidate).exists() {
-            return candidate.clone();
+    for candidate in candidates {
+        if std::path::Path::new(&candidate).exists() {
+            return candidate;
         }
     }
 
@@ -283,26 +283,11 @@ pub(crate) fn discover_visualization_socket() -> String {
 }
 
 fn resolve_xdg_runtime() -> String {
-    std::env::var(litho_core::env_vars::XDG_RUNTIME_DIR).unwrap_or_else(|_| {
-        #[cfg(unix)]
-        {
-            let uid = std::fs::read_to_string("/proc/self/status")
-                .ok()
-                .and_then(|s| {
-                    s.lines()
-                        .find(|l| l.starts_with("Uid:"))
-                        .and_then(|l| l.split_whitespace().nth(1))
-                        .map(String::from)
-                })
-                .unwrap_or_else(|| "1000".to_string());
-            format!("/run/user/{uid}")
-        }
-        #[cfg(not(unix))]
-        {
-            std::env::var(litho_core::env_vars::TEMP)
-                .unwrap_or_else(|_| std::env::temp_dir().to_string_lossy().to_string())
-        }
-    })
+    litho_core::platform::current().runtime_dir()
+}
+
+fn send_uds(socket_path: &str, payload: &[u8]) -> Result<String, String> {
+    litho_core::platform::current().uds_send(socket_path, payload)
 }
 
 #[cfg(test)]
@@ -328,38 +313,4 @@ mod tests {
         let path = resolve_xdg_runtime();
         assert!(!path.is_empty());
     }
-}
-
-#[cfg(unix)]
-fn send_uds(socket_path: &str, payload: &[u8]) -> Result<String, String> {
-    use std::io::{Read, Write};
-    use std::os::unix::net::UnixStream;
-
-    let mut stream = UnixStream::connect(socket_path).map_err(|e| format!("connect: {e}"))?;
-
-    stream
-        .set_write_timeout(Some(std::time::Duration::from_secs(5)))
-        .ok();
-    stream
-        .set_read_timeout(Some(std::time::Duration::from_secs(10)))
-        .ok();
-
-    stream
-        .write_all(payload)
-        .map_err(|e| format!("write: {e}"))?;
-    stream.flush().map_err(|e| format!("flush: {e}"))?;
-
-    stream.shutdown(std::net::Shutdown::Write).ok();
-
-    let mut response = String::new();
-    stream
-        .read_to_string(&mut response)
-        .map_err(|e| format!("read: {e}"))?;
-
-    Ok(response)
-}
-
-#[cfg(not(unix))]
-fn send_uds(_socket_path: &str, _payload: &[u8]) -> Result<String, String> {
-    Err("UDS transport not available on this platform".to_string())
 }

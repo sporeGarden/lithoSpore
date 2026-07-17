@@ -22,17 +22,11 @@ use serde_json::{Value, json};
 // These reduce repetitive json!({}) construction across baseline and module
 // adapters. Each returns a single DataBinding JSON value.
 
-pub(crate) fn bar(
-    id: &str,
-    label: &str,
-    categories: &[String],
-    values: &[f64],
-    unit: &str,
-) -> Value {
+pub fn bar(id: &str, label: &str, categories: &[String], values: &[f64], unit: &str) -> Value {
     json!({ "channel_type": "bar", "id": id, "label": label, "categories": categories, "values": values, "unit": unit })
 }
 
-pub(crate) fn bar_from_object(
+pub fn bar_from_object(
     id: &str,
     label: &str,
     obj: &serde_json::Map<String, Value>,
@@ -43,7 +37,7 @@ pub(crate) fn bar_from_object(
     bar(id, label, &cats, &vals, unit)
 }
 
-pub(crate) struct GaugeBinding<'a> {
+pub struct GaugeBinding<'a> {
     pub id: &'a str,
     pub label: &'a str,
     pub value: f64,
@@ -54,7 +48,7 @@ pub(crate) struct GaugeBinding<'a> {
     pub warning: [f64; 2],
 }
 
-pub(crate) fn gauge_binding(b: &GaugeBinding<'_>) -> Value {
+pub fn gauge_binding(b: &GaugeBinding<'_>) -> Value {
     json!({
         "channel_type": "gauge",
         "id": b.id,
@@ -68,7 +62,7 @@ pub(crate) fn gauge_binding(b: &GaugeBinding<'_>) -> Value {
     })
 }
 
-pub(crate) fn timeseries(
+pub fn timeseries(
     id: &str,
     label: &str,
     x_label: &str,
@@ -80,7 +74,7 @@ pub(crate) fn timeseries(
     json!({ "channel_type": "timeseries", "id": id, "label": label, "x_label": x_label, "y_label": y_label, "unit": unit, "x_values": x, "y_values": y })
 }
 
-pub(crate) struct ScatterBinding<'a> {
+pub struct ScatterBinding<'a> {
     pub id: &'a str,
     pub label: &'a str,
     pub x: &'a [f64],
@@ -91,7 +85,7 @@ pub(crate) struct ScatterBinding<'a> {
     pub unit: &'a str,
 }
 
-pub(crate) fn scatter_binding(b: &ScatterBinding<'_>) -> Value {
+pub fn scatter_binding(b: &ScatterBinding<'_>) -> Value {
     json!({
         "channel_type": "scatter",
         "id": b.id,
@@ -105,7 +99,7 @@ pub(crate) fn scatter_binding(b: &ScatterBinding<'_>) -> Value {
     })
 }
 
-pub(crate) fn heatmap(
+pub fn heatmap(
     id: &str,
     label: &str,
     x_labels: &[String],
@@ -116,7 +110,7 @@ pub(crate) fn heatmap(
     json!({ "channel_type": "heatmap", "id": id, "label": label, "x_labels": x_labels, "y_labels": y_labels, "values": values, "unit": unit })
 }
 
-pub(crate) fn distribution(
+pub fn distribution(
     id: &str,
     label: &str,
     values: &[f64],
@@ -127,7 +121,7 @@ pub(crate) fn distribution(
     json!({ "channel_type": "distribution", "id": id, "label": label, "values": values, "mean": mean, "std": std, "unit": unit })
 }
 
-pub(crate) fn genome_track(
+pub fn genome_track(
     id: &str,
     label: &str,
     seq_len: f64,
@@ -140,7 +134,7 @@ pub(crate) fn genome_track(
 
 /// Owned-vector bar helper for baseline adapters.
 #[expect(clippy::needless_pass_by_value)]
-pub(crate) fn bar_owned(
+pub fn bar_owned(
     id: &str,
     label: &str,
     categories: Vec<String>,
@@ -152,7 +146,7 @@ pub(crate) fn bar_owned(
 
 /// Owned-vector timeseries helper for baseline adapters.
 #[expect(clippy::needless_pass_by_value)]
-pub(crate) fn timeseries_owned(
+pub fn timeseries_owned(
     id: &str,
     label: &str,
     x_label: &str,
@@ -166,7 +160,7 @@ pub(crate) fn timeseries_owned(
 
 /// Owned-vector heatmap helper for baseline adapters.
 #[expect(clippy::needless_pass_by_value)]
-pub(crate) fn heatmap_owned(
+pub fn heatmap_owned(
     id: &str,
     label: &str,
     x_labels: Vec<String>,
@@ -179,7 +173,7 @@ pub(crate) fn heatmap_owned(
 
 /// Owned-vector distribution helper for baseline adapters.
 #[expect(clippy::needless_pass_by_value)]
-pub(crate) fn distribution_owned(
+pub fn distribution_owned(
     id: &str,
     label: &str,
     values: Vec<f64>,
@@ -192,7 +186,7 @@ pub(crate) fn distribution_owned(
 
 /// Owned-vector genome track helper for baseline adapters.
 #[expect(clippy::needless_pass_by_value)]
-pub(crate) fn genome_track_owned(
+pub fn genome_track_owned(
     id: &str,
     label: &str,
     seq_len: f64,
@@ -205,7 +199,7 @@ pub(crate) fn genome_track_owned(
 
 /// Eight-argument gauge helper for baseline adapters (consumes owned series).
 #[expect(clippy::too_many_arguments)]
-pub(crate) fn gauge(
+pub fn gauge(
     id: &str,
     label: &str,
     value: f64,
@@ -229,7 +223,7 @@ pub(crate) fn gauge(
 
 /// Eight-argument scatter helper for baseline adapters.
 #[expect(clippy::too_many_arguments, clippy::needless_pass_by_value)]
-pub(crate) fn scatter(
+pub fn scatter(
     id: &str,
     label: &str,
     x: Vec<f64>,
@@ -251,12 +245,12 @@ pub(crate) fn scatter(
     })
 }
 
-pub(crate) fn track_segment(track: &str, start: f64, end: f64, strand: &str, label: &str) -> Value {
+pub fn track_segment(track: &str, start: f64, end: f64, strand: &str, label: &str) -> Value {
     json!({ "track": track, "start": start, "end": end, "strand": strand, "label": label })
 }
 
 /// Convert a module's expected JSON into a vec of petalTongue `DataBinding` objects.
-pub(crate) fn module_to_bindings(module_name: &str, expected: &Value) -> Vec<Value> {
+pub fn module_to_bindings(module_name: &str, expected: &Value) -> Vec<Value> {
     match module_name {
         "power_law_fitness" => modules::m1_fitness(expected),
         "mutation_accumulation" => modules::m2_mutations(expected),
@@ -270,7 +264,7 @@ pub(crate) fn module_to_bindings(module_name: &str, expected: &Value) -> Vec<Val
 }
 
 /// Build a lithoSpore dashboard payload with all module bindings.
-pub(crate) fn build_dashboard(modules: &[(&str, &Value)]) -> Value {
+pub fn build_dashboard(modules: &[(&str, &Value)]) -> Value {
     let mut bindings = Vec::new();
     for (name, expected) in modules {
         bindings.extend(module_to_bindings(name, expected));
@@ -284,7 +278,7 @@ pub(crate) fn build_dashboard(modules: &[(&str, &Value)]) -> Value {
 }
 
 /// Convert a baseline tool's `reference_data` JSON into `DataBinding` objects.
-pub(crate) fn baseline_to_bindings(tool_name: &str, data: &Value) -> Vec<Value> {
+pub fn baseline_to_bindings(tool_name: &str, data: &Value) -> Vec<Value> {
     match tool_name {
         "breseq" => baselines::breseq(data),
         "plannotate" => baselines::plannotate(data),
@@ -299,7 +293,7 @@ pub(crate) fn baseline_to_bindings(tool_name: &str, data: &Value) -> Vec<Value> 
 
 /// Build a baseline dashboard payload combining all 7 Barrick Lab tool
 /// reference visualizations.
-pub(crate) fn build_baseline_dashboard(tools: &[(&str, &Value)]) -> Value {
+pub fn build_baseline_dashboard(tools: &[(&str, &Value)]) -> Value {
     let mut bindings = Vec::new();
     for (name, data) in tools {
         bindings.extend(baseline_to_bindings(name, data));

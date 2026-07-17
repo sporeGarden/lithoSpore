@@ -75,7 +75,7 @@ impl Xorshift64 {
     fn new(seed: u64) -> Self {
         Self(seed.max(1))
     }
-    fn next_u64(&mut self) -> u64 {
+    const fn next_u64(&mut self) -> u64 {
         let mut x = self.0;
         x ^= x << 13;
         x ^= x >> 7;
@@ -196,8 +196,8 @@ fn run_tier2_rust(data_dir: &str, expected_path: &str, start: Instant) -> Module
     let mut var_x = 0.0_f64;
     for (&x, &y) in gens_f.iter().zip(&mean_traj) {
         let dx = x - mean_x;
-        cov_xy += dx * (y - mean_y);
-        var_x += dx * dx;
+        cov_xy = dx.mul_add(y - mean_y, cov_xy);
+        var_x = dx.mul_add(dx, var_x);
     }
     let slope = if var_x > 0.0 { cov_xy / var_x } else { 0.0 };
 
@@ -297,8 +297,10 @@ fn run_tier2_rust(data_dir: &str, expected_path: &str, start: Instant) -> Module
 }
 
 /// Synthesize mutation parameters JSON from expected-values JSON when real
-/// SRA data is unavailable. Keeps domain constants (population size, mutation
-/// rate, generation count) in this crate rather than in the fetch pipeline.
+/// SRA data is unavailable.
+///
+/// Keeps domain constants (population size, mutation rate, generation count)
+/// in this crate rather than in the fetch pipeline.
 ///
 /// # Errors
 /// Returns an error if serialization or file I/O fails.

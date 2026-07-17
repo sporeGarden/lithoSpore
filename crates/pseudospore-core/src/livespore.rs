@@ -45,7 +45,7 @@ pub struct ValidationEntry {
 impl LiveSporeDoc {
     /// Create a new liveSpore document with envelope metadata and empty validations.
     #[must_use]
-    pub fn new(envelope: serde_json::Value) -> Self {
+    pub const fn new(envelope: serde_json::Value) -> Self {
         Self {
             envelope,
             validations: Vec::new(),
@@ -100,7 +100,7 @@ impl LiveSporeDoc {
             let mut envelope = raw
                 .get("liveSpore")
                 .cloned()
-                .unwrap_or(serde_json::json!({}));
+                .unwrap_or_else(|| serde_json::json!({}));
 
             if let Some(chain) = raw.get("provenance_chain") {
                 envelope["provenance_chain"] = chain.clone();

@@ -14,7 +14,7 @@ use std::path::Path;
 
 #[derive(Debug, Clone)]
 struct AtomMapping {
-    name: String,
+    _name: String,
     domain: u64,
     computation: u64,
 }
@@ -26,7 +26,7 @@ struct SystemMap {
     atoms: Vec<AtomMapping>,
 }
 
-pub(crate) fn run(
+pub fn run(
     index_map_path: &str,
     config_path: &str,
     frame: &str,
@@ -108,7 +108,7 @@ fn parse_index_map(content: &str) -> Result<Vec<SystemMap>, String> {
                                 .and_then(|i| u64::try_from(i).ok())
                                 .unwrap_or(0);
                             atoms.push(AtomMapping {
-                                name: atom_name.clone(),
+                                _name: atom_name.clone(),
                                 domain,
                                 computation,
                             });
@@ -130,7 +130,6 @@ fn parse_index_map(content: &str) -> Result<Vec<SystemMap>, String> {
 
 fn translate(config: &str, systems: &[SystemMap], from_frame: &str, to_frame: &str) -> String {
     let mut lookup: HashMap<u64, u64> = HashMap::new();
-    let mut reverse_names: HashMap<u64, String> = HashMap::new();
 
     for sys in systems {
         for atom in &sys.atoms {
@@ -140,7 +139,6 @@ fn translate(config: &str, systems: &[SystemMap], from_frame: &str, to_frame: &s
                 (atom.domain, atom.computation)
             };
             lookup.insert(from_val, to_val);
-            reverse_names.insert(from_val, atom.name.clone());
         }
     }
 
@@ -152,12 +150,10 @@ fn translate(config: &str, systems: &[SystemMap], from_frame: &str, to_frame: &s
             continue;
         }
 
-        // Look for PUCKERING ATOMS= or similar index-bearing directives
         if let Some(atoms_pos) = line.find("ATOMS=") {
             let prefix = &line[..atoms_pos + 6];
             let rest = &line[atoms_pos + 6..];
 
-            // Find end of atom list (next space or end of line)
             let end = rest.find(' ').unwrap_or(rest.len());
             let atom_str = &rest[..end];
             let suffix = &rest[end..];
@@ -180,11 +176,10 @@ fn translate(config: &str, systems: &[SystemMap], from_frame: &str, to_frame: &s
             result.push_str(prefix);
             result.push_str(&translated_atoms.join(","));
             result.push_str(suffix);
-            result.push('\n');
         } else {
             result.push_str(line);
-            result.push('\n');
         }
+        result.push('\n');
     }
 
     // Add frame annotation header

@@ -236,7 +236,7 @@ pub(super) fn stage_vm(root: &Path) {
         .stderr(std::process::Stdio::null())
         .status();
     let _ = std::fs::remove_dir_all(&cidata_dir);
-    if !status.map(|s| s.success()).unwrap_or(false) {
+    if !status.is_ok_and(|s| s.success()) {
         eprintln!("  ERROR: Failed to build cloud-init ISO");
         return;
     }
@@ -275,7 +275,7 @@ pub(super) fn stage_vm(root: &Path) {
         ])
         .stdout(std::process::Stdio::null())
         .status();
-    if !status.map(|s| s.success()).unwrap_or(false) {
+    if !status.is_ok_and(|s| s.success()) {
         eprintln!("  ERROR: virt-install failed");
         return;
     }

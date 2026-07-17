@@ -3,7 +3,7 @@
 ## Targeted GuideStone Pattern
 
 lithoSpore implements the Targeted GuideStone standard defined in
-`ecoPrimals/infra/wateringHole/TARGETED_GUIDESTONE_STANDARD.md`. A Targeted GuideStone
+`ecoPrimals/infra/wateringHole/fossilRecord/wave138a_cleanup/TARGETED_GUIDESTONE_STANDARD.md`. A Targeted GuideStone
 is a **frozen composition snapshot** — binaries + data + validation, all
 self-contained — that buds from the ecosystem into a portable artifact.
 
@@ -38,11 +38,12 @@ A guideStone-grade artifact satisfies five properties (per primals.eco):
 ## Crate Architecture
 
 ```
-litho-core          ← shared library (CHASSIS — domain-agnostic, 12 modules)
+litho-core          ← shared library (CHASSIS — domain-agnostic, 13 modules)
   ├── validation/     ModuleResult, ValidationReport, Tier3Session, ParityReport
   ├── tolerance/      named tolerances with scientific justification
   ├── provenance/     ProvenanceChain + JSON-RPC client for trio (dag/spine/braid)
   ├── discovery/      capability-based primal resolution (env → UDS → TURN → standalone)
+  ├── platform/       Platform trait — OS abstraction (silicon atheism, 2 #[cfg] blocks)
   ├── spore/          liveSpore tracking, BLAKE3 anchoring, hostname hashing
   ├── scope/          ScopeManifest + ScopeModule parser (scope.toml → module table)
   ├── braid/          upstream ferment transcript braid ingestion + validation
@@ -54,7 +55,9 @@ litho-core          ← shared library (CHASSIS — domain-agnostic, 12 modules)
 pseudospore-core    ← canonical pseudoSpore parsing, validation, checksums, tarball
 ├── blake3_manifest.rs    data.toml read/write/verify
 ├── braid_envelope.rs     FermentTranscript wire types
-├── domain_profile.rs     domain_profile.toml parsing + TolerancesConfig
+├── domain_profile/       domain_profile.toml parsing + TolerancesConfig
+│   ├── mod.rs              profile loading + validation
+│   └── parse.rs            field-level parsing helpers
 ├── envelope.rs           PseudoSporeEnvelope — unified load+validate consumer API
 ├── error.rs              SporeError typed error hierarchy (thiserror)
 ├── livespore.rs          liveSpore.json unified schema
@@ -71,7 +74,8 @@ pseudospore-core    ← canonical pseudoSpore parsing, validation, checksums, ta
   ├── ltee-breseq    ← Module 6: 264 genomes
   ├── ltee-anderson  ← Module 7: Anderson-QS predictions
   └── ltee-cli       ← Unified CLI (INSTANCE + CHASSIS GLUE)
-      ├── main.rs         thin wiring (arg parse + argv[0] dispatch)
+      ├── main.rs         thin wiring (arg parse → dispatch.rs for argv[0])
+      ├── dispatch.rs     symlink-based CLI dispatch (validate/verify/refresh/spore/parity/grow)
       ├── registry.rs     scope-driven module registry (replaces LTEE_MODULES constants)
       ├── validate.rs     litho validate — in-process module execution + Tier 3 branch
       ├── parity.rs       litho parity — cross-tier numerical parity check
@@ -87,6 +91,7 @@ pseudospore-core    ← canonical pseudoSpore parsing, validation, checksums, ta
       │   ├── mod.rs
       │   ├── completeness.rs
       │   ├── domain.rs
+      │   ├── derivation.rs   derivation contract checks + PLUMED discovery
       │   ├── integrity.rs
       │   └── provenance.rs
       ├── emit_pseudospore/  litho emit-pseudospore — create pseudoSpore artifacts

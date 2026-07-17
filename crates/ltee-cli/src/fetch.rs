@@ -42,7 +42,7 @@ struct DatasetEntry {
     full_data_checks: String,
 }
 
-pub(crate) fn run(root: &str, dataset_filter: Option<&str>, all: bool, full: bool) {
+pub fn run(root: &str, dataset_filter: Option<&str>, all: bool, full: bool) {
     let root_path = Path::new(root);
     let data_toml = root_path.join("artifact/data.toml");
 
@@ -232,11 +232,7 @@ fn fetch_dataset(root: &Path, ds: &DatasetEntry, full: bool) -> Result<String, S
     }
 
     // Strategy 4: check if data already exists
-    if target_dir.exists()
-        && std::fs::read_dir(&target_dir)
-            .map(|mut d| d.next().is_some())
-            .unwrap_or(false)
-    {
+    if target_dir.exists() && std::fs::read_dir(&target_dir).is_ok_and(|mut d| d.next().is_some()) {
         eprintln!(
             "[{}]   Using existing data in {}",
             ds.id,
@@ -262,8 +258,7 @@ fn try_sra_download(accession: &str, target_dir: &Path, id: &str) -> Result<(), 
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
         .status()
-        .map(|s| s.success())
-        .unwrap_or(false);
+        .is_ok_and(|s| s.success());
 
     if !has_prefetch {
         return Err("SRA toolkit not installed (prefetch not found). \
@@ -477,7 +472,7 @@ fn springs_root(artifact_root: &Path) -> PathBuf {
         .map_or_else(|| PathBuf::from("springs"), |eco| eco.join("springs"))
 }
 
-/// Resolve which spring owns a module binary from `scope.toml` [[spring]] entries.
+/// Resolve which spring owns a module binary from `scope.toml` `[[spring]]` entries.
 fn spring_for_module(artifact_root: &Path, module: &str) -> Option<String> {
     let scope_path = artifact_root.join("scope.toml");
     let content = std::fs::read_to_string(scope_path).ok()?;

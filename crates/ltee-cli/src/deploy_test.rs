@@ -7,7 +7,7 @@
 
 use std::path::Path;
 
-pub(crate) fn run(root: &str) {
+pub fn run(root: &str) {
     let tmpdir = std::env::temp_dir().join("litho-deploy-test");
     let target = tmpdir.to_string_lossy();
     let _ = std::fs::remove_dir_all(&tmpdir);

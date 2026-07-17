@@ -133,7 +133,7 @@ fn run_tier2_rust(data_dir: &str, expected_path: &str, start: Instant) -> Module
 
     let dfe_path = Path::new(data_dir)
         .parent()
-        .unwrap_or(Path::new("."))
+        .unwrap_or_else(|| Path::new("."))
         .join("dfe_2024/dfe_parameters.json");
     let dfe_params = dfe_path.to_str().and_then(harness::load_expected);
 

@@ -198,12 +198,18 @@ pub fn validate_braids(
 /// Display a human-readable summary of braids for CLI output.
 #[must_use]
 pub fn format_braid_summary(braids: &[(String, FermentBraid)]) -> String {
+    use std::fmt::Write;
+
     if braids.is_empty() {
         return "  No upstream braids found".to_string();
     }
 
-    let mut lines = Vec::new();
-    for (filename, braid) in braids {
+    let mut out = String::new();
+    for (i, (filename, braid)) in braids.iter().enumerate() {
+        if i > 0 {
+            out.push('\n');
+        }
+
         let tool_info = if let Some(ref comp) = braid.computation {
             format!("{} ({})", comp.tool, comp.substrate)
         } else if let Some(total) = braid.total_mutations {
@@ -213,23 +219,22 @@ pub fn format_braid_summary(braids: &[(String, FermentBraid)]) -> String {
             "unknown".to_string()
         };
 
-        let detail = if let Some(ref comp) = braid.computation {
+        let _ = write!(
+            out,
+            "  {filename}: {} [{}/{}]",
+            braid.braid_id, braid.spring, tool_info
+        );
+
+        if let Some(ref comp) = braid.computation {
             let sv = comp.sovereign_variants.unwrap_or(0);
             let bv = comp.breseq_variants.unwrap_or(0);
-            format!("  sovereign={sv} breseq={bv}")
+            let _ = write!(out, "  sovereign={sv} breseq={bv}");
         } else if let Some(ref ref_name) = braid.reference {
-            format!("  ref={ref_name}")
-        } else {
-            String::new()
-        };
-
-        lines.push(format!(
-            "  {}: {} [{}/{}]{}",
-            filename, braid.braid_id, braid.spring, tool_info, detail
-        ));
+            let _ = write!(out, "  ref={ref_name}");
+        }
     }
 
-    lines.join("\n")
+    out
 }
 
 #[cfg(test)]

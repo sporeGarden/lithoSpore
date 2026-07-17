@@ -111,11 +111,7 @@ pub(super) fn stage_clone(_root: &Path, target: &Path, scope: &SourceConfig, eco
         return;
     }
 
-    if target.exists()
-        && std::fs::read_dir(target)
-            .map(|mut d| d.next().is_some())
-            .unwrap_or(false)
-    {
+    if target.exists() && std::fs::read_dir(target).is_ok_and(|mut d| d.next().is_some()) {
         println!("  Target directory is not empty and not a git repo.");
         println!("  Skipping clone — will attempt to use existing content.");
         return;
@@ -211,7 +207,7 @@ pub(super) fn stage_build(target: &Path, scope: &SourceConfig) {
         target.join("target/release/litho")
     };
     if binary.exists() {
-        let size = std::fs::metadata(&binary).map(|m| m.len()).unwrap_or(0);
+        let size = std::fs::metadata(&binary).map_or(0, |m| m.len());
         println!(
             "  Built: {} ({:.1} MB)",
             binary.display(),
@@ -281,7 +277,7 @@ pub(super) fn stage_seed_data(usb_root: &Path, target: &Path) {
                 let rel = entry
                     .path()
                     .strip_prefix(&usb_expected)
-                    .unwrap_or(entry.path());
+                    .unwrap_or_else(|_| entry.path());
                 let dest = target_expected.join(rel);
                 if !dest.exists() {
                     std::fs::copy(entry.path(), &dest).ok();

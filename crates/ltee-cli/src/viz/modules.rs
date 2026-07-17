@@ -7,7 +7,7 @@ use super::{
 };
 use serde_json::Value;
 
-pub(crate) fn m1_fitness(exp: &Value) -> Vec<Value> {
+pub fn m1_fitness(exp: &Value) -> Vec<Value> {
     let mut b = Vec::new();
 
     let gens = exp.get("generations").and_then(|v| v.as_array());
@@ -50,7 +50,7 @@ pub(crate) fn m1_fitness(exp: &Value) -> Vec<Value> {
     b
 }
 
-pub(crate) fn m2_mutations(exp: &Value) -> Vec<Value> {
+pub fn m2_mutations(exp: &Value) -> Vec<Value> {
     let pfix = exp
         .get("kimura_fixation_prob_neutral")
         .and_then(serde_json::Value::as_f64)
@@ -100,7 +100,7 @@ pub(crate) fn m2_mutations(exp: &Value) -> Vec<Value> {
     b
 }
 
-pub(crate) fn m3_alleles(exp: &Value) -> Vec<Value> {
+pub fn m3_alleles(exp: &Value) -> Vec<Value> {
     let results = match exp.get("results_by_size").and_then(|v| v.as_object()) {
         Some(r) => r,
         None => return vec![],
@@ -160,7 +160,7 @@ pub(crate) fn m3_alleles(exp: &Value) -> Vec<Value> {
     ]
 }
 
-pub(crate) fn m4_citrate(exp: &Value) -> Vec<Value> {
+pub fn m4_citrate(exp: &Value) -> Vec<Value> {
     let cit_frac = exp
         .get("cit_plus_fraction")
         .and_then(serde_json::Value::as_f64)
@@ -225,7 +225,7 @@ pub(crate) fn m4_citrate(exp: &Value) -> Vec<Value> {
     b
 }
 
-pub(crate) fn m5_biobricks(exp: &Value) -> Vec<Value> {
+pub fn m5_biobricks(exp: &Value) -> Vec<Value> {
     let mut b = Vec::new();
 
     if let Some(backbones) = exp.get("plasmid_backbones").and_then(|v| v.as_object()) {
@@ -267,7 +267,7 @@ pub(crate) fn m5_biobricks(exp: &Value) -> Vec<Value> {
     b
 }
 
-pub(crate) fn m6_breseq(exp: &Value) -> Vec<Value> {
+pub fn m6_breseq(exp: &Value) -> Vec<Value> {
     let mut b = Vec::new();
 
     if let Some(curve) = exp.get("mutation_accumulation_curve") {
@@ -307,7 +307,7 @@ pub(crate) fn m6_breseq(exp: &Value) -> Vec<Value> {
     b
 }
 
-pub(crate) fn m7_anderson(exp: &Value) -> Vec<Value> {
+pub fn m7_anderson(exp: &Value) -> Vec<Value> {
     let mut b = Vec::new();
 
     if let Some(fitness) = exp.get("fitness_values").and_then(|v| v.as_object()) {

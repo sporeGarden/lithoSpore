@@ -2,7 +2,7 @@
 
 //! `litho verify` — data integrity: rehash files against manifest, probe upstream.
 
-pub(crate) fn run(root: &str, json_output: bool) {
+pub fn run(root: &str, json_output: bool) {
     let root_path = std::path::Path::new(root);
     let manifest_path = root_path.join("data_manifest.toml");
     let data_toml_path = root_path.join("artifact/data.toml");
@@ -59,7 +59,7 @@ pub(crate) fn run(root: &str, json_output: bool) {
 }
 
 /// Run verification and return success/failure without calling `process::exit`.
-pub(crate) fn run_check(root: &str) -> bool {
+pub fn run_check(root: &str) -> bool {
     let root_path = std::path::Path::new(root);
     let manifest_path = root_path.join("data_manifest.toml");
 
@@ -243,7 +243,7 @@ fn verify_upstream(
 ) {
     let content = std::fs::read_to_string(data_toml_path).unwrap_or_default();
     let data_toml: toml::Value =
-        toml::from_str(&content).unwrap_or(toml::Value::Table(toml::map::Map::new()));
+        toml::from_str(&content).unwrap_or_else(|_| toml::Value::Table(toml::map::Map::new()));
 
     if let Some(datasets) = data_toml.get("dataset").and_then(|v| v.as_array()) {
         for ds in datasets {

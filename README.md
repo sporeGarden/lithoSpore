@@ -10,7 +10,7 @@ with quantitative claims, source data, and expected values.
 **Subsystem of**: projectNUCLEUS
 **First Instance**: Barrick Lab, MSU (LTEE — 82,500+ generations)
 **License**: AGPL-3.0-or-later (code), CC-BY-SA 4.0 (docs)
-**Standard**: `TARGETED_GUIDESTONE_STANDARD.md` (ecoPrimals/infra/wateringHole)
+**Standard**: `TARGETED_GUIDESTONE_STANDARD.md` (ecoPrimals/infra/wateringHole/fossilRecord/wave138a_cleanup)
 **Repo**: [github.com/sporeGarden/lithoSpore](https://github.com/sporeGarden/lithoSpore)
 
 ## Spore Taxonomy
@@ -31,7 +31,7 @@ It proves the mountain was climbed and shows the view from the top — without c
 the mountain. See `specs/PSEUDOSPORE_STANDARD.md` for the format specification and
 `litho ingest-pseudospore` / `litho emit-pseudospore` for CLI tooling.
 
-See `ecoPrimals/infra/wateringHole/LITHOSPORE_USB_DEPLOYMENT.md` for the full deployment standard.
+See `ecoPrimals/infra/wateringHole/fossilRecord/wave138a_cleanup/LITHOSPORE_USB_DEPLOYMENT.md` for the full deployment standard.
 
 ## What This Is
 
@@ -92,7 +92,7 @@ lithoSpore/
 ├── deny.toml                     # cargo-deny policy (licenses, advisories)
 ├── crates/
 │   ├── pseudospore-core/         # pseudoSpore format: BLAKE3 manifest, braid envelope, validation
-│   ├── litho-core/               # Shared library (chassis): validation, tolerance, provenance, discovery, stats, harness, braid, scope, error
+│   ├── litho-core/               # Shared library (chassis): validation, tolerance, provenance, discovery, stats, harness, braid, scope, error, platform
 │   ├── ltee-fitness/             # Module 1: power-law fitness (lib.rs + thin main.rs)
 │   ├── ltee-mutations/           # Module 2: mutation accumulation
 │   ├── ltee-alleles/             # Module 3: allele trajectories
@@ -100,7 +100,7 @@ lithoSpore/
 │   ├── ltee-biobricks/           # Module 5: BioBrick burden
 │   ├── ltee-breseq/              # Module 6: 264-genome comparison
 │   ├── ltee-anderson/            # Module 7: Anderson-QS predictions
-│   └── ltee-cli/                 # Unified CLI: 21 subcommands + module registry + viz (instance layer)
+│   └── ltee-cli/                 # Unified CLI: 21 subcommands + module registry + viz + dispatch (instance layer)
 │
 ├── artifact/                     # The deployable artifact
 │   ├── usb-root/                 # USB root templates (.biomeos-spore, biomeOS/)
@@ -163,11 +163,11 @@ The assembled USB is a self-sufficient hypogeal cotyledon: plug it into
 any Linux machine and run `./validate`. See `artifact/usb-root/` for
 the root file templates.
 
-## Current Status — 7/7 PASS, Live Deployment (May 18, 2026)
+## Current Status — 7/7 PASS, Live Deployment
 
 **Pillar 4 EXIT GATE: EXCEEDED** — 7 modules PASS at Tier 2, gate required 2+.
 **First live handoff**: 4 USB drives deployed to Barrick Lab (MSU) for LTEE RA II interview. exFAT cross-platform, 3-zone structure, pre-rendered HTML browse layer.
-**Deployment-validated**: USB pipeline tested on 4+ machines — 75/75 science checks, 199 unit/integration tests, 10 chaos/fault-injection tests.
+**Deployment-validated**: USB pipeline tested on 4+ machines — 75/75 science checks, 216 unit/integration tests, 10 chaos/fault-injection tests.
 **Tier 3**: Provenance trio wired via JSON-RPC with partial completion support (requires NUCLEUS primals at runtime).
 **Cross-tier parity**: `litho parity` validates math stability between Python and Rust.
 **Upstream braids**: 3 live braids from wetSpring (sovereign GPU pipeline + breseq baseline + Tenaillon expected values). Known: braid accession normalization (SRP001569 vs PRJNA29543) evolving upstream.
@@ -190,12 +190,12 @@ the root file templates.
 - **Module 6**: breseq 264-genome comparison, mutation accumulation analysis, parallel evolution significance
 - **Module 7**: Anderson disorder mapping, GOE/Poisson eigenvalue statistics
 
-**Infrastructure**: `litho-core` crate with 12 modules (chassis — domain-agnostic;
+**Infrastructure**: `litho-core` crate with 13 modules (chassis — domain-agnostic;
 validation types including `Tier3Session`/`ParityReport`, provenance JSON-RPC client
 for trio, braid ingestion with dual wire format support, tolerance framework, spore
 tracking, capability-based discovery with `announce_self()`/`query_capabilities()`,
 scope parser with `[[module]]` registry, data manifest, shared stats, env var
-constants, harness). `pseudospore-core` is the canonical crate for pseudoSpore
+constants, harness, platform abstraction). `pseudospore-core` is the canonical crate for pseudoSpore
 parsing, validation, checksums, and domain profiles. `ltee-cli` adds instance layer: unified module registry (`registry.rs`),
 viz DataBinding adapters, 21 subcommands. pseudoSpore pipeline: `emit-pseudospore`
 (auto-figures, PDB serial extraction, BLAKE3 sealing), `ingest-pseudospore`,
@@ -204,13 +204,14 @@ viz DataBinding adapters, 21 subcommands. pseudoSpore pipeline: `emit-pseudospor
 cross-ref, derivation contract, version consistency, provenance, visual evidence),
 `promote` (pseudoSpore → lithoSpore chassis with stripped binaries, auto RELEASE.md),
 `translate-config` (domain↔computation index translation).
-199 unit/integration tests + 10
+216 unit/integration tests + 10
 chaos/fault-injection tests, zero clippy warnings, `#![forbid(unsafe_code)]`
 workspace-wide, pure Rust BLAKE3 (ecoBin compliant), `liveSpore.json` operational
 with corruption resilience and backup.
 
-**Architecture** (May 14 geo-delocalization absorption):
+**Architecture**:
 - `unsafe_code = "forbid"` enforced at workspace lint level — all 10 crates inherit
+- **Silicon Atheism**: `Platform` trait abstracts all OS-specific operations (hostname, symlinks, permissions, UDS, binary stripping) — only 2 `#[cfg]` blocks remain (in `platform.rs`)
 - Shared harness (`litho_core::harness`) eliminates ~200 LOC of duplicated skip/load/dispatch
 - Shared stats (`litho_core::stats`) deduplicates `pearson_r` with safe length checks
 - Capability-based discovery (`litho_core::discovery`) — primal resolution via
@@ -218,7 +219,7 @@ with corruption resilience and backup.
   capability-generic (`$RELAY_SERVER`, `$VISUALIZATION_SOCKET`) with legacy fallback.
   `DiscoveryPath` + `turn_relay` recorded in `liveSpore.json` for provenance.
 - `probe_operating_mode()` detects standalone/LAN/geo-delocalized before validation
-- Clippy pedantic clean — scientific casts allowed; all other pedantic lints enforced
+- Clippy pedantic + nursery clean — scientific casts allowed; all other lints enforced
 - `litho fetch` pure Rust data pipeline (ureq HTTP (**rustls** TLS) + BLAKE3 hashing, replaces 7 bash scripts)
 - `litho assemble` pure Rust USB assembly (replaces assemble-usb.sh)
 - `litho deploy-report` structured TOML output for deployment validation
@@ -226,6 +227,7 @@ with corruption resilience and backup.
 - In-process module execution — all 7 modules call lib::run_validation directly, no subprocesses
 - `litho verify` hardened: exits non-zero on MISSING, ERROR, and corrupt manifests
 - Cross-platform: musl-static Linux (5.1 MB), Windows x86_64 (7.9 MB), argv[0] symlink detection
+- Idiomatic Rust: `Cow<str>` for zero-copy provenance, `write!`-based string building, optimized clone elimination
 
 **Visualization Integration**: `ltee-cli::viz` (instance layer) provides `DataBinding`
 adapters for all 7 LTEE modules and 7 Barrick Lab baseline tools via 9 generic builder
@@ -245,11 +247,11 @@ is domain-agnostic chassis — no LTEE science logic in source.
 - VM: `agentReagents/scripts/validate-lithoSpore.sh` — libvirt, full airgap simulation
 - Chaos: `litho chaos-test` — fault injection (10 tests: drift, corruption, missing files)
 
-**Ecosystem posture** (Wave 21): primalSpring registry at 445 methods (stable),
-delta spring tests 9,539+, all 8 springs at zero debt, wetSpring producing first
-ferment transcript braids (Barrick 2009, 3/7 clones done). Method stability tiers
-annotated in `config/capability_registry.toml`. Partial provenance supported
-(DAG without braid is valid). `ParityReport` published as ecosystem standard
+**Ecosystem posture** (Wave 144a): All primal springs shipping Phase 2 transport.
+CAC 6/6 complete. lithoSpore silicon atheism applied (Platform trait, 18 `#[cfg]`
+gates consolidated to 2). Method stability tiers annotated in
+`config/capability_registry.toml`. Partial provenance supported (DAG without braid
+is valid). `ParityReport` published as ecosystem standard
 (`specs/PARITY_REPORT_SCHEMA.md`).
 
 See `docs/UPSTREAM_GAPS.md` for upstream integration status.

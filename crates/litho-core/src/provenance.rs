@@ -40,7 +40,7 @@ pub struct ProvenanceChain {
 
 impl ProvenanceChain {
     #[must_use]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             entries: Vec::new(),
         }
@@ -182,11 +182,11 @@ pub fn try_record_tier3(report: &ValidationReport) -> Result<Tier3Session, crate
     })
 }
 
-fn endpoint_addr(ep: &PrimalEndpoint) -> String {
+fn endpoint_addr(ep: &PrimalEndpoint) -> std::borrow::Cow<'_, str> {
     if ep.port == 0 {
-        ep.host.clone()
+        std::borrow::Cow::Borrowed(&ep.host)
     } else {
-        format!("{}:{}", ep.host, ep.port)
+        std::borrow::Cow::Owned(format!("{}:{}", ep.host, ep.port))
     }
 }
 

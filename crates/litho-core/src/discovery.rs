@@ -22,6 +22,8 @@ use std::net::TcpStream;
 use std::path::PathBuf;
 use std::time::Duration;
 
+use crate::platform;
+
 /// JSON-RPC method for resolving capabilities through the discovery socket.
 const RPC_METHOD_RESOLVE: &str = "ipc.resolve";
 
@@ -164,8 +166,7 @@ fn resolve_primal_host() -> String {
 }
 
 fn discovery_socket_path() -> Option<PathBuf> {
-    let runtime = std::env::var(crate::env_vars::XDG_RUNTIME_DIR)
-        .unwrap_or_else(|_| std::env::temp_dir().to_string_lossy().into_owned());
+    let runtime = platform::current().runtime_dir();
     let path = PathBuf::from(runtime)
         .join(RUNTIME_SUBDIR)
         .join(DISCOVERY_SOCKET_NAME);
@@ -174,40 +175,13 @@ fn discovery_socket_path() -> Option<PathBuf> {
 
 fn discover_from_socket(capability: &str) -> Option<PrimalEndpoint> {
     let sock_path = discovery_socket_path()?;
-
-    #[cfg(unix)]
-    {
-        use std::os::unix::net::UnixStream;
-        let mut stream = UnixStream::connect(&sock_path).ok()?;
-        stream.set_read_timeout(Some(Duration::from_secs(2))).ok()?;
-        stream
-            .set_write_timeout(Some(Duration::from_secs(2)))
-            .ok()?;
-
-        let request = format!(
-            "{{\"jsonrpc\":\"2.0\",\"method\":\"{RPC_METHOD_RESOLVE}\",\"params\":{{\"capability\":\"{capability}\"}},\"id\":1}}\n"
-        );
-        stream.write_all(request.as_bytes()).ok()?;
-        stream.flush().ok()?;
-
-        let mut reader = BufReader::new(stream);
-        let mut response = String::new();
-        reader.read_line(&mut response).ok()?;
-
-        parse_discovery_response(capability, &response)
-    }
-
-    #[cfg(not(unix))]
-    {
-        let _ = (sock_path, capability);
-        None
-    }
+    let request = format!(
+        "{{\"jsonrpc\":\"2.0\",\"method\":\"{RPC_METHOD_RESOLVE}\",\"params\":{{\"capability\":\"{capability}\"}},\"id\":1}}"
+    );
+    let response = crate::platform::current().uds_rpc(sock_path.to_str()?, &request)?;
+    parse_discovery_response(capability, &response)
 }
 
-#[cfg_attr(
-    not(unix),
-    expect(dead_code, reason = "used only on unix via discover_from_socket")
-)]
 fn parse_discovery_response(capability: &str, response: &str) -> Option<PrimalEndpoint> {
     let v: serde_json::Value = serde_json::from_str(response).ok()?;
     let result = v.get("result")?;
@@ -310,35 +284,15 @@ fn rpc_tcp(endpoint: &PrimalEndpoint, request: &str) -> Option<serde_json::Value
 
 /// JSON-RPC over Unix domain socket. The socket path is stored in
 /// `endpoint.host` (port is ignored for UDS transport).
-#[cfg(unix)]
+///
+/// Delegates to the platform abstraction — no `#[cfg]` gates here.
 fn rpc_uds(endpoint: &PrimalEndpoint, request: &str) -> Option<serde_json::Value> {
-    use std::os::unix::net::UnixStream;
-
-    let mut stream = UnixStream::connect(&endpoint.host).ok()?;
-    stream
-        .set_read_timeout(Some(Duration::from_secs(10)))
-        .ok()?;
-    stream
-        .set_write_timeout(Some(Duration::from_secs(5)))
-        .ok()?;
-
-    stream.write_all(request.as_bytes()).ok()?;
-    stream.write_all(b"\n").ok()?;
-    stream.flush().ok()?;
-
-    let mut reader = BufReader::new(stream);
-    let mut response = String::new();
-    reader.read_line(&mut response).ok()?;
-
+    let response = crate::platform::current().uds_rpc(&endpoint.host, request)?;
     serde_json::from_str(&response).ok()
 }
 
-#[cfg(not(unix))]
-fn rpc_uds(_endpoint: &PrimalEndpoint, _request: &str) -> Option<serde_json::Value> {
-    None
-}
-
 /// Announce lithoSpore as a validation consumer to biomeOS via `primal.announce`.
+///
 /// Non-fatal — if biomeOS is not reachable, returns `None` silently.
 /// Follows the `primalSpring` `PRIMAL_ANNOUNCE_PROTOCOL.md` wire format.
 #[must_use]

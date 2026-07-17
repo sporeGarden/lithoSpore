@@ -62,15 +62,15 @@ struct ModelFit {
 }
 
 fn power_law(t: f64, a: f64, b: f64) -> f64 {
-    1.0 + a * t.max(1e-12).powf(b)
+    a.mul_add(t.max(1e-12).powf(b), 1.0)
 }
 
 fn hyperbolic(t: f64, a: f64, b: f64) -> f64 {
-    1.0 + a * t / (1.0 + b * t)
+    1.0 + a * t / b.mul_add(t, 1.0)
 }
 
 fn logarithmic(t: f64, c: f64, d: f64) -> f64 {
-    1.0 + c * t.max(1e-12).ln() + d
+    c.mul_add(t.max(1e-12).ln(), 1.0) + d
 }
 
 fn rss_for_model(
@@ -99,8 +99,8 @@ fn nelder_mead_2d(
 
     let mut simplex = [
         (p0, obj(&p0)),
-        ([p0[0] * 1.5 + 1e-6, p0[1]], 0.0),
-        ([p0[0], p0[1] * 1.5 + 1e-6], 0.0),
+        ([p0[0].mul_add(1.5, 1e-6), p0[1]], 0.0),
+        ([p0[0], p0[1].mul_add(1.5, 1e-6)], 0.0),
     ];
     simplex[1].1 = obj(&simplex[1].0);
     simplex[2].1 = obj(&simplex[2].0);
@@ -118,7 +118,10 @@ fn nelder_mead_2d(
             f64::midpoint(simplex[0].0[1], simplex[1].0[1]),
         ];
 
-        let xr = [2.0 * cx[0] - simplex[2].0[0], 2.0 * cx[1] - simplex[2].0[1]];
+        let xr = [
+            2.0f64.mul_add(cx[0], -simplex[2].0[0]),
+            2.0f64.mul_add(cx[1], -simplex[2].0[1]),
+        ];
         let fr = obj(&xr);
 
         if fr < simplex[1].1 && fr >= best {
@@ -128,8 +131,8 @@ fn nelder_mead_2d(
 
         if fr < best {
             let xe = [
-                3.0 * cx[0] - 2.0 * simplex[2].0[0],
-                3.0 * cx[1] - 2.0 * simplex[2].0[1],
+                2.0f64.mul_add(-simplex[2].0[0], 3.0 * cx[0]),
+                2.0f64.mul_add(-simplex[2].0[1], 3.0 * cx[1]),
             ];
             let fe = obj(&xe);
             simplex[2] = if fe < fr { (xe, fe) } else { (xr, fr) };
@@ -148,8 +151,8 @@ fn nelder_mead_2d(
 
         let b0 = simplex[0].0;
         for v in &mut simplex[1..] {
-            v.0[0] = b0[0] + 0.5 * (v.0[0] - b0[0]);
-            v.0[1] = b0[1] + 0.5 * (v.0[1] - b0[1]);
+            v.0[0] = 0.5f64.mul_add(v.0[0] - b0[0], b0[0]);
+            v.0[1] = 0.5f64.mul_add(v.0[1] - b0[1], b0[1]);
             v.1 = obj(&v.0);
         }
     }
@@ -198,8 +201,8 @@ fn fit_model(
     let ss_res_safe = ss_res.max(1e-30);
     let k = 2.0_f64;
     let nf = n as f64;
-    let aic = nf * (ss_res_safe / nf).ln() + 2.0 * k;
-    let bic = nf * (ss_res_safe / nf).ln() + k * nf.ln();
+    let aic = 2.0f64.mul_add(k, nf * (ss_res_safe / nf).ln());
+    let bic = k.mul_add(nf.ln(), nf * (ss_res_safe / nf).ln());
 
     Some(ModelFit {
         model: name.to_string(),
@@ -471,7 +474,7 @@ mod tests {
     #[test]
     fn nelder_mead_fits_simple_quadratic() {
         let xs: Vec<f64> = (1..=20).map(f64::from).collect();
-        let ys: Vec<f64> = xs.iter().map(|&x| 1.0 + 0.01 * x.powf(0.5)).collect();
+        let ys: Vec<f64> = xs.iter().map(|&x| 0.01f64.mul_add(x.sqrt(), 1.0)).collect();
         let result = nelder_mead_2d(&xs, &ys, power_law, [0.005, 0.4]);
         assert!(result.is_some(), "optimizer should converge");
         let p = result.unwrap();
@@ -482,7 +485,10 @@ mod tests {
     #[test]
     fn fit_model_returns_valid_r_squared() {
         let xs: Vec<f64> = (1..=10).map(|i| f64::from(i) * 5000.0).collect();
-        let ys: Vec<f64> = xs.iter().map(|&x| 1.0 + 0.004 * x.powf(0.66)).collect();
+        let ys: Vec<f64> = xs
+            .iter()
+            .map(|&x| 0.004f64.mul_add(x.powf(0.66), 1.0))
+            .collect();
         let fit = fit_model(&xs, &ys, "power_law", power_law, [0.01, 0.5]);
         assert!(fit.is_some());
         let f = fit.unwrap();

@@ -23,9 +23,9 @@ pub fn pearson_r(x: &[f64], y: &[f64]) -> f64 {
     for (&xi, &yi) in x.iter().zip(y) {
         let dx = xi - mx;
         let dy = yi - my;
-        sxy += dx * dy;
-        sxx += dx * dx;
-        syy += dy * dy;
+        sxy = dx.mul_add(dy, sxy);
+        sxx = dx.mul_add(dx, sxx);
+        syy = dy.mul_add(dy, syy);
     }
     let denom = (sxx * syy).sqrt();
     if denom == 0.0 { 0.0 } else { sxy / denom }
@@ -38,7 +38,7 @@ mod tests {
     #[test]
     fn perfect_linear() {
         let x: Vec<f64> = (1..=100).map(f64::from).collect();
-        let y: Vec<f64> = x.iter().map(|&v| 3.0 * v + 7.0).collect();
+        let y: Vec<f64> = x.iter().map(|&v| 3.0f64.mul_add(v, 7.0)).collect();
         assert!((pearson_r(&x, &y) - 1.0).abs() < 1e-10);
     }
 

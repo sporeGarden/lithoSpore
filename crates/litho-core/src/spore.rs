@@ -69,39 +69,10 @@ fn hostname_hash() -> String {
     hash.to_hex().to_string()
 }
 
-/// Capability-based hostname discovery — tries multiple platform-agnostic
-/// sources in priority order, never assumes a specific OS layout.
+/// Capability-based hostname discovery — delegates to the platform
+/// abstraction layer. No `#[cfg]` gates in application code.
 fn discover_hostname() -> String {
-    if let Ok(val) = std::env::var(crate::env_vars::HOSTNAME) {
-        let trimmed = val.trim().to_string();
-        if !trimmed.is_empty() {
-            return trimmed;
-        }
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        if let Ok(val) = std::env::var(crate::env_vars::COMPUTERNAME) {
-            let trimmed = val.trim().to_string();
-            if !trimmed.is_empty() {
-                return trimmed;
-            }
-        }
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        for path in ["/etc/hostname", "/proc/sys/kernel/hostname"] {
-            if let Ok(val) = std::fs::read_to_string(path) {
-                let trimmed = val.trim().to_string();
-                if !trimmed.is_empty() {
-                    return trimmed;
-                }
-            }
-        }
-    }
-
-    "unknown".to_string()
+    crate::platform::current().hostname()
 }
 
 #[cfg(test)]

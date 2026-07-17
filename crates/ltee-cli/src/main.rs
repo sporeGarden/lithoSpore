@@ -11,6 +11,7 @@ mod assemble;
 mod audit;
 mod chaos;
 mod deploy_test;
+mod dispatch;
 pub(crate) mod domain_profile;
 mod emit_pseudospore;
 mod fetch;
@@ -371,91 +372,8 @@ enum Commands {
 }
 
 fn main() {
-    // argv[0] symlink detection: if invoked as validate/verify/refresh/spore,
-    // dispatch directly without requiring the subcommand name.
-    // Strip .exe suffix for Windows compatibility.
-    if let Some(invoked_as) = std::env::args().next().and_then(|a| {
-        std::path::Path::new(&a).file_name().map(|f| {
-            let name = f.to_string_lossy().to_string();
-            name.strip_suffix(".exe").unwrap_or(&name).to_string()
-        })
-    }) {
-        let root = ".".to_string();
-        match invoked_as.as_str() {
-            "validate" => {
-                let args: Vec<String> = std::env::args().collect();
-                let tier = if args.iter().any(|a| a == "--tier" || a == "--max-tier") {
-                    args.windows(2)
-                        .find(|w| w[0] == "--tier" || w[0] == "--max-tier")
-                        .and_then(|w| w[1].parse::<u8>().ok())
-                        .unwrap_or(2)
-                } else {
-                    2
-                };
-                let json_out = args.iter().any(|a| a == "--json");
-                validate::run(&root, json_out, tier);
-                return;
-            }
-            "verify" => {
-                verify::run(&root, false);
-                return;
-            }
-            "refresh" => {
-                ops::cmd_refresh(&root);
-                return;
-            }
-            "spore" | "spore.sh" => {
-                if std::env::var(litho_core::env_vars::BIOMEOS_ORCHESTRATOR).is_ok() {
-                    println!("lithoSpore: biomeOS orchestration detected");
-                    println!("  Spore class: hypogeal-cotyledon");
-                    println!("  Graph: biomeOS/graphs/lithoSpore_validation.toml");
-                    return;
-                }
-                ops::cmd_spore(&root);
-                return;
-            }
-            "parity" => {
-                let args: Vec<String> = std::env::args().collect();
-                let json_out = args.iter().any(|a| a == "--json");
-                parity::run(&root, json_out);
-                return;
-            }
-            "grow" => {
-                let args: Vec<String> = std::env::args().collect();
-                let container = args.iter().any(|a| a == "--container");
-                let target = if let Some(w) = args.windows(2).find(|w| w[0] == "--target") {
-                    w[1].clone()
-                } else if container {
-                    ".".to_string()
-                } else {
-                    eprintln!("ERROR: --target <DIR> is required for grow");
-                    eprintln!("Usage: ./grow --target ~/Development/lithoSpore");
-                    eprintln!("       ./grow --container   (Docker/Podman, any OS)");
-                    std::process::exit(1);
-                };
-                let vm = args.iter().any(|a| a == "--vm");
-                let ecosystem = args.iter().any(|a| a == "--ecosystem");
-                let skip_build = args.iter().any(|a| a == "--skip-build");
-                let skip_fetch = args.iter().any(|a| a == "--skip-fetch");
-                grow::run(&grow::GrowOptions {
-                    artifact_root: &root,
-                    target: &target,
-                    mode: grow::GrowModeFlags {
-                        vm,
-                        container,
-                        ecosystem,
-                    },
-                    skip: grow::GrowSkipFlags {
-                        build: skip_build,
-                        fetch: skip_fetch,
-                    },
-                });
-                return;
-            }
-            // Unrecognized symlink basename — fall through to full clap dispatch
-            // (e.g. `litho` binary name or future subcommands not in this fast path).
-            _ => {}
-        }
+    if dispatch::try_symlink_dispatch() {
+        return;
     }
 
     let cli = Cli::parse();
@@ -582,7 +500,7 @@ fn main() {
                 (
                     name.unwrap_or_default(),
                     version.unwrap_or_default(),
-                    origin.clone(),
+                    origin,
                 )
             };
             let effective_origin = if resolved_origin.is_empty() {

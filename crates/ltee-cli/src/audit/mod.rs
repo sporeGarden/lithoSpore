@@ -6,6 +6,7 @@
 //! checks. Returns structured [`Finding`]s with [`Severity`] levels (HIGH/MEDIUM/LOW).
 
 mod completeness;
+mod derivation;
 mod domain;
 mod integrity;
 mod provenance;
@@ -24,7 +25,7 @@ type AuditCheckFn = fn(&Path, &mut Vec<Finding>);
 type AuditCheck = (&'static str, AuditCheckFn);
 
 #[derive(Debug)]
-pub(crate) struct Finding {
+pub struct Finding {
     pub id: String,
     pub severity: Severity,
     pub category: &'static str,
@@ -32,8 +33,8 @@ pub(crate) struct Finding {
     pub fix: String,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) enum Severity {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Severity {
     High,
     Medium,
     Low,
@@ -49,7 +50,7 @@ impl std::fmt::Display for Severity {
     }
 }
 
-pub(crate) fn run(pseudospore_path: &str, verbose: bool, json_output: bool) {
+pub fn run(pseudospore_path: &str, verbose: bool, json_output: bool) {
     let audit_start = std::time::Instant::now();
     let root = Path::new(pseudospore_path);
 
@@ -245,11 +246,6 @@ pub(crate) fn run(pseudospore_path: &str, verbose: bool, json_output: bool) {
             "{}",
             serde_json::to_string_pretty(&report).unwrap_or_default()
         );
-
-        // Append to liveSpore.json if present and passed
-        if high == 0 {
-            append_livespore(root, total_checks, elapsed_ms);
-        }
     } else {
         if findings.is_empty() {
             println!("  PASS — no findings. Artifact is handoff-ready.");
@@ -275,11 +271,10 @@ pub(crate) fn run(pseudospore_path: &str, verbose: bool, json_output: bool) {
             }
         }
         println!();
+    }
 
-        // Append to liveSpore.json on success
-        if high == 0 {
-            append_livespore(root, total_checks, elapsed_ms);
-        }
+    if high == 0 {
+        append_livespore(root, total_checks, elapsed_ms);
     }
 
     std::process::exit(i32::from(high > 0));
@@ -315,7 +310,7 @@ fn append_livespore(root: &Path, checks: usize, elapsed_ms: u64) {
     // Unified schema: object with "envelope" + "validations"
     // Legacy: bare array [] or hotSpring-style {"liveSpore": {...}, ...}
     let mut doc: serde_json::Value =
-        serde_json::from_str(&content).unwrap_or(serde_json::json!({}));
+        serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
 
     if let Some(validations) = doc.get_mut("validations").and_then(|v| v.as_array_mut()) {
         // Unified schema path
@@ -335,7 +330,7 @@ fn append_livespore(root: &Path, checks: usize, elapsed_ms: u64) {
             let mut env = doc
                 .get("liveSpore")
                 .cloned()
-                .unwrap_or(serde_json::json!({}));
+                .unwrap_or_else(|| serde_json::json!({}));
             if let Some(chain) = doc.get("provenance_chain") {
                 env["provenance_chain"] = chain.clone();
             }
@@ -346,7 +341,7 @@ fn append_livespore(root: &Path, checks: usize, elapsed_ms: u64) {
         } else if doc.get("envelope").is_some() {
             doc.get("envelope")
                 .cloned()
-                .unwrap_or(serde_json::json!({}))
+                .unwrap_or_else(|| serde_json::json!({}))
         } else {
             doc.clone()
         };

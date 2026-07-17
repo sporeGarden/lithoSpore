@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! Tarball creation with [present]/[external] split.
+//! Tarball creation with `[present]`/`[external]` split.
 //!
-//! pseudoSpore tarballs include only [present] files (scope, receipts, outputs,
-//! configs, figures, provenance). [external] files (large trajectories, raw data
+//! pseudoSpore tarballs include only `[present]` files (scope, receipts, outputs,
+//! configs, figures, provenance). `[external]` files (large trajectories, raw data
 //! that can be re-fetched) are listed in data.toml but excluded from the tarball.
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-/// Determine which files should be included in the tarball ([present]) vs
-/// excluded ([external]). Returns (`present_files`, `external_files`) as relative paths.
+/// Determine which files should be included in the tarball (`[present]`) vs
+/// excluded (`[external]`). Returns (`present_files`, `external_files`) as relative paths.
 #[must_use]
 pub fn split_present_external(
     root: &Path,

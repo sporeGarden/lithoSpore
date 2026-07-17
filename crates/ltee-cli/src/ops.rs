@@ -4,12 +4,12 @@
 
 use crate::registry;
 
-pub(crate) fn cmd_refresh(root: &str) {
+pub fn cmd_refresh(root: &str) {
     println!("litho refresh: re-fetching all datasets via litho fetch...");
     crate::fetch::run(root, None, true, false);
 }
 
-pub(crate) fn cmd_status(root: &str) {
+pub fn cmd_status(root: &str) {
     let root_path = std::path::Path::new(root);
     let scope_name = registry::load_scope_name(root_path);
     let modules = registry::load_module_table(root_path);
@@ -38,22 +38,7 @@ pub(crate) fn cmd_status(root: &str) {
     println!("  Tier support: 1 (Python) + 2 (Rust) + 3 (Primal/NUCLEUS)");
 }
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn registry_module_table_is_seven() {
-        assert_eq!(crate::registry::LTEE_MODULES.len(), 7);
-    }
-
-    #[test]
-    fn resolve_livespore_fallback() {
-        let root = std::path::Path::new("/nonexistent");
-        let path = crate::resolve_livespore(root);
-        assert!(path.to_str().unwrap().contains("artifact/liveSpore.json"));
-    }
-}
-
-pub(crate) fn cmd_self_test(root: &str) {
+pub fn cmd_self_test(root: &str) {
     let root_path = std::path::Path::new(root);
     let modules = registry::load_module_table(root_path);
     let mut passed = 0u32;
@@ -120,16 +105,13 @@ pub(crate) fn cmd_self_test(root: &str) {
 
     // Check figures
     total += 1;
-    let fig_count = std::fs::read_dir(root_path.join("figures"))
-        .map(|rd| {
-            rd.filter(|e| {
-                e.as_ref()
-                    .map(|e| e.path().extension().is_some_and(|ext| ext == "svg"))
-                    .unwrap_or(false)
-            })
-            .count()
+    let fig_count = std::fs::read_dir(root_path.join("figures")).map_or(0, |rd| {
+        rd.filter(|e| {
+            e.as_ref()
+                .is_ok_and(|e| e.path().extension().is_some_and(|ext| ext == "svg"))
         })
-        .unwrap_or(0);
+        .count()
+    });
     let fig_ok = fig_count >= 7;
     if fig_ok {
         passed += 1;
@@ -142,10 +124,8 @@ pub(crate) fn cmd_self_test(root: &str) {
     // Check data_manifest.toml
     total += 1;
     let manifest_path = root_path.join("data_manifest.toml");
-    let has_manifest = manifest_path.exists()
-        && std::fs::metadata(&manifest_path)
-            .map(|m| m.len() > 10)
-            .unwrap_or(false);
+    let has_manifest =
+        manifest_path.exists() && std::fs::metadata(&manifest_path).is_ok_and(|m| m.len() > 10);
     if has_manifest {
         passed += 1;
     }
@@ -161,7 +141,7 @@ pub(crate) fn cmd_self_test(root: &str) {
     }
 }
 
-pub(crate) fn cmd_tier(root: &str) {
+pub fn cmd_tier(root: &str) {
     let root_path = std::path::Path::new(root);
     let modules = registry::load_module_table(root_path);
 
@@ -236,7 +216,7 @@ pub(crate) fn cmd_tier(root: &str) {
     println!("  Maximum tier: {max_tier}");
 }
 
-pub(crate) fn cmd_deploy_report(root: &str, pattern: &str) {
+pub fn cmd_deploy_report(root: &str, pattern: &str) {
     let root_path = std::path::Path::new(root);
     let modules = registry::load_module_table(root_path);
     let timestamp = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
@@ -285,21 +265,17 @@ pub(crate) fn cmd_deploy_report(root: &str, pattern: &str) {
         .filter(|e| root_path.join(&e.data_dir).exists())
         .count();
 
-    let fig_count = std::fs::read_dir(root_path.join("figures"))
-        .map(|rd| {
-            rd.filter(|e| {
-                e.as_ref()
-                    .map(|e| e.path().extension().is_some_and(|ext| ext == "svg"))
-                    .unwrap_or(false)
-            })
-            .count()
+    let fig_count = std::fs::read_dir(root_path.join("figures")).map_or(0, |rd| {
+        rd.filter(|e| {
+            e.as_ref()
+                .is_ok_and(|e| e.path().extension().is_some_and(|ext| ext == "svg"))
         })
-        .unwrap_or(0);
+        .count()
+    });
 
     let manifest_path = root_path.join("data_manifest.toml");
-    let hash_count = std::fs::read_to_string(&manifest_path)
-        .map(|c| c.matches("[[file]]").count())
-        .unwrap_or(0);
+    let hash_count =
+        std::fs::read_to_string(&manifest_path).map_or(0, |c| c.matches("[[file]]").count());
 
     let os_info = format!("{} {}", std::env::consts::OS, std::env::consts::ARCH);
 
@@ -396,7 +372,7 @@ pub(crate) fn cmd_deploy_report(root: &str, pattern: &str) {
     }
 }
 
-pub(crate) fn cmd_spore(root: &str) {
+pub fn cmd_spore(root: &str) {
     let spore_path = crate::resolve_livespore(std::path::Path::new(root));
     match std::fs::read_to_string(&spore_path) {
         Ok(contents) => {
@@ -420,5 +396,20 @@ pub(crate) fn cmd_spore(root: &str) {
             "No liveSpore.json found at {} — no validation runs recorded yet",
             spore_path.display()
         ),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn registry_module_table_is_seven() {
+        assert_eq!(crate::registry::LTEE_MODULES.len(), 7);
+    }
+
+    #[test]
+    fn resolve_livespore_fallback() {
+        let root = std::path::Path::new("/nonexistent");
+        let path = crate::resolve_livespore(root);
+        assert!(path.to_str().unwrap().contains("artifact/liveSpore.json"));
     }
 }

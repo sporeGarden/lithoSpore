@@ -25,7 +25,7 @@ use std::path::{Path, PathBuf};
 
 const CHECKSUMS_FILE: &str = "CHECKSUMS.blake3";
 
-pub(crate) fn run(
+pub fn run(
     pseudospore_path: &str,
     output_dir: &str,
     tier2_crate: Option<&str>,
@@ -104,29 +104,19 @@ pub(crate) fn run(
     // 2. Copy litho CLI binary (stripped for size)
     print!("  [2/10] Installing litho CLI into runtime/bin/... ");
     let self_exe = std::env::current_exe().unwrap_or_else(|_| PathBuf::from("litho"));
+    let platform = litho_core::platform::current();
     if self_exe.exists() {
         fs::copy(&self_exe, root.join("runtime/bin/litho")).ok();
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let perms = std::fs::Permissions::from_mode(0o755);
-            fs::set_permissions(root.join("runtime/bin/litho"), perms.clone()).ok();
-            // Strip debug symbols to reduce size (~87MB → ~5MB)
-            let strip_result = std::process::Command::new("strip")
-                .arg(root.join("runtime/bin/litho"))
-                .output();
-            match strip_result {
-                Ok(o) if o.status.success() => {
-                    let size = fs::metadata(root.join("runtime/bin/litho"))
-                        .map(|m| m.len() / 1024 / 1024)
-                        .unwrap_or(0);
-                    println!("done (stripped, {size}MB)");
-                }
-                _ => println!("done (unstripped)"),
-            }
+        platform
+            .set_executable(&root.join("runtime/bin/litho"))
+            .ok();
+        if platform.strip_binary(&root.join("runtime/bin/litho")) {
+            let size =
+                fs::metadata(root.join("runtime/bin/litho")).map_or(0, |m| m.len() / 1024 / 1024);
+            println!("done (stripped, {size}MB)");
+        } else {
+            println!("done (unstripped)");
         }
-        #[cfg(not(unix))]
-        println!("done");
     } else {
         println!("skipped (binary not found)");
     }
@@ -166,7 +156,7 @@ pub(crate) fn run(
                         fs::copy(&src, &dest).ok();
                         // Strip debug symbols
                         std::process::Command::new("strip").arg(&dest).output().ok();
-                        let size = fs::metadata(&dest).map(|m| m.len() / 1024).unwrap_or(0);
+                        let size = fs::metadata(&dest).map_or(0, |m| m.len() / 1024);
                         println!("done ({crate_name}, {size}KB)");
                     } else {
                         println!("built, but binary not found in target/release/");

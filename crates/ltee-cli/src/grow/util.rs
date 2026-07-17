@@ -23,8 +23,7 @@ pub(super) fn pick_git_url(ssh: &str, https: &str) -> String {
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
             .status()
-            .map(|s| s.code() == Some(1))
-            .unwrap_or(false)
+            .is_ok_and(|s| s.code() == Some(1))
     {
         return ssh.to_string();
     }
@@ -40,8 +39,7 @@ pub(super) fn which(cmd: &str) -> bool {
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
         .status()
-        .map(|s| s.success())
-        .unwrap_or(false)
+        .is_ok_and(|s| s.success())
 }
 
 pub(super) fn run_cmd(cmd: &str, args: &[&str]) {

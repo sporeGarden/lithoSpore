@@ -30,9 +30,10 @@ pub struct ScopeManifest {
 }
 
 /// Per-module metadata — the domain-agnostic contract that replaces
-/// compiled `LTEE_MODULES` / `LTEE_NOTEBOOKS` constants. When present in
-/// scope.toml, the chassis uses these fields for dispatch, parity,
-/// assembly, and Tier-1 notebook resolution.
+/// compiled `LTEE_MODULES` / `LTEE_NOTEBOOKS` constants.
+///
+/// When present in scope.toml, the chassis uses these fields for dispatch,
+/// parity, assembly, and Tier-1 notebook resolution.
 #[derive(Debug, Clone, Deserialize)]
 pub struct ScopeModule {
     pub name: String,

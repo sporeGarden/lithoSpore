@@ -148,6 +148,7 @@ echo "=== Validation complete ==="
 "#;
 
     // Generate translate.sh only if translation is enabled
+    #[allow(clippy::literal_string_with_formatting_args)]
     let translate_sh = if profile.is_none_or(DomainProfile::translation_enabled) {
         r#"#!/bin/bash
 set -euo pipefail
@@ -200,13 +201,11 @@ echo "  Domain-frame configs in: $OUTPUT_DIR"
     fs::write(root.join("runtime/scripts/translate.sh"), &translate_sh).ok();
     fs::write(root.join("runtime/scripts/reproduce.sh"), &reproduce_sh).ok();
 
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let perms = std::fs::Permissions::from_mode(0o755);
-        fs::set_permissions(root.join("runtime/scripts/validate.sh"), perms.clone()).ok();
-        fs::set_permissions(root.join("runtime/scripts/translate.sh"), perms.clone()).ok();
-        fs::set_permissions(root.join("runtime/scripts/reproduce.sh"), perms).ok();
+    let platform = litho_core::platform::current();
+    for script in ["validate.sh", "translate.sh", "reproduce.sh"] {
+        platform
+            .set_executable(&root.join(format!("runtime/scripts/{script}")))
+            .ok();
     }
 }
 

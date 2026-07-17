@@ -102,7 +102,7 @@ impl Blake3Manifest {
         hashes
     }
 
-    /// Serialize to data.toml format with [present] and [external] sections.
+    /// Serialize to data.toml format with `[present]` and `[external]` sections.
     #[must_use]
     pub fn to_toml(&self) -> String {
         let mut output = String::new();

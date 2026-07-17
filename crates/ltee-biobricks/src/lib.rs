@@ -138,12 +138,12 @@ fn compute_growth_rate(measurements: &[GrowthMeasurement]) -> Option<f64> {
     let sum_t2: f64 = log_phase.iter().map(|m| m.time_hours.powi(2)).sum();
     let sum_t_lnod: f64 = log_phase.iter().map(|m| m.time_hours * m.od600.ln()).sum();
 
-    let denom = n * sum_t2 - sum_t * sum_t;
+    let denom = sum_t.mul_add(-sum_t, n * sum_t2);
     if denom.abs() < 1e-15 {
         return None;
     }
 
-    let slope = (n * sum_t_lnod - sum_t * sum_lnod) / denom;
+    let slope = sum_t.mul_add(-sum_lnod, n * sum_t_lnod) / denom;
     if slope.is_finite() && slope > 0.0 {
         Some(slope)
     } else {
@@ -253,9 +253,7 @@ fn run_tier2_rust(data_dir: &str, expected_path: &str, start: Instant) -> Module
 
     let plate_data_dir = Path::new(data_dir).join("input-plate-data");
     let has_plate_data = plate_data_dir.exists()
-        && std::fs::read_dir(&plate_data_dir)
-            .map(|mut d| d.next().is_some())
-            .unwrap_or(false);
+        && std::fs::read_dir(&plate_data_dir).is_ok_and(|mut d| d.next().is_some());
 
     let mut passed = 0_u32;
     let mut total = 0_u32;

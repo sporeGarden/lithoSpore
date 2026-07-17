@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 
 use pseudospore_core::PseudoSporeEnvelope;
 
-pub(crate) fn run(url: &str, output_dir: &str, artifact_root: &str, ingest: bool) {
+pub fn run(url: &str, output_dir: &str, artifact_root: &str, ingest: bool) {
     let output_path = Path::new(output_dir);
     fs::create_dir_all(output_path).unwrap_or_else(|e| {
         eprintln!("ERROR: cannot create output directory: {e}");

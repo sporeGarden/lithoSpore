@@ -17,9 +17,9 @@ use pseudospore_core::receipts;
 use std::fs;
 use std::path::Path;
 
-pub(crate) const LITHOSPORE_VERSION: &str = env!("CARGO_PKG_VERSION");
+pub const LITHOSPORE_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-pub(crate) struct EmitConfig<'a> {
+pub struct EmitConfig<'a> {
     pub name: &'a str,
     pub version: &'a str,
     pub origin: &'a str,
@@ -31,7 +31,7 @@ pub(crate) struct EmitConfig<'a> {
     pub profile_path: Option<&'a str>,
 }
 
-pub(crate) fn run(config: &EmitConfig<'_>) -> Result<(), String> {
+pub fn run(config: &EmitConfig<'_>) -> Result<(), String> {
     let EmitConfig {
         name,
         version,
@@ -281,7 +281,7 @@ pub(crate) fn run(config: &EmitConfig<'_>) -> Result<(), String> {
     Ok(())
 }
 
-pub(crate) fn run_cmd(program: &str, args: &[&str]) -> Option<String> {
+pub fn run_cmd(program: &str, args: &[&str]) -> Option<String> {
     std::process::Command::new(program)
         .args(args)
         .output()

@@ -16,7 +16,7 @@ pub(super) fn try_generate_figures(root: &Path) {
         .args(["-c", "import matplotlib; import numpy"])
         .output();
 
-    let has_deps = check.map(|o| o.status.success()).unwrap_or(false);
+    let has_deps = check.is_ok_and(|o| o.status.success());
     if !has_deps {
         println!("  [~] figures/ skipped (matplotlib/numpy not available)");
         return;

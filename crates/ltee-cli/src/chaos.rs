@@ -7,7 +7,7 @@
 
 use std::path::Path;
 
-pub(crate) fn run(root: &str) -> Result<(), String> {
+pub fn run(root: &str) -> Result<(), String> {
     let root_path = Path::new(root);
     let tmpdir = std::env::temp_dir().join("litho-chaos-test");
     let _ = std::fs::remove_dir_all(&tmpdir);
@@ -208,13 +208,11 @@ pub(crate) fn run(root: &str) -> Result<(), String> {
     }
     run_selftest(&tmpdir);
     if science.exists() {
-        // File was missing, self-test should have reported it
         println!(" PASS");
-        passed += 1;
     } else {
         println!(" PASS (missing component detectable)");
-        passed += 1;
     }
+    passed += 1;
     if sci_backup.exists() {
         std::fs::rename(&sci_backup, &science).ok();
     }

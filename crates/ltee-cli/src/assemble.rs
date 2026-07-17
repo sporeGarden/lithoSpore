@@ -10,21 +10,21 @@ use std::fmt::Write as _;
 use std::path::Path;
 
 /// Skip flags for USB assembly steps.
-pub(crate) struct AssembleSkipFlags {
+pub struct AssembleSkipFlags {
     pub python: bool,
     pub fetch: bool,
     pub build: bool,
 }
 
 /// Options for USB artifact assembly.
-pub(crate) struct AssembleOptions<'a> {
+pub struct AssembleOptions<'a> {
     pub root: &'a str,
     pub target: &'a str,
     pub skip: AssembleSkipFlags,
     pub dry_run: bool,
 }
 
-pub(crate) fn run(opts: &AssembleOptions<'_>) {
+pub fn run(opts: &AssembleOptions<'_>) {
     let AssembleOptions {
         root,
         target,
@@ -90,20 +90,11 @@ pub(crate) fn run(opts: &AssembleOptions<'_>) {
     touch(target_path, ".family.seed");
 
     // Create symlinks instead of copying shell shims
+    let platform = litho_core::platform::current();
     for shim in ["validate", "verify", "refresh", "spore", "grow"] {
         let link = target_path.join(shim);
         let _ = std::fs::remove_file(&link);
-        #[cfg(unix)]
-        {
-            let _ = std::os::unix::fs::symlink("bin/litho", &link);
-        }
-        #[cfg(not(unix))]
-        {
-            let litho_src = target_path.join("bin/litho.exe");
-            if litho_src.exists() {
-                let _ = std::fs::copy(&litho_src, &link.with_extension("exe"));
-            }
-        }
+        let _ = platform.create_symlink(Path::new("bin/litho"), &link);
     }
 
     let livespore = target_path.join("liveSpore.json");
@@ -144,12 +135,7 @@ pub(crate) fn run(opts: &AssembleOptions<'_>) {
                 if let Err(e) = std::fs::copy(&src, &dest) {
                     eprintln!("  WARNING: copy {bin}: {e}");
                 } else {
-                    #[cfg(unix)]
-                    {
-                        use std::os::unix::fs::PermissionsExt;
-                        std::fs::set_permissions(&dest, std::fs::Permissions::from_mode(0o755))
-                            .ok();
-                    }
+                    litho_core::platform::current().set_executable(&dest).ok();
                     staged += 1;
                 }
             }
@@ -292,10 +278,7 @@ pub(crate) fn run(opts: &AssembleOptions<'_>) {
     // 10. Generate data_manifest.toml
     step("10. Generating data_manifest.toml");
     let artifact_name = litho_core::ScopeManifest::load(&root_path.join("artifact/scope.toml"))
-        .map_or_else(
-            |_| "ltee-guidestone".to_string(),
-            |s| s.guidestone.name.clone(),
-        );
+        .map_or_else(|_| "ltee-guidestone".to_string(), |s| s.guidestone.name);
     generate_manifest(target_path, &artifact_name);
 
     // Summary
@@ -429,7 +412,7 @@ fn copy_if_exists(src_root: &Path, src_rel: &str, dst_root: &Path, dst_rel: &str
     }
 }
 
-pub(crate) fn copy_dir_recursive_pub(src: &Path, dst: &Path) {
+pub fn copy_dir_recursive_pub(src: &Path, dst: &Path) {
     copy_dir_recursive(src, dst);
 }
 
@@ -438,7 +421,10 @@ fn copy_dir_recursive(src: &Path, dst: &Path) {
         .into_iter()
         .filter_map(std::result::Result::ok)
     {
-        let rel = entry.path().strip_prefix(src).unwrap_or(entry.path());
+        let rel = entry
+            .path()
+            .strip_prefix(src)
+            .unwrap_or_else(|_| entry.path());
         let dest = dst.join(rel);
         if entry.file_type().is_dir() {
             std::fs::create_dir_all(&dest).ok();
@@ -486,7 +472,10 @@ fn generate_manifest(target: &Path, artifact_name: &str) {
         for entry in files {
             if let Ok(content) = std::fs::read(entry.path()) {
                 let hash = blake3::hash(&content);
-                let rel = entry.path().strip_prefix(target).unwrap_or(entry.path());
+                let rel = entry
+                    .path()
+                    .strip_prefix(target)
+                    .unwrap_or_else(|_| entry.path());
                 let _ = write!(
                     output,
                     "[[file]]\npath = \"{}\"\nblake3 = \"{}\"\n\n",
@@ -505,33 +494,27 @@ fn generate_manifest(target: &Path, artifact_name: &str) {
 }
 
 fn count_files(dir: &Path) -> usize {
-    std::fs::read_dir(dir)
-        .map(|rd| {
-            rd.filter_map(std::result::Result::ok)
-                .filter(|e| e.file_type().map(|t| t.is_file()).unwrap_or(false))
-                .count()
-        })
-        .unwrap_or(0)
+    std::fs::read_dir(dir).map_or(0, |rd| {
+        rd.filter_map(std::result::Result::ok)
+            .filter(|e| e.file_type().is_ok_and(|t| t.is_file()))
+            .count()
+    })
 }
 
 fn count_subdirs(dir: &Path) -> usize {
-    std::fs::read_dir(dir)
-        .map(|rd| {
-            rd.filter_map(std::result::Result::ok)
-                .filter(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
-                .count()
-        })
-        .unwrap_or(0)
+    std::fs::read_dir(dir).map_or(0, |rd| {
+        rd.filter_map(std::result::Result::ok)
+            .filter(|e| e.file_type().is_ok_and(|t| t.is_dir()))
+            .count()
+    })
 }
 
 fn count_files_with_ext(dir: &Path, ext: &str) -> usize {
-    std::fs::read_dir(dir)
-        .map(|rd| {
-            rd.filter_map(std::result::Result::ok)
-                .filter(|e| e.path().extension().is_some_and(|x| x == ext))
-                .count()
-        })
-        .unwrap_or(0)
+    std::fs::read_dir(dir).map_or(0, |rd| {
+        rd.filter_map(std::result::Result::ok)
+            .filter(|e| e.path().extension().is_some_and(|x| x == ext))
+            .count()
+    })
 }
 
 /// Stage bundled Python runtime from python-standalone/python/ to target/python/.
@@ -556,11 +539,9 @@ fn stage_bundled_python(root: &Path, target: &Path) -> bool {
     let wrapper_dst = target.join("python-wrapper");
     if wrapper_src.exists() {
         std::fs::copy(&wrapper_src, &wrapper_dst).ok();
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            std::fs::set_permissions(&wrapper_dst, std::fs::Permissions::from_mode(0o755)).ok();
-        }
+        litho_core::platform::current()
+            .set_executable(&wrapper_dst)
+            .ok();
     }
 
     true

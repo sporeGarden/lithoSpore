@@ -5,6 +5,7 @@
 //! These tests invoke the compiled binary with various subcommands and
 //! verify exit codes and output structure against a temporary artifact root.
 
+use std::fmt::Write;
 use std::process::Command;
 
 fn litho_bin() -> Command {
@@ -151,9 +152,10 @@ fn artifact_with_manifest(files: &[(&str, &str)]) -> tempfile::TempDir {
         }
         std::fs::write(&full, content).expect("write test file");
         let hash = blake3::hash(content.as_bytes()).to_hex().to_string();
-        manifest.push_str(&format!(
+        let _ = write!(
+            manifest,
             "[[file]]\npath = \"{path}\"\nblake3 = \"{hash}\"\n\n"
-        ));
+        );
     }
     std::fs::write(root.join("data_manifest.toml"), manifest).ok();
     dir

@@ -86,12 +86,11 @@ pub(super) fn generate_readme(
     let key_finding = "";
     let paper_ref = "";
 
-    let is_md = profile.is_none()
-        || profile.is_some_and(|p| {
-            p.tools
-                .iter()
-                .any(|t| t == "gromacs" || t == "plumed" || t == "lammps")
-        });
+    let is_md = profile.is_none_or(|p| {
+        p.tools
+            .iter()
+            .any(|t| t == "gromacs" || t == "plumed" || t == "lammps")
+    });
 
     let has_translation = profile.is_none_or(pseudospore_core::DomainProfile::translation_enabled);
 
@@ -417,12 +416,8 @@ PYEOF
     fs::write(root.join("validate"), validate_sh).map_err(|e| format!("emit: {e}"))?;
     fs::write(root.join("refresh"), refresh_sh).map_err(|e| format!("emit: {e}"))?;
 
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let perms = std::fs::Permissions::from_mode(0o755);
-        fs::set_permissions(root.join("validate"), perms.clone()).ok();
-        fs::set_permissions(root.join("refresh"), perms).ok();
-    }
+    let platform = litho_core::platform::current();
+    platform.set_executable(&root.join("validate")).ok();
+    platform.set_executable(&root.join("refresh")).ok();
     Ok(())
 }

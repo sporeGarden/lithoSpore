@@ -80,7 +80,7 @@ branch = "main"
     output
 }
 
-pub(crate) fn find_mdp_and_extract_time(config_dir: &Path) -> Option<u64> {
+pub fn find_mdp_and_extract_time(config_dir: &Path) -> Option<u64> {
     if !config_dir.exists() {
         return None;
     }
@@ -97,7 +97,7 @@ pub(crate) fn find_mdp_and_extract_time(config_dir: &Path) -> Option<u64> {
     None
 }
 
-pub(crate) fn extract_sim_time_ns(mdp_path: &Path) -> Option<u64> {
+pub fn extract_sim_time_ns(mdp_path: &Path) -> Option<u64> {
     let content = std::fs::read_to_string(mdp_path).ok()?;
     let mut nsteps: Option<f64> = None;
     let mut dt: Option<f64> = None;
@@ -128,16 +128,15 @@ fn f64_to_u64_ns(value: f64) -> Option<u64> {
     format!("{value:.0}").parse().ok()
 }
 
-pub(crate) fn infer_module_metadata(
+pub fn infer_module_metadata(
     module_name: &str,
     profile: Option<&pseudospore_core::DomainProfile>,
 ) -> (String, String, String) {
-    let is_md = profile.is_none()
-        || profile.is_some_and(|p| {
-            p.tools
-                .iter()
-                .any(|t| t == "gromacs" || t == "plumed" || t == "lammps")
-        });
+    let is_md = profile.is_none_or(|p| {
+        p.tools
+            .iter()
+            .any(|t| t == "gromacs" || t == "plumed" || t == "lammps")
+    });
 
     let method = if let Some(p) = profile {
         if p.id.contains("metadynamics") {

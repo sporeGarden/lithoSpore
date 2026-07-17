@@ -12,7 +12,7 @@ use super::{
 };
 use serde_json::{Value, json};
 
-pub(crate) fn breseq(data: &Value) -> Vec<Value> {
+pub fn breseq(data: &Value) -> Vec<Value> {
     let mut b = Vec::new();
 
     if let Some(ev) = data
@@ -72,7 +72,7 @@ pub(crate) fn breseq(data: &Value) -> Vec<Value> {
                         Some(track_segment(
                             "SNP",
                             pos,
-                            pos + genome_len * 0.003,
+                            genome_len.mul_add(0.003, pos),
                             "+",
                             gene,
                         ))
@@ -86,7 +86,7 @@ pub(crate) fn breseq(data: &Value) -> Vec<Value> {
                         Some(track_segment(
                             "IS Element",
                             pos,
-                            pos + genome_len * 0.005,
+                            genome_len.mul_add(0.005, pos),
                             "+",
                             elem,
                         ))
@@ -147,7 +147,7 @@ pub(crate) fn breseq(data: &Value) -> Vec<Value> {
     b
 }
 
-pub(crate) fn plannotate(data: &Value) -> Vec<Value> {
+pub fn plannotate(data: &Value) -> Vec<Value> {
     let mut b = Vec::new();
 
     if let Some(dist) = data.get("feature_distribution").and_then(|v| v.as_object()) {
@@ -207,7 +207,7 @@ pub(crate) fn plannotate(data: &Value) -> Vec<Value> {
     b
 }
 
-pub(crate) fn ostir(data: &Value) -> Vec<Value> {
+pub fn ostir(data: &Value) -> Vec<Value> {
     let mut b = Vec::new();
 
     if let Some(preds) = data
@@ -300,7 +300,7 @@ pub(crate) fn ostir(data: &Value) -> Vec<Value> {
     b
 }
 
-pub(crate) fn cryptkeeper(data: &Value) -> Vec<Value> {
+pub fn cryptkeeper(data: &Value) -> Vec<Value> {
     let mut b = Vec::new();
 
     if let Some(hm) = data.get("burden_heatmap") {
@@ -404,7 +404,7 @@ pub(crate) fn cryptkeeper(data: &Value) -> Vec<Value> {
     b
 }
 
-pub(crate) fn efm(data: &Value) -> Vec<Value> {
+pub fn efm(data: &Value) -> Vec<Value> {
     let mut b = Vec::new();
 
     if let Some(counts) = data.get("site_counts").and_then(|v| v.as_object()) {
@@ -512,7 +512,7 @@ pub(crate) fn efm(data: &Value) -> Vec<Value> {
     b
 }
 
-pub(crate) fn marker_divergence(data: &Value) -> Vec<Value> {
+pub fn marker_divergence(data: &Value) -> Vec<Value> {
     let mut b = Vec::new();
 
     if let Some(curves) = data.get("divergence_curves") {
@@ -614,7 +614,7 @@ pub(crate) fn marker_divergence(data: &Value) -> Vec<Value> {
     b
 }
 
-pub(crate) fn rna_mi(data: &Value) -> Vec<Value> {
+pub fn rna_mi(data: &Value) -> Vec<Value> {
     let mut b = Vec::new();
 
     if let Some(matrix) = data.get("mi_matrix") {

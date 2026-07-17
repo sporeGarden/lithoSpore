@@ -8,7 +8,7 @@
 //! all upstream data, and validates — turning the seed into a full tree.
 //!
 //! Stages:
-//!   1. Clone source repo (from scope.toml [source] metadata)
+//!   1. Clone source repo (from scope.toml `[source]` metadata)
 //!   2. Detect or install Rust toolchain
 //!   3. Build from source (cargo build --release)
 //!   4. Seed data from USB into cloned tree
@@ -29,27 +29,27 @@ use std::path::{Path, PathBuf};
 use util::step;
 
 /// Runtime mode flags for grow.
-pub(crate) struct GrowModeFlags {
+pub struct GrowModeFlags {
     pub vm: bool,
     pub container: bool,
     pub ecosystem: bool,
 }
 
 /// Skip flags for grow pipeline stages.
-pub(crate) struct GrowSkipFlags {
+pub struct GrowSkipFlags {
     pub build: bool,
     pub fetch: bool,
 }
 
 /// Options for germinating a USB artifact into a dev environment.
-pub(crate) struct GrowOptions<'a> {
+pub struct GrowOptions<'a> {
     pub artifact_root: &'a str,
     pub target: &'a str,
     pub mode: GrowModeFlags,
     pub skip: GrowSkipFlags,
 }
 
-pub(crate) fn run(opts: &GrowOptions<'_>) {
+pub fn run(opts: &GrowOptions<'_>) {
     let GrowOptions {
         artifact_root,
         target,

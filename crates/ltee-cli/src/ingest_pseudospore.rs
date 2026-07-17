@@ -8,7 +8,7 @@
 use pseudospore_core::{ChecksumEntry, PseudoSporeEnvelope, ScopeDoc};
 use std::path::Path;
 
-pub(crate) fn run(pseudospore_path: &str, artifact_root: &str, verify: bool) {
+pub fn run(pseudospore_path: &str, artifact_root: &str, verify: bool) {
     let ps_root = Path::new(pseudospore_path);
     let litho_root = Path::new(artifact_root);
 
@@ -122,9 +122,9 @@ pub(crate) fn run(pseudospore_path: &str, artifact_root: &str, verify: bool) {
     // 3c. Check data/ directory for zero-trust verification
     let data_dir = ps_root.join("data");
     if data_dir.exists() {
-        let data_modules = std::fs::read_dir(&data_dir)
-            .map(|entries| entries.flatten().filter(|e| e.path().is_dir()).count())
-            .unwrap_or(0);
+        let data_modules = std::fs::read_dir(&data_dir).map_or(0, |entries| {
+            entries.flatten().filter(|e| e.path().is_dir()).count()
+        });
         println!("  data/: present ({data_modules} modules — zero-trust derivation enabled)");
     } else {
         println!("  data/: not present (trust-required mode)");
@@ -311,7 +311,7 @@ fn upsert_registry(
     Ok(action)
 }
 
-/// Validate an `index_map.toml` file: parseable TOML with [meta] and [systems.*].
+/// Validate an `index_map.toml` file: parseable TOML with `[meta]` and `[systems.*]`.
 fn validate_index_map(path: &Path) -> Result<usize, String> {
     let content = std::fs::read_to_string(path).map_err(|e| format!("cannot read: {e}"))?;
     let table: toml::Table = content.parse().map_err(|e| format!("parse error: {e}"))?;

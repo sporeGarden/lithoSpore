@@ -1,7 +1,7 @@
 # lithoSpore Upstream Gap Registry
 
-**Last Updated**: May 30, 2026 (75/75 checks, 7/7 modules, Tier 3 wired, 199 tests, 3 live braids)
-**Phase**: Post-deployment (first live handoff to Barrick Lab May 18)
+**Last Updated**: Jul 17, 2026 (75/75 checks, 7/7 modules, Tier 3 wired, 216 tests, 3 live braids)
+**Phase**: Post-deployment — silicon atheism evolution pass complete
 **Scope**: lithoSpore verification chassis (LTEE first instance; chassis domain-agnostic)
 **Geo-delocalization**: Absorbed — discovery chain env → UDS → TURN → standalone
 **Deployment**: exFAT cross-platform, 3-zone structure, Layer 0-4 model
@@ -61,6 +61,18 @@ all bash fetch scripts. `litho assemble` replaces `assemble-usb.sh`.
 | FN-DEAD | `fetch_from_manifest` 54 LOC dead code | Removed from `deploy/fetch_sources.sh` (replaced by `litho fetch` / projectFOUNDATION) |
 | FN-WK | Workload TOMLs missing SPDX headers | Added `AGPL-3.0-or-later` to all 20 workload TOMLs |
 | FN-CI | Shellcheck in CI was `|| true` (advisory) | Made blocking — removed `|| true` |
+
+### Silicon Atheism Evolution Pass (Jul 17, 2026)
+
+| ID | Gap | Resolution |
+|----|-----|-----------|
+| SA-CFG | 18 `#[cfg]` gates scattered across 7 files | Created `Platform` trait in `litho-core::platform` — `UnixPlatform` + `FallbackPlatform`. Only 2 `#[cfg]` blocks remain (in `platform.rs::current()`) |
+| SA-MAIN | `main.rs` at 730 lines — symlink dispatch embedded in main | Extracted `dispatch.rs` module — `try_symlink_dispatch()` + helpers. `main.rs` reduced to 648 lines |
+| SA-DOMAIN | `domain_profile.rs` at 799 lines | Split to `domain_profile/mod.rs` (493 lines) + `domain_profile/parse.rs` (parsing helpers) |
+| SA-AUDIT | `audit/domain.rs` at 797 lines | Extracted `audit/derivation.rs` (228 lines) — derivation contract checks + PLUMED discovery. `domain.rs` reduced to 585 lines |
+| SA-COW | `provenance::endpoint_addr` cloned strings unnecessarily | Changed to `Cow<'_, str>` — zero-copy when address is already in env |
+| SA-BRAID | `braid::format_braid_summary` used Vec<String> + join | Replaced with single String + `write!` — eliminates intermediate allocations |
+| SA-VIZ | `visualize.rs` cloned candidate string unnecessarily | Direct return of owned `candidate` — avoids redundant clone |
 
 ### Geo-Delocalization Absorption (May 14, 2026)
 
@@ -285,7 +297,7 @@ doesn't benefit from Rust).
 Additional platform evolution:
 - External command calls (`date`, `hostname`, `id`) replaced with `chrono`, `/etc/hostname`, `/proc/self/status`
 - 7 module binaries unified into single `litho` binary via lib.rs + in-process dispatch
-- `#[cfg]` platform guards for Windows cross-compilation (COMPUTERNAME, %TEMP%, copy-for-symlink)
+- `Platform` trait replaces all `#[cfg]` platform guards — trait-based OS abstraction (silicon atheism, Jul 2026)
 - `ipc.resolve` method aligned with capability registry
 - `compute.dispatch` in tower.toml aligned with graph
 
@@ -325,12 +337,20 @@ currently embed (standalone CLI pattern).
 
 ## Changelog
 
+- **2026-07-17**: Silicon Atheism Evolution Pass — `Platform` trait absorbs 18 `#[cfg]`
+  gates across 7 files into 2 blocks in `litho-core::platform`. `main.rs` refactored:
+  symlink dispatch extracted to `dispatch.rs` (730→648 lines). Large files refactored:
+  `domain_profile.rs` split to `domain_profile/mod.rs` + `parse.rs` (799→493 lines),
+  `audit/domain.rs` split to `audit/derivation.rs` (797→585 lines). Idiomatic Rust:
+  `Cow<str>` in provenance, `write!`-based string building in braid, clone elimination
+  in visualize. 16 new tests added. All deps confirmed pure Rust. Zero production mocks.
+  216/216 tests, 0 clippy warnings, fmt clean, doc clean.
 - **2026-05-17 PM**: Chassis Abstraction Evolution — all 7 coupling points resolved.
   `scope.toml` `[[module]]` entries carry name/binary/data_dir/expected/tier1_notebook.
   New `registry.rs` centralizes module resolution for all 6 consumer files. `.biomeos-spore`
   generated from scope.toml. Braid accessions from data.toml. `viz/` moved from litho-core
   to ltee-cli (instance layer). `litho-core` 12 modules, domain-agnostic chassis. Graph/target paths
-  parameterized. Test fixtures isolated. 199 tests, zero clippy warnings.
+  parameterized. Test fixtures isolated. 199 tests, zero clippy warnings. [updated: 216 tests post evolution pass]
 - **2026-05-17 PM**: wetSpring braid ingestion — `litho-core::braid` module (4 tests),
   sovereign + breseq baseline braids parsed, accession validated (SRP001569 PASS),
   braids displayed in `litho validate` output. URI fixes: gzip/zip content-type

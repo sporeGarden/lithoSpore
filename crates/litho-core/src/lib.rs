@@ -13,6 +13,7 @@ pub mod env_vars;
 pub mod error;
 pub mod harness;
 pub mod manifest;
+pub mod platform;
 pub mod provenance;
 pub mod scope;
 pub mod spore;

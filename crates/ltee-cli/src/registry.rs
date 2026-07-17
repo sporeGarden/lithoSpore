@@ -11,7 +11,7 @@ use std::path::Path;
 
 /// A runtime-resolved module entry.
 #[derive(Debug, Clone)]
-pub(crate) struct ModuleEntry {
+pub struct ModuleEntry {
     pub name: String,
     pub binary: String,
     pub data_dir: String,
@@ -20,7 +20,7 @@ pub(crate) struct ModuleEntry {
 }
 
 /// LTEE instance: compiled fallback when scope.toml has no `[[module]]` entries.
-pub(crate) const LTEE_MODULES: &[(&str, &str, &str, &str)] = &[
+pub const LTEE_MODULES: &[(&str, &str, &str, &str)] = &[
     (
         "power_law_fitness",
         "ltee-fitness",
@@ -65,7 +65,7 @@ pub(crate) const LTEE_MODULES: &[(&str, &str, &str, &str)] = &[
     ),
 ];
 
-pub(crate) const LTEE_NOTEBOOKS: &[(&str, &str)] = &[
+pub const LTEE_NOTEBOOKS: &[(&str, &str)] = &[
     (
         "power_law_fitness",
         "notebooks/module1_fitness/power_law_fitness.py",
@@ -96,11 +96,11 @@ pub(crate) const LTEE_NOTEBOOKS: &[(&str, &str)] = &[
     ),
 ];
 
-pub(crate) type ModuleFn = fn(&str, &str, u8) -> litho_core::ModuleResult;
+pub type ModuleFn = fn(&str, &str, u8) -> litho_core::ModuleResult;
 
 /// Compiled dispatch table. Modules are linked at compile time via Cargo deps.
 /// A future evolution would use dynamic loading or feature gates per instance.
-pub(crate) const MODULE_DISPATCH: &[(&str, ModuleFn)] = &[
+pub const MODULE_DISPATCH: &[(&str, ModuleFn)] = &[
     ("ltee-fitness", ltee_fitness::run_validation),
     ("ltee-mutations", ltee_mutations::run_validation),
     ("ltee-alleles", ltee_alleles::run_validation),
@@ -111,7 +111,7 @@ pub(crate) const MODULE_DISPATCH: &[(&str, ModuleFn)] = &[
 ];
 
 /// Load modules from `scope.toml` when present, otherwise the compiled LTEE table.
-pub(crate) fn load_modules(scope_path: Option<&Path>) -> Vec<ModuleEntry> {
+pub fn load_modules(scope_path: Option<&Path>) -> Vec<ModuleEntry> {
     if let Some(path) = scope_path
         && let Ok(scope) = litho_core::ScopeManifest::load(path)
         && !scope.module.is_empty()
@@ -149,7 +149,7 @@ fn compiled_module_fallback() -> Vec<ModuleEntry> {
 /// 1. `scope.toml` `[[module]]` entries (domain-agnostic)
 /// 2. `scope.toml` springs × `data.toml` datasets (legacy)
 /// 3. Compiled `LTEE_MODULES` fallback
-pub(crate) fn load_module_table(root: &Path) -> Vec<ModuleEntry> {
+pub fn load_module_table(root: &Path) -> Vec<ModuleEntry> {
     let scope_path = root.join("artifact/scope.toml");
 
     let from_scope = load_modules(Some(&scope_path));
@@ -216,22 +216,20 @@ pub(crate) fn load_module_table(root: &Path) -> Vec<ModuleEntry> {
 }
 
 /// Load the guideStone identity name from scope.toml, with fallback.
-pub(crate) fn load_scope_name(root: &Path) -> String {
-    litho_core::ScopeManifest::load(&root.join("artifact/scope.toml")).map_or_else(
-        |_| "ltee-guidestone".to_string(),
-        |s| s.guidestone.name.clone(),
-    )
+pub fn load_scope_name(root: &Path) -> String {
+    litho_core::ScopeManifest::load(&root.join("artifact/scope.toml"))
+        .map_or_else(|_| "ltee-guidestone".to_string(), |s| s.guidestone.name)
 }
 
 /// Load the scope manifest (if available).
-pub(crate) fn load_scope(root: &Path) -> Option<litho_core::ScopeManifest> {
+pub fn load_scope(root: &Path) -> Option<litho_core::ScopeManifest> {
     litho_core::ScopeManifest::load(&root.join("artifact/scope.toml")).ok()
 }
 
 /// Domain-agnostic name matching: does a result module name correspond
 /// to a given binary/module identifier? Uses the module registry to
 /// resolve, falling back to the legacy LTEE mapping.
-pub(crate) fn module_name_matches(
+pub fn module_name_matches(
     registry: &[ModuleEntry],
     result_name: &str,
     target_module: &str,
@@ -270,7 +268,7 @@ fn find_notebook(logical_name: &str) -> String {
 }
 
 /// Find the expected JSON file for a module by scanning `validation/expected/`.
-pub(crate) fn find_expected_json(root: &Path, module_binary: &str) -> String {
+pub fn find_expected_json(root: &Path, module_binary: &str) -> String {
     let expected_dir = root.join("validation/expected");
     if !expected_dir.is_dir() {
         return String::new();
@@ -299,7 +297,7 @@ pub(crate) fn find_expected_json(root: &Path, module_binary: &str) -> String {
 }
 
 /// Dispatch to a module's in-process validation function by binary name.
-pub(crate) fn dispatch_module(
+pub fn dispatch_module(
     binary: &str,
     data_dir: &str,
     expected: &str,

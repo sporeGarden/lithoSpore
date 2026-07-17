@@ -182,7 +182,7 @@ pub fn format_output(result: &ModuleResult, json: bool) -> Result<String, crate:
 
 /// Exit code for a module result per the Targeted `GuideStone` standard.
 #[must_use]
-pub fn exit_code(result: &ModuleResult) -> i32 {
+pub const fn exit_code(result: &ModuleResult) -> i32 {
     match result.status {
         ValidationStatus::Pass => 0,
         ValidationStatus::Fail => 1,

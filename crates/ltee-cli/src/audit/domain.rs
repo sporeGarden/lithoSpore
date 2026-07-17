@@ -95,8 +95,8 @@ pub(super) fn check_validation_claims(root: &Path, findings: &mut Vec<Finding>) 
                 let claim_says_4c1_ground = claim.contains("global min")
                     && claim.find("global min").is_some_and(|pos| {
                         let after = &claim[pos..];
-                        let has_4c1 = after.find("4C1").or(after.find("4c1"));
-                        let has_1c4 = after.find("1C4").or(after.find("1c4"));
+                        let has_4c1 = after.find("4C1").or_else(|| after.find("4c1"));
+                        let has_1c4 = after.find("1C4").or_else(|| after.find("1c4"));
                         match (has_4c1, has_1c4) {
                             (Some(a), Some(b)) => a < b,
                             (Some(_), None) => true,
@@ -107,8 +107,8 @@ pub(super) fn check_validation_claims(root: &Path, findings: &mut Vec<Finding>) 
                 let claim_says_1c4_ground = claim.contains("global min")
                     && claim.find("global min").is_some_and(|pos| {
                         let after = &claim[pos..];
-                        let has_4c1 = after.find("4C1").or(after.find("4c1"));
-                        let has_1c4 = after.find("1C4").or(after.find("1c4"));
+                        let has_4c1 = after.find("4C1").or_else(|| after.find("4c1"));
+                        let has_1c4 = after.find("1C4").or_else(|| after.find("1c4"));
                         match (has_4c1, has_1c4) {
                             (Some(a), Some(b)) => b < a,
                             (None, Some(_)) => true,
@@ -356,7 +356,7 @@ pub(super) fn check_hills_height_match(root: &Path, findings: &mut Vec<Finding>)
                                             ),
                                             fix: format!("Update HEIGHT in configs/{}/{}",
                                                 mod_name,
-                                                plumed_path.file_name().map_or("plumed.dat".into(), |f| f.to_string_lossy())),
+                                                plumed_path.file_name().map_or_else(|| "plumed.dat".into(), |f| f.to_string_lossy())),
                                         });
                                 }
                             }
@@ -582,218 +582,4 @@ pub(super) fn check_domain_vs_topology(root: &Path, findings: &mut Vec<Finding>)
         }
     }
 }
-/// Verify derivation contract — outputs can be re-derived from data.
-/// Uses plumed `sum_hills` internally if available, otherwise checks file sizes
-/// and HILLS line counts as a proxy.
-pub(super) fn check_derivation_contract(root: &Path, findings: &mut Vec<Finding>) {
-    let data_dir = root.join("data");
-    let outputs_dir = root.join("outputs");
-
-    if !data_dir.exists() || !outputs_dir.exists() {
-        return;
-    }
-
-    // Check if plumed is available (search common conda/system paths)
-    let plumed_bin = find_plumed();
-    let _has_plumed = plumed_bin.is_some();
-
-    if let Ok(modules) = fs::read_dir(&data_dir) {
-        for module in modules.flatten() {
-            if !module.path().is_dir() {
-                continue;
-            }
-            let mod_name = module.file_name().to_string_lossy().to_string();
-
-            // Check 1D HILLS
-            let hills_path = module.path().join("HILLS");
-            let output_fes = outputs_dir.join(&mod_name).join("fes_theta.dat");
-
-            if hills_path.exists() && output_fes.exists() {
-                if let Some(ref plumed) = plumed_bin {
-                    // Actually verify derivation
-                    let tmp_out =
-                        std::env::temp_dir().join(format!("litho_audit_derive_{mod_name}.dat"));
-                    let tmp_out_s = tmp_out.to_string_lossy();
-                    let result = std::process::Command::new(plumed)
-                        .args(["sum_hills", "--hills"])
-                        .arg(&hills_path)
-                        .args(["--mintozero", "--outfile", tmp_out_s.as_ref()])
-                        .output();
-
-                    match result {
-                        Ok(o) if o.status.success() => {
-                            // Compare with output
-                            let derived = fs::read_to_string(&tmp_out).unwrap_or_default();
-                            let expected = fs::read_to_string(&output_fes).unwrap_or_default();
-                            if derived != expected {
-                                // Check if it's just formatting
-                                let d_lines: Vec<f64> = derived
-                                    .lines()
-                                    .filter(|l| !l.starts_with('#') && !l.is_empty())
-                                    .filter_map(|l| l.split_whitespace().nth(1))
-                                    .filter_map(|s| s.parse().ok())
-                                    .collect();
-                                let e_lines: Vec<f64> = expected
-                                    .lines()
-                                    .filter(|l| !l.starts_with('#') && !l.is_empty())
-                                    .filter_map(|l| l.split_whitespace().nth(1))
-                                    .filter_map(|s| s.parse().ok())
-                                    .collect();
-
-                                if d_lines.len() == e_lines.len() {
-                                    let max_diff: f64 = d_lines
-                                        .iter()
-                                        .zip(e_lines.iter())
-                                        .map(|(a, b)| (a - b).abs())
-                                        .fold(0.0f64, f64::max);
-                                    if max_diff > 0.001 {
-                                        findings.push(Finding {
-                                            id: format!("DERIVATION-FAIL-{mod_name}"),
-                                            severity: Severity::High,
-                                            category: "Derivation Contract",
-                                            message: format!(
-                                                "{mod_name}: re-derived FES differs from shipped output by {max_diff:.4} kJ/mol max"
-                                            ),
-                                            fix: "Regenerate outputs/ from data/ or fix data/HILLS".to_string(),
-                                        });
-                                    }
-                                } else {
-                                    findings.push(Finding {
-                                        id: format!("DERIVATION-SIZE-{mod_name}"),
-                                        severity: Severity::Medium,
-                                        category: "Derivation Contract",
-                                        message: format!(
-                                            "{}: re-derived FES has {} points, shipped has {}",
-                                            mod_name, d_lines.len(), e_lines.len()
-                                        ),
-                                        fix: "Check GRID settings — derivation may need explicit --min/--max/--bin".to_string(),
-                                    });
-                                }
-                            }
-                            fs::remove_file(&tmp_out).ok();
-                        }
-                        // plumed missing or non-zero exit: derivation check is optional
-                        Ok(_) | Err(_) => {}
-                    }
-                } else {
-                    // No plumed: sanity check that HILLS has reasonable line count
-                    let hills_lines = fs::read_to_string(&hills_path)
-                        .map(|c| {
-                            c.lines()
-                                .filter(|l| !l.starts_with('#') && !l.is_empty())
-                                .count()
-                        })
-                        .unwrap_or(0);
-                    if hills_lines < 100 {
-                        findings.push(Finding {
-                            id: format!("HILLS-SHORT-{mod_name}"),
-                            severity: Severity::Medium,
-                            category: "Derivation Contract",
-                            message: format!(
-                                "{mod_name}: HILLS has only {hills_lines} depositions (< 100, likely incomplete)"
-                            ),
-                            fix: "Verify simulation completed or mark module as IN_FLIGHT"
-                                .to_string(),
-                        });
-                    }
-                }
-            }
-
-            // Check 2D HILLS
-            let hills_2d_path = module.path().join("HILLS_2d");
-            let output_fes_2d = outputs_dir.join(&mod_name).join("fes_2d.dat");
-
-            if hills_2d_path.exists()
-                && output_fes_2d.exists()
-                && let Some(ref plumed) = plumed_bin
-            {
-                let tmp_out =
-                    std::env::temp_dir().join(format!("litho_audit_derive_2d_{mod_name}.dat"));
-                let tmp_out_s = tmp_out.to_string_lossy();
-                let result = std::process::Command::new(plumed)
-                    .args(["sum_hills", "--hills"])
-                    .arg(&hills_2d_path)
-                    .args([
-                        "--min",
-                        "-0.12,-0.12",
-                        "--max",
-                        "0.12,0.12",
-                        "--bin",
-                        "100,100",
-                    ])
-                    .args(["--mintozero", "--outfile", tmp_out_s.as_ref()])
-                    .output();
-
-                if let Ok(o) = result {
-                    if o.status.success() {
-                        let derived = fs::read_to_string(&tmp_out).unwrap_or_default();
-                        let expected = fs::read_to_string(&output_fes_2d).unwrap_or_default();
-                        if derived != expected {
-                            let d_vals: Vec<f64> = derived
-                                .lines()
-                                .filter(|l| !l.starts_with('#') && !l.is_empty())
-                                .filter_map(|l| l.split_whitespace().nth(2))
-                                .filter_map(|s| s.parse().ok())
-                                .collect();
-                            let e_vals: Vec<f64> = expected
-                                .lines()
-                                .filter(|l| !l.starts_with('#') && !l.is_empty())
-                                .filter_map(|l| l.split_whitespace().nth(2))
-                                .filter_map(|s| s.parse().ok())
-                                .collect();
-
-                            if d_vals.len() == e_vals.len() && !d_vals.is_empty() {
-                                let max_diff: f64 = d_vals
-                                    .iter()
-                                    .zip(e_vals.iter())
-                                    .map(|(a, b)| (a - b).abs())
-                                    .fold(0.0f64, f64::max);
-                                if max_diff > 0.001 {
-                                    findings.push(Finding {
-                                        id: format!("DERIVATION-2D-FAIL-{mod_name}"),
-                                        severity: Severity::High,
-                                        category: "Derivation Contract",
-                                        message: format!(
-                                            "{mod_name}: 2D FES re-derivation differs by {max_diff:.4} kJ/mol max"
-                                        ),
-                                        fix: "Regenerate outputs/ from data/ with matching --min/--max/--bin".to_string(),
-                                    });
-                                }
-                            }
-                        }
-                    }
-                    fs::remove_file(&tmp_out).ok();
-                }
-            }
-        }
-    }
-}
-/// Locate plumed binary — checks PATH then conda/system locations via liveness probe.
-fn find_plumed() -> Option<String> {
-    let alive = |bin: &str| -> bool {
-        std::process::Command::new(bin)
-            .args(["info", "--root"])
-            .output()
-            .map(|o| o.status.success())
-            .unwrap_or(false)
-    };
-    if alive("plumed") {
-        return Some("plumed".to_string());
-    }
-    let home = std::env::var(litho_core::env_vars::HOME).unwrap_or_default();
-    let suffixes = [
-        "miniconda3/envs/gromacs-fel",
-        "miniconda3",
-        "anaconda3/envs/gromacs-fel",
-    ];
-    for sfx in &suffixes {
-        let p = format!("{home}/{sfx}/bin/plumed");
-        if Path::new(&p).exists() && alive(&p) {
-            return Some(p);
-        }
-    }
-    ["/usr/local/bin/plumed", "/usr/bin/plumed"]
-        .iter()
-        .find(|p| Path::new(*p).exists() && alive(p))
-        .map(|p| (*p).to_string())
-}
+pub(super) use super::derivation::check_derivation_contract;

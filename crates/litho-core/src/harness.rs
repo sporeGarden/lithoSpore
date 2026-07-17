@@ -62,7 +62,7 @@ pub fn tier0_structural(name: &str, expected_path: &str, start: Instant) -> Modu
         .file_name()
         .and_then(|n| n.to_str())
         .unwrap_or(expected_path);
-    eprintln!("  [PASS] Tier 0 structural: {file} parseable ({check_count} expected field(s))");
+    tracing::info!(file, check_count, "Tier 0 structural: parseable");
     ModuleResult {
         name: name.to_string(),
         status: ValidationStatus::Pass,
@@ -125,9 +125,9 @@ pub fn dispatch_python(name: &str, script_path: &Path, working_dir: &Path) -> Mo
             let stdout = String::from_utf8_lossy(&out.stdout);
             let stderr = String::from_utf8_lossy(&out.stderr);
 
-            eprintln!("{stdout}");
+            tracing::debug!(stdout = %stdout, "python baseline output");
             if !stderr.is_empty() {
-                eprintln!("{stderr}");
+                tracing::debug!(stderr = %stderr, "python baseline stderr");
             }
 
             let passed = u32::try_from(stdout.matches("[PASS]").count()).unwrap_or(u32::MAX);

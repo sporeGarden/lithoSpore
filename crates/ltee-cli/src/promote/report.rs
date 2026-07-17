@@ -5,13 +5,12 @@ use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
 
-/// Generic RMSD limits when no `[tolerances]` section exists in the domain profile.
-const GENERIC_TIER1_RMSD_KJ_MAX: f64 = 2.0;
-const GENERIC_TIER2_RMSD_KJ_MAX: f64 = 2.0;
-
 fn rmsd_limits(profile: Option<&DomainProfile>) -> (f64, f64) {
     profile.and_then(|p| p.tolerances.as_ref()).map_or(
-        (GENERIC_TIER1_RMSD_KJ_MAX, GENERIC_TIER2_RMSD_KJ_MAX),
+        (
+            litho_core::consts::DEFAULT_RMSD_KJ,
+            litho_core::consts::DEFAULT_RMSD_KJ,
+        ),
         |t| (t.tier1_rmsd_kj_max, t.tier2_rmsd_kj_max),
     )
 }

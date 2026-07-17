@@ -164,8 +164,12 @@ pub(super) fn stage_vm(root: &Path) {
         println!("  No cloud image found. Downloading Ubuntu 24.04 cloud image...");
         let dl_path = &cloud_image_candidates[2];
         let status = Command::new("curl")
-            .args(["-fSL", "-o", &dl_path.to_string_lossy(),
-                   "https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-amd64.img"])
+            .args([
+                "-fSL",
+                "-o",
+                &dl_path.to_string_lossy(),
+                litho_core::consts::VM_CLOUD_IMAGE_URL,
+            ])
             .status();
         match status {
             Ok(s) if s.success() => println!("  Downloaded: {}", dl_path.display()),
@@ -245,27 +249,36 @@ pub(super) fn stage_vm(root: &Path) {
     println!("  Preparing VM disk...");
     let _ = std::fs::copy(cloud_image, vm_disk.as_path());
     let _ = Command::new("qemu-img")
-        .args(["resize", vm_disk_s.as_ref(), "20G"])
+        .args([
+            "resize",
+            vm_disk_s.as_ref(),
+            litho_core::consts::VM_DISK_SIZE,
+        ])
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
         .status();
 
     // Launch VM
-    println!("  Launching VM: {vm_name} (2 vCPU, 4 GB RAM, 20 GB disk)");
+    println!(
+        "  Launching VM: {vm_name} ({} vCPU, {} MB RAM, {} disk)",
+        litho_core::consts::VM_VCPU_COUNT,
+        litho_core::consts::VM_RAM_MB,
+        litho_core::consts::VM_DISK_SIZE,
+    );
     let status = Command::new("virt-install")
         .args([
             "--name",
             vm_name,
             "--memory",
-            "4096",
+            litho_core::consts::VM_RAM_MB,
             "--vcpus",
-            "2",
+            litho_core::consts::VM_VCPU_COUNT,
             "--disk",
             &format!("path={},format=qcow2", vm_disk.display()),
             "--disk",
             &format!("path={},device=cdrom", cidata_iso.display()),
             "--os-variant",
-            "ubuntu24.04",
+            litho_core::consts::VM_OS_VARIANT,
             "--network",
             "network=default",
             "--graphics",
@@ -283,7 +296,7 @@ pub(super) fn stage_vm(root: &Path) {
     // Wait for IP
     println!("  Waiting for VM to boot...");
     let mut vm_ip = String::new();
-    for _ in 0..60 {
+    for _ in 0..litho_core::consts::VM_BOOT_POLL_ATTEMPTS {
         if let Ok(output) = Command::new("virsh").args(["domifaddr", vm_name]).output() {
             let text = String::from_utf8_lossy(&output.stdout);
             if let Some(ip) = text
@@ -294,7 +307,7 @@ pub(super) fn stage_vm(root: &Path) {
                 break;
             }
         }
-        std::thread::sleep(std::time::Duration::from_secs(2));
+        std::thread::sleep(litho_core::consts::VM_BOOT_POLL_INTERVAL);
     }
 
     if vm_ip.is_empty() {

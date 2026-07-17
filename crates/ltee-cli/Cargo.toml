@@ -9,6 +9,10 @@ license.workspace = true
 name = "litho"
 path = "src/main.rs"
 
+[features]
+default = ["fetch"]
+fetch = ["dep:ureq"]
+
 [dependencies]
 pseudospore-core = { workspace = true }
 litho-core = { workspace = true }
@@ -18,7 +22,7 @@ toml = { workspace = true }
 clap = { workspace = true }
 blake3 = { workspace = true }
 chrono = { workspace = true }
-ureq = { workspace = true }
+ureq = { workspace = true, optional = true }
 walkdir = { workspace = true }
 ltee-fitness = { path = "../ltee-fitness" }
 ltee-mutations = { path = "../ltee-mutations" }

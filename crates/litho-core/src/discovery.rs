@@ -17,21 +17,15 @@
 //! - **LAN** (env or UDS): Tier 2 Rust + primal IPC via local sockets
 //! - **Geo-delocalized** (TURN): Tier 2 via Songbird TURN through cellMembrane
 
+use crate::platform;
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
 use std::path::PathBuf;
-use std::time::Duration;
-
-use crate::platform;
 
 /// JSON-RPC method for resolving capabilities through the discovery socket.
 const RPC_METHOD_RESOLVE: &str = "ipc.resolve";
 
-/// Subdirectory under `$XDG_RUNTIME_DIR` for ecosystem socket discovery.
-const RUNTIME_SUBDIR: &str = "ecoPrimals";
-
-/// Filename of the discovery socket within the runtime subdirectory.
-const DISCOVERY_SOCKET_NAME: &str = "discovery.sock";
+use crate::consts;
 
 /// Which discovery mechanism resolved the primal.
 /// Recorded in `liveSpore.json` for provenance.
@@ -162,14 +156,15 @@ fn discover_from_env(capability: &str) -> Option<PrimalEndpoint> {
 /// localhost. The environment variable is the single source of truth —
 /// no primal-specific IPs are encoded anywhere in lithoSpore.
 fn resolve_primal_host() -> String {
-    std::env::var(crate::env_vars::PRIMAL_HOST).unwrap_or_else(|_| "127.0.0.1".to_string())
+    std::env::var(crate::env_vars::PRIMAL_HOST)
+        .unwrap_or_else(|_| consts::DEFAULT_PRIMAL_HOST.to_string())
 }
 
 fn discovery_socket_path() -> Option<PathBuf> {
     let runtime = platform::current().runtime_dir();
     let path = PathBuf::from(runtime)
-        .join(RUNTIME_SUBDIR)
-        .join(DISCOVERY_SOCKET_NAME);
+        .join(consts::RUNTIME_SUBDIR)
+        .join(consts::DISCOVERY_SOCKET_NAME);
     if path.exists() { Some(path) } else { None }
 }
 
@@ -263,12 +258,12 @@ fn discover_from_turn(capability: &str) -> Option<DiscoveryResult> {
 fn rpc_tcp(endpoint: &PrimalEndpoint, request: &str) -> Option<serde_json::Value> {
     let addr = format!("{}:{}", endpoint.host, endpoint.port);
     let mut stream =
-        TcpStream::connect_timeout(&addr.parse().ok()?, Duration::from_secs(5)).ok()?;
+        TcpStream::connect_timeout(&addr.parse().ok()?, consts::IPC_CONNECT_TIMEOUT).ok()?;
     stream
-        .set_read_timeout(Some(Duration::from_secs(10)))
+        .set_read_timeout(Some(consts::IPC_READ_TIMEOUT))
         .ok()?;
     stream
-        .set_write_timeout(Some(Duration::from_secs(5)))
+        .set_write_timeout(Some(consts::IPC_WRITE_TIMEOUT))
         .ok()?;
 
     stream.write_all(request.as_bytes()).ok()?;

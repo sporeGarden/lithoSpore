@@ -8,6 +8,7 @@
 //! instance; any guideStone instance can reuse this engine via `scope.toml`.
 
 pub mod braid;
+pub mod consts;
 pub mod discovery;
 pub mod env_vars;
 pub mod error;

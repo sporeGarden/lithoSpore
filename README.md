@@ -167,7 +167,7 @@ the root file templates.
 
 **Pillar 4 EXIT GATE: EXCEEDED** — 7 modules PASS at Tier 2, gate required 2+.
 **First live handoff**: 4 USB drives deployed to Barrick Lab (MSU) for LTEE RA II interview. exFAT cross-platform, 3-zone structure, pre-rendered HTML browse layer.
-**Deployment-validated**: USB pipeline tested on 4+ machines — 75/75 science checks, 216 unit/integration tests, 10 chaos/fault-injection tests.
+**Deployment-validated**: USB pipeline tested on 4+ machines — 75/75 science checks, 222 unit/integration tests, 10 chaos/fault-injection tests.
 **Tier 3**: Provenance trio wired via JSON-RPC with partial completion support (requires NUCLEUS primals at runtime).
 **Cross-tier parity**: `litho parity` validates math stability between Python and Rust.
 **Upstream braids**: 3 live braids from wetSpring (sovereign GPU pipeline + breseq baseline + Tenaillon expected values). Known: braid accession normalization (SRP001569 vs PRJNA29543) evolving upstream.
@@ -190,7 +190,7 @@ the root file templates.
 - **Module 6**: breseq 264-genome comparison, mutation accumulation analysis, parallel evolution significance
 - **Module 7**: Anderson disorder mapping, GOE/Poisson eigenvalue statistics
 
-**Infrastructure**: `litho-core` crate with 13 modules (chassis — domain-agnostic;
+**Infrastructure**: `litho-core` crate with 14 modules (chassis — domain-agnostic;
 validation types including `Tier3Session`/`ParityReport`, provenance JSON-RPC client
 for trio, braid ingestion with dual wire format support, tolerance framework, spore
 tracking, capability-based discovery with `announce_self()`/`query_capabilities()`,
@@ -204,7 +204,7 @@ viz DataBinding adapters, 21 subcommands. pseudoSpore pipeline: `emit-pseudospor
 cross-ref, derivation contract, version consistency, provenance, visual evidence),
 `promote` (pseudoSpore → lithoSpore chassis with stripped binaries, auto RELEASE.md),
 `translate-config` (domain↔computation index translation).
-216 unit/integration tests + 10
+222 unit/integration tests + 10
 chaos/fault-injection tests, zero clippy warnings, `#![forbid(unsafe_code)]`
 workspace-wide, pure Rust BLAKE3 (ecoBin compliant), `liveSpore.json` operational
 with corruption resilience and backup.

@@ -327,7 +327,7 @@ fn print_summary(results: &VerifyResults, json_output: bool) {
 fn hash_file(path: &std::path::Path) -> Result<String, std::io::Error> {
     let mut file = std::fs::File::open(path)?;
     let mut hasher = blake3::Hasher::new();
-    let mut buf = vec![0u8; 65536];
+    let mut buf = vec![0u8; litho_core::consts::HASH_BUFFER_SIZE];
     loop {
         let n = std::io::Read::read(&mut file, &mut buf)?;
         if n == 0 {
@@ -367,7 +367,8 @@ fn check_connectivity() -> bool {
     for addr in &hosts {
         if let Ok(mut iter) = addr.to_socket_addrs()
             && let Some(sock) = iter.next()
-            && TcpStream::connect_timeout(&sock, std::time::Duration::from_secs(3)).is_ok()
+            && TcpStream::connect_timeout(&sock, litho_core::consts::CONNECTIVITY_PROBE_TIMEOUT)
+                .is_ok()
         {
             return true;
         }
@@ -399,7 +400,8 @@ fn probe_upstream(uri: &str) -> UpstreamCheck {
     match addr_str.to_socket_addrs() {
         Ok(mut iter) => {
             if let Some(sock) = iter.next() {
-                match TcpStream::connect_timeout(&sock, std::time::Duration::from_secs(5)) {
+                match TcpStream::connect_timeout(&sock, litho_core::consts::UPSTREAM_PROBE_TIMEOUT)
+                {
                     Ok(_) => UpstreamCheck {
                         dataset_id: String::new(),
                         source_uri: uri.into(),

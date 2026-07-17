@@ -133,9 +133,9 @@ pub fn load_braids(braids_dir: &Path) -> Vec<(String, FermentBraid)> {
                     }
                     braids.push((filename, braid));
                 }
-                Err(e) => eprintln!("  WARN: could not parse braid {filename}: {e}"),
+                Err(e) => tracing::warn!(file = %filename, error = %e, "could not parse braid"),
             },
-            Err(e) => eprintln!("  WARN: could not read braid {filename}: {e}"),
+            Err(e) => tracing::warn!(file = %filename, error = %e, "could not read braid"),
         }
     }
 

@@ -138,14 +138,13 @@ impl Platform for UnixPlatform {
     fn uds_rpc(&self, socket_path: &str, request: &str) -> Option<String> {
         use std::io::{BufRead, BufReader, Write};
         use std::os::unix::net::UnixStream;
-        use std::time::Duration;
 
         let mut stream = UnixStream::connect(socket_path).ok()?;
         stream
-            .set_read_timeout(Some(Duration::from_secs(10)))
+            .set_read_timeout(Some(crate::consts::IPC_READ_TIMEOUT))
             .ok()?;
         stream
-            .set_write_timeout(Some(Duration::from_secs(5)))
+            .set_write_timeout(Some(crate::consts::IPC_WRITE_TIMEOUT))
             .ok()?;
 
         stream.write_all(request.as_bytes()).ok()?;
@@ -162,11 +161,14 @@ impl Platform for UnixPlatform {
     fn uds_send(&self, socket_path: &str, payload: &[u8]) -> Result<String, String> {
         use std::io::{Read, Write};
         use std::os::unix::net::UnixStream;
-        use std::time::Duration;
 
         let mut stream = UnixStream::connect(socket_path).map_err(|e| format!("connect: {e}"))?;
-        stream.set_write_timeout(Some(Duration::from_secs(5))).ok();
-        stream.set_read_timeout(Some(Duration::from_secs(10))).ok();
+        stream
+            .set_write_timeout(Some(crate::consts::IPC_WRITE_TIMEOUT))
+            .ok();
+        stream
+            .set_read_timeout(Some(crate::consts::IPC_READ_TIMEOUT))
+            .ok();
 
         stream
             .write_all(payload)

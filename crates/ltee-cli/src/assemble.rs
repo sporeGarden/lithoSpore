@@ -146,7 +146,10 @@ pub fn run(opts: &AssembleOptions<'_>) {
     // 5. Fetch and stage data
     step("5. Staging data bundles");
     if !skip_fetch {
+        #[cfg(feature = "fetch")]
         crate::fetch::run(root, None, true, false);
+        #[cfg(not(feature = "fetch"))]
+        eprintln!("  WARN: fetch skipped (compiled without 'fetch' feature)");
     }
     let data_src = root_path.join("artifact/data");
     if data_src.exists() {

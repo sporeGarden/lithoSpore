@@ -550,8 +550,10 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "chrono",
+ "flate2",
  "serde",
  "serde_json",
+ "tar",
  "tempfile",
  "thiserror",
  "toml",

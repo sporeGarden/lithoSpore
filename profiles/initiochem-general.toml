@@ -1,0 +1,83 @@
+# Domain Profile: initioChem — General Computational Chemistry
+#
+# For pseudoSpores from the initioChem garden covering molecular dynamics,
+# metadynamics, free energy landscapes, and quantum chemistry workflows.
+# Supports GROMACS, PLUMED, CP2K, ORCA, and OpenMM toolchains.
+#
+# Place as `domain_profile.toml` at the pseudoSpore root to enable
+# domain-aware emit, audit, and promote.
+#
+# See specs/PSEUDOSPORE_STANDARD.md for the full pseudoSpore format.
+# See profiles/md-metadynamics-carbohydrate.toml for a specialized variant.
+
+[profile]
+id = "initiochem-general"
+version = "1.0"
+tools = ["gromacs", "plumed", "cp2k", "orca", "openmm"]
+
+[translation]
+enabled = true
+domain_frame = "pdb_serial"
+computation_frame = "gromacs_line_index"
+topology_format = "gro"
+
+[[translation.entity_group]]
+name = "active_site"
+atoms = ["N", "CA", "C", "O", "CB"]
+residue_filter = []
+
+[derivation]
+tool = "plumed"
+find_paths = ["PATH", "conda:gromacs-fel", "conda:initiochem"]
+
+[[derivation.contract]]
+inputs = "data/{module}/HILLS"
+outputs = "outputs/{module}/fes.dat"
+command = "plumed sum_hills --hills {input} --outfile {output} --mintozero"
+
+[[derivation.contract]]
+inputs = "data/{module}/COLVAR"
+outputs = "outputs/{module}/colvar_analysis.dat"
+command = "plumed driver --plumed data/{module}/plumed.dat --ixtc data/{module}/traj.xtc"
+
+[figures]
+enabled = true
+generator = "python3"
+
+[[figures.plot]]
+type = "1d_comparison"
+pattern = "outputs/*/fes.dat"
+x_label = "Collective Variable"
+y_label = "Free energy (kJ/mol)"
+
+[[figures.plot]]
+type = "timeseries"
+pattern = "outputs/*/colvar_analysis.dat"
+x_label = "Time (ps)"
+y_label = "CV value"
+
+[audit]
+config_fidelity = true
+scientific_claims = true
+simulation_time = true
+topology_crossref = true
+mdp_headers = true
+
+[audit.claims]
+
+[[audit.claims.validator]]
+key_pattern = "barrier_height*"
+output_file = "fes.dat"
+type = "maximum_value"
+zones = []
+
+[[audit.claims.validator]]
+key_pattern = "minimum_location*"
+output_file = "fes.dat"
+type = "minimum_location"
+zones = []
+
+[simulation_time]
+config_format = "gromacs_mdp"
+time_fields = { nsteps = "nsteps", dt = "dt" }
+time_unit = "ps"

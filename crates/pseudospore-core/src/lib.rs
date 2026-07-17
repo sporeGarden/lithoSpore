@@ -35,4 +35,7 @@ pub use receipts::{
     ChecksumEntry, EnvironmentReceipt, compute_checksums, format_checksums, parse_checksums,
 };
 pub use scope::ScopeDoc;
+pub use tarball::{
+    create_tarball, extract_tarball, split_present_external, write_integrity_manifest,
+};
 pub use validation::ValidationDoc;

@@ -126,6 +126,14 @@ impl PseudoSporeEnvelope {
     }
 
     /// Run structural validation checks on the loaded envelope.
+    ///
+    /// Enforces the pseudoSpore VALID tier (spec items 1-6):
+    /// 1. `scope.toml` with `type = "pseudoSpore"`, non-empty name/version
+    /// 2. `validation.json` with at least one module
+    /// 3. `receipts/environment.toml` present
+    /// 4. `receipts/checksums.blake3` present and verified against files
+    /// 5. `provenance/ferment_transcript.json` present
+    /// 6. `README.md` non-empty
     #[must_use]
     pub fn validate(&self) -> EnvelopeValidation {
         let mut errors = Vec::new();
@@ -140,11 +148,68 @@ impl PseudoSporeEnvelope {
             if s.artifact.version.trim().is_empty() {
                 errors.push("scope.toml: artifact.version is empty".to_string());
             }
+            if !s.artifact.artifact_type.is_empty() && s.artifact.artifact_type != "pseudoSpore" {
+                warnings.push(format!(
+                    "scope.toml: type is \"{}\", expected \"pseudoSpore\"",
+                    s.artifact.artifact_type
+                ));
+            }
             Some(s.clone())
         } else {
             errors.push("scope.toml missing or not loaded".to_string());
             None
         };
+
+        if let Some(v) = &self.validation {
+            if v.modules.is_empty() {
+                warnings.push("validation.json: no modules present".to_string());
+            }
+        } else {
+            warnings.push("validation.json not present (spec item 2)".to_string());
+        }
+
+        if self.environment.is_none() {
+            warnings.push("receipts/environment.toml not present (spec item 3)".to_string());
+        }
+
+        if self.checksums.is_empty() {
+            warnings
+                .push("receipts/checksums.blake3 not present or empty (spec item 4)".to_string());
+        } else {
+            for entry in &self.checksums {
+                let file_path = self.root.join(&entry.path);
+                if !file_path.is_file() {
+                    checksums_failed += 1;
+                    warnings.push(format!("checksums.blake3: file missing: {}", entry.path));
+                } else if let Ok(data) = std::fs::read(&file_path) {
+                    let actual = blake3::hash(&data).to_hex().to_string();
+                    if actual == entry.hash {
+                        checksums_verified += 1;
+                    } else {
+                        checksums_failed += 1;
+                        errors.push(format!(
+                            "checksums.blake3: mismatch for {} (expected {}, got {actual})",
+                            entry.path, entry.hash
+                        ));
+                    }
+                }
+            }
+        }
+
+        if self.ferment.is_none() {
+            warnings
+                .push("provenance/ferment_transcript.json not present (spec item 5)".to_string());
+        }
+
+        let readme_path = self.root.join("README.md");
+        if readme_path.is_file() {
+            if std::fs::read_to_string(&readme_path).is_ok_and(|content| content.trim().is_empty())
+            {
+                warnings.push("README.md is empty (spec item 6)".to_string());
+            }
+        } else {
+            warnings.push("README.md not present (spec item 6)".to_string());
+        }
 
         if self.data_manifest.is_none() {
             warnings.push("data.toml not present (recommended for integrity)".to_string());
@@ -153,8 +218,9 @@ impl PseudoSporeEnvelope {
         if let Some(manifest) = &self.data_manifest {
             let manifest_errors = manifest.verify_present(&self.root);
             let total = manifest.present.len();
-            checksums_failed = manifest_errors.len();
-            checksums_verified = total.saturating_sub(checksums_failed);
+            let manifest_failed = manifest_errors.len();
+            checksums_failed += manifest_failed;
+            checksums_verified += total.saturating_sub(manifest_failed);
             for err in manifest_errors {
                 match err {
                     crate::blake3_manifest::ManifestError::Missing(path) => {
@@ -446,6 +512,80 @@ type = "pseudoSpore"
                 .any(|w| w.contains("threshold_calibration")),
             "should warn about missing derivation anchoring"
         );
+    }
+
+    #[test]
+    fn pack_unpack_validate_round_trip() {
+        let src = tempfile::tempdir().expect("source dir");
+        let spore_root = src.path().join("test-spore_v0.2.0");
+        fs::create_dir_all(spore_root.join("outputs")).expect("outputs");
+        fs::create_dir_all(spore_root.join("receipts")).expect("receipts");
+        fs::create_dir_all(spore_root.join("provenance")).expect("provenance");
+        fs::create_dir_all(spore_root.join("data/raw")).expect("data dir");
+
+        fs::write(spore_root.join("scope.toml"), VALID_SCOPE).expect("scope");
+        fs::write(spore_root.join("README.md"), "# Test pseudoSpore\n").expect("readme");
+
+        let result_data = b"x,y,z\n1,2,3\n4,5,6\n";
+        fs::write(spore_root.join("outputs/results.csv"), result_data).expect("output");
+
+        let env_receipt =
+            "[emit_host]\nos = \"linux\"\narch = \"x86_64\"\n[software]\nrust = \"1.80\"\n";
+        fs::write(spore_root.join("receipts/environment.toml"), env_receipt).expect("env");
+
+        let result_hash = blake3::hash(result_data).to_hex().to_string();
+        let checksums = format!("{result_hash}  outputs/results.csv\n");
+        fs::write(spore_root.join("receipts/checksums.blake3"), &checksums).expect("checksums");
+
+        let ferment = r#"{"dataset_id":"test","spring":"testSpring","computation":{}}"#;
+        fs::write(
+            spore_root.join("provenance/ferment_transcript.json"),
+            ferment,
+        )
+        .expect("ferment");
+
+        let livespore =
+            r#"{"envelope":{"artifact":"test-spore","version":"0.2.0"},"validations":[]}"#;
+        fs::write(spore_root.join("liveSpore.json"), livespore).expect("livespore");
+
+        fs::write(spore_root.join("data/raw/big.xtc"), b"trajectory-data").expect("external");
+
+        let out = tempfile::tempdir().expect("output dir");
+        let tarball_path = out.path().join("test-spore.tar.gz");
+        let hash = crate::tarball::create_tarball(
+            &spore_root,
+            &tarball_path,
+            crate::tarball::DEFAULT_EXTERNAL_PATTERNS,
+        )
+        .expect("pack");
+        assert!(!hash.is_empty());
+
+        let extract = tempfile::tempdir().expect("extract dir");
+        let extracted =
+            crate::tarball::extract_tarball(&tarball_path, extract.path()).expect("unpack");
+
+        assert!(extracted.join("scope.toml").exists(), "scope present");
+        assert!(
+            extracted.join("outputs/results.csv").exists(),
+            "outputs present"
+        );
+        assert!(
+            extracted.join("receipts/checksums.blake3").exists(),
+            "checksums present"
+        );
+        assert!(
+            !extracted.join("data/raw/big.xtc").exists(),
+            "external excluded"
+        );
+
+        let envelope = PseudoSporeEnvelope::load(&extracted).expect("load");
+        let result = envelope.validate();
+        assert!(result.valid, "validation should pass: {:?}", result.errors);
+        assert!(
+            result.checksums_verified > 0,
+            "checksums should be verified"
+        );
+        assert_eq!(result.checksums_failed, 0, "no checksum failures");
     }
 
     #[test]

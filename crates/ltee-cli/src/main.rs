@@ -2,10 +2,10 @@
 
 //! Unified CLI entry point for lithoSpore.
 //!
-//! Subcommands (21): validate, parity, verify, fetch, assemble, grow, refresh,
+//! Subcommands (23): validate, parity, verify, fetch, assemble, grow, refresh,
 //! status, spore, visualize, self-test, tier, chaos-test, deploy-test,
 //! deploy-report, audit, promote, emit-pseudospore, ingest-pseudospore,
-//! fetch-pseudospore, translate-config
+//! fetch-pseudospore, pack-pseudospore, unpack-pseudospore, translate-config
 
 mod assemble;
 mod audit;
@@ -19,10 +19,12 @@ mod fetch_pseudospore;
 mod grow;
 mod ingest_pseudospore;
 mod ops;
+mod pack_pseudospore;
 mod parity;
 mod promote;
 pub(crate) mod registry;
 mod translate_config;
+mod unpack_pseudospore;
 mod validate;
 mod verify;
 mod visualize;
@@ -351,6 +353,35 @@ enum Commands {
         version: Option<String>,
     },
 
+    /// Pack a pseudoSpore directory into a distributable .tar.gz tarball.
+    /// Only present files are included; external data is excluded.
+    PackPseudospore {
+        /// Path to the pseudoSpore directory
+        path: String,
+
+        /// Output tarball path (default: `DIR.tar.gz` alongside the directory)
+        #[arg(long)]
+        output: Option<String>,
+
+        /// Patterns for external files to exclude (default: data/, structures/, topologies/)
+        #[arg(long)]
+        external: Vec<String>,
+    },
+
+    /// Unpack a pseudoSpore .tar.gz tarball into a directory and optionally validate.
+    UnpackPseudospore {
+        /// Path to the .tar.gz tarball
+        tarball: String,
+
+        /// Output directory (pseudoSpore extracted inside)
+        #[arg(long, default_value = ".")]
+        output: String,
+
+        /// Run envelope validation after extraction
+        #[arg(long)]
+        validate: bool,
+    },
+
     /// Translate config file indices between domain and computation frames
     TranslateConfig {
         /// Path to `index_map.toml`
@@ -545,6 +576,16 @@ fn main() {
                 std::process::exit(1);
             }
         }
+        Commands::PackPseudospore {
+            path,
+            output,
+            external,
+        } => pack_pseudospore::run(&path, output.as_deref(), &external),
+        Commands::UnpackPseudospore {
+            tarball,
+            output,
+            validate,
+        } => unpack_pseudospore::run(&tarball, &output, validate),
         Commands::TranslateConfig {
             index_map,
             config,

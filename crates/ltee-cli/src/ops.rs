@@ -38,22 +38,94 @@ pub fn cmd_status(root: &str) {
     println!("  Tier support: 1 (Python) + 2 (Rust) + 3 (Primal/NUCLEUS)");
 }
 
+/// Result of a self-test run, usable programmatically.
+pub struct SelfTestResult {
+    pub passed: u32,
+    pub total: u32,
+}
+
+impl SelfTestResult {
+    #[must_use]
+    pub fn all_passed(&self) -> bool {
+        self.passed == self.total && self.total > 0
+    }
+}
+
+/// Run artifact integrity checks and return the result.
+/// Does not print or exit — callers decide presentation.
+pub fn run_self_test(root: &std::path::Path) -> SelfTestResult {
+    let modules = registry::load_module_table(root);
+    let mut passed = 0u32;
+    let mut total = 0u32;
+
+    for entry in &modules {
+        total += 1;
+        if root.join(&entry.expected).exists() {
+            passed += 1;
+        }
+    }
+
+    for f in [
+        "artifact/scope.toml",
+        "artifact/data.toml",
+        "artifact/tolerances.toml",
+    ] {
+        total += 1;
+        if root.join(f).exists() {
+            passed += 1;
+        }
+    }
+
+    for f in [
+        "papers/registry.toml",
+        "papers/READING_ORDER.md",
+        "GETTING_STARTED.md",
+        "SCIENCE.md",
+    ] {
+        total += 1;
+        if root.join(f).exists() {
+            passed += 1;
+        }
+    }
+
+    for entry in &modules {
+        total += 1;
+        if root.join(&entry.data_dir).exists() {
+            passed += 1;
+        }
+    }
+
+    total += 1;
+    let fig_count = std::fs::read_dir(root.join("figures")).map_or(0, |rd| {
+        rd.filter(|e| {
+            e.as_ref()
+                .is_ok_and(|e| e.path().extension().is_some_and(|ext| ext == "svg"))
+        })
+        .count()
+    });
+    if fig_count >= 7 {
+        passed += 1;
+    }
+
+    total += 1;
+    let manifest_path = root.join("data_manifest.toml");
+    if manifest_path.exists() && std::fs::metadata(&manifest_path).is_ok_and(|m| m.len() > 10) {
+        passed += 1;
+    }
+
+    SelfTestResult { passed, total }
+}
+
 pub fn cmd_self_test(root: &str) {
     let root_path = std::path::Path::new(root);
     let modules = registry::load_module_table(root_path);
-    let mut passed = 0u32;
-    let mut total = 0u32;
 
     println!("lithoSpore self-test — artifact integrity check");
     println!("  Root: {root}");
     println!();
 
     for entry in &modules {
-        total += 1;
         let exists = root_path.join(&entry.expected).exists();
-        if exists {
-            passed += 1;
-        }
         println!(
             "  [{}] {}",
             if exists { "OK" } else { "MISSING" },
@@ -61,41 +133,27 @@ pub fn cmd_self_test(root: &str) {
         );
     }
 
-    let artifact_files = [
+    for f in [
         "artifact/scope.toml",
         "artifact/data.toml",
         "artifact/tolerances.toml",
-    ];
-    for f in &artifact_files {
-        total += 1;
+    ] {
         let exists = root_path.join(f).exists();
-        if exists {
-            passed += 1;
-        }
         println!("  [{}] {f}", if exists { "OK" } else { "MISSING" });
     }
 
-    let doc_files = [
+    for f in [
         "papers/registry.toml",
         "papers/READING_ORDER.md",
         "GETTING_STARTED.md",
         "SCIENCE.md",
-    ];
-    for f in &doc_files {
-        total += 1;
+    ] {
         let exists = root_path.join(f).exists();
-        if exists {
-            passed += 1;
-        }
         println!("  [{}] {f}", if exists { "OK" } else { "MISSING" });
     }
 
     for entry in &modules {
-        total += 1;
         let exists = root_path.join(&entry.data_dir).exists();
-        if exists {
-            passed += 1;
-        }
         println!(
             "  [{}] {}/",
             if exists { "OK" } else { "MISSING" },
@@ -103,8 +161,6 @@ pub fn cmd_self_test(root: &str) {
         );
     }
 
-    // Check figures
-    total += 1;
     let fig_count = std::fs::read_dir(root_path.join("figures")).map_or(0, |rd| {
         rd.filter(|e| {
             e.as_ref()
@@ -113,30 +169,26 @@ pub fn cmd_self_test(root: &str) {
         .count()
     });
     let fig_ok = fig_count >= 7;
-    if fig_ok {
-        passed += 1;
-    }
     println!(
         "  [{}] figures/*.svg: {fig_count} files (expected ≥ 7)",
         if fig_ok { "OK" } else { "WARN" }
     );
 
-    // Check data_manifest.toml
-    total += 1;
     let manifest_path = root_path.join("data_manifest.toml");
     let has_manifest =
         manifest_path.exists() && std::fs::metadata(&manifest_path).is_ok_and(|m| m.len() > 10);
-    if has_manifest {
-        passed += 1;
-    }
     println!(
         "  [{}] data_manifest.toml",
         if has_manifest { "OK" } else { "MISSING" }
     );
 
+    let result = run_self_test(root_path);
     println!();
-    println!("  Self-test: {passed}/{total} checks passed");
-    if passed < total {
+    println!(
+        "  Self-test: {}/{} checks passed",
+        result.passed, result.total
+    );
+    if !result.all_passed() {
         std::process::exit(1);
     }
 }

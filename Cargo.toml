@@ -35,8 +35,6 @@ toml = "0.8"
 blake3 = { version = "1", default-features = false, features = ["pure", "std"] }
 clap = { version = "4", features = ["derive"] }
 chrono = { version = "0.4", default-features = false, features = ["std", "serde", "now"] }
-# ureq 3 defaults to rustls (not native-tls); explicit features prevent TLS backend drift.
-ureq = { version = "3", default-features = false, features = ["rustls", "gzip"] }
 walkdir = "2"
 tar = "0.4.45"
 flate2 = { version = "1.1", default-features = false, features = ["rust_backend"] }

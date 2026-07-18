@@ -14,9 +14,7 @@ mod deploy_test;
 mod dispatch;
 pub(crate) mod domain_profile;
 mod emit_pseudospore;
-#[cfg(feature = "fetch")]
 mod fetch;
-#[cfg(feature = "fetch")]
 mod fetch_pseudospore;
 mod grow;
 mod ingest_pseudospore;
@@ -105,17 +103,7 @@ fn main() {
             dataset,
             all,
             full,
-        } => {
-            #[cfg(feature = "fetch")]
-            fetch::run(&artifact_root, dataset.as_deref(), all, full);
-            #[cfg(not(feature = "fetch"))]
-            {
-                let _ = (&artifact_root, &dataset, all, full);
-                eprintln!("ERROR: litho was compiled without the 'fetch' feature (no TLS/ring).");
-                eprintln!("Rebuild with: cargo build --features fetch");
-                std::process::exit(1);
-            }
-        }
+        } => fetch::run(&artifact_root, dataset.as_deref(), all, full),
         Commands::DeployReport {
             artifact_root,
             pattern,
@@ -151,17 +139,7 @@ fn main() {
             output,
             artifact_root,
             ingest,
-        } => {
-            #[cfg(feature = "fetch")]
-            fetch_pseudospore::run(&url, &output, &artifact_root, ingest);
-            #[cfg(not(feature = "fetch"))]
-            {
-                let _ = (&url, &output, &artifact_root, ingest);
-                eprintln!("ERROR: litho was compiled without the 'fetch' feature (no TLS/ring).");
-                eprintln!("Rebuild with: cargo build --features fetch");
-                std::process::exit(1);
-            }
-        }
+        } => fetch_pseudospore::run(&url, &output, &artifact_root, ingest),
         Commands::Audit {
             path,
             verbose,

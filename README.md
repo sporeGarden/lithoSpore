@@ -220,7 +220,7 @@ with corruption resilience and backup.
   `DiscoveryPath` + `turn_relay` recorded in `liveSpore.json` for provenance.
 - `probe_operating_mode()` detects standalone/LAN/geo-delocalized before validation
 - Clippy pedantic + nursery clean — scientific casts allowed; all other lints enforced
-- `litho fetch` pure Rust data pipeline (ureq HTTP (**rustls** TLS) + BLAKE3 hashing, replaces 7 bash scripts)
+- `litho fetch` pure Rust data pipeline (curl HTTP + BLAKE3 hashing, replaces 7 bash scripts — zero C deps in binary)
 - `litho assemble` pure Rust USB assembly (replaces assemble-usb.sh)
 - `litho deploy-report` structured TOML output for deployment validation
 - `litho self-test` artifact integrity check (23 checks)

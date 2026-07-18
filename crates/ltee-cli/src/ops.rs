@@ -6,14 +6,7 @@ use crate::registry;
 
 pub fn cmd_refresh(root: &str) {
     println!("litho refresh: re-fetching all datasets via litho fetch...");
-    #[cfg(feature = "fetch")]
     crate::fetch::run(root, None, true, false);
-    #[cfg(not(feature = "fetch"))]
-    {
-        let _ = root;
-        eprintln!("ERROR: litho was compiled without the 'fetch' feature.");
-        eprintln!("Rebuild with: cargo build --features fetch");
-    }
 }
 
 pub fn cmd_status(root: &str) {

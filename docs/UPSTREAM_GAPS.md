@@ -284,7 +284,7 @@ replaced with pure Rust subcommands in the `litho` CLI:
 |--------|-------------|--------|
 | `assemble-usb.sh` | `litho assemble` | **DONE** — pure Rust, std::fs + walkdir + blake3 |
 | `build-artifact.sh` | `cargo build --release --target x86_64-unknown-linux-musl` | **DONE** — direct cargo |
-| `fetch_*.sh` (7 scripts) | `litho fetch` | **DONE** — ureq HTTP + serde_json + blake3 |
+| `fetch_*.sh` (7 scripts) | `litho fetch` | **DONE** — curl subprocess + serde_json + blake3 |
 | `chaos-test.sh` | `litho chaos-test` | **DONE** — 10 fault injection tests, in-process |
 | `deploy-test-local.sh` | `litho deploy-test` | **DONE** — assemble + verify + validate cycle |
 | `validate.sh` | `litho validate` | **DONE** — in-process module calls |

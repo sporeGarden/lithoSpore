@@ -83,7 +83,7 @@ pub fn run(url: &str, output_dir: &str, artifact_root: &str, ingest: bool) {
     }
 }
 
-/// Download a URL to a local file. Returns the path to the downloaded file.
+/// Download a URL to a local file via curl. Returns the path to the downloaded file.
 fn download(url: &str, output_dir: &Path) -> PathBuf {
     let filename = url
         .rsplit('/')
@@ -96,42 +96,34 @@ fn download(url: &str, output_dir: &Path) -> PathBuf {
     print!("  Downloading... ");
     std::io::stdout().flush().ok();
 
-    let mut response = ureq::get(url)
-        .header(
-            "User-Agent",
+    let output = std::process::Command::new("curl")
+        .args([
+            "-fSL",
+            "--max-time",
+            "300",
+            "-A",
             &format!(
                 "lithoSpore/{} (pseudospore-fetch)",
                 env!("CARGO_PKG_VERSION")
             ),
-        )
-        .call()
+            "-o",
+            &dest.to_string_lossy(),
+            url,
+        ])
+        .output()
         .unwrap_or_else(|e| {
-            eprintln!("\nERROR: fetch failed: {e}");
+            eprintln!("\nERROR: curl not found or failed to start: {e}");
             std::process::exit(1);
         });
 
-    let status = response.status();
-    if status != 200 {
-        eprintln!("\nERROR: server returned HTTP {status}");
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        eprintln!("\nERROR: curl failed: {stderr}");
         std::process::exit(1);
     }
 
-    let mut file = fs::File::create(&dest).unwrap_or_else(|e| {
-        eprintln!("\nERROR: cannot create file: {e}");
-        std::process::exit(1);
-    });
-
-    let body = response.body_mut().read_to_vec().unwrap_or_else(|e| {
-        eprintln!("\nERROR: download failed: {e}");
-        std::process::exit(1);
-    });
-
-    file.write_all(&body).unwrap_or_else(|e| {
-        eprintln!("\nERROR: write failed: {e}");
-        std::process::exit(1);
-    });
-
-    println!("{} bytes", body.len());
+    let size = fs::metadata(&dest).map(|m| m.len()).unwrap_or(0);
+    println!("{size} bytes");
     dest
 }
 

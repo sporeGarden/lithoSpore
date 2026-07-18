@@ -80,7 +80,7 @@ pseudospore-core    ← canonical pseudoSpore parsing, validation, checksums, ta
       ├── validate.rs     litho validate — in-process module execution + Tier 3 branch
       ├── parity.rs       litho parity — cross-tier numerical parity check
       ├── verify.rs       litho verify — BLAKE3 integrity
-      ├── fetch.rs        litho fetch — data pipeline (ureq + blake3)
+      ├── fetch.rs        litho fetch — data pipeline (curl + blake3)
       ├── assemble.rs     litho assemble — USB artifact assembly + .biomeos-spore generation
       ├── grow/           litho grow — self-bootstrap from USB
       │   ├── mod.rs
@@ -335,7 +335,7 @@ summary** of work done across the ecosystem.
 Foundation threads (4, 7, 2, 1)
     ↓ (source URIs, SRA accessions)
 data/sources/ltee_barrick.toml
-    ↓ (litho fetch — pure Rust, ureq + blake3)
+    ↓ (litho fetch — curl subprocess + blake3)
     ↓ (litho fetch --full — SRA toolkit for raw reads)
 artifact/data/{dataset}/
     ↓ (BLAKE3 hashed)
@@ -432,9 +432,8 @@ signing keys or crypto implementations beyond local BLAKE3 hashing:
 - **Tier 2 (standalone)**: Local BLAKE3 checksums via `blake3` crate (`pure` + `std`)
 - **Tier 3 (NUCLEUS)**: Provenance signing delegated to BearDog via `crypto.sign_ed25519`
   JSON-RPC, discovered at runtime through capability chain
-- **HTTP/TLS**: `ureq` uses `rustls`/`ring` for science dataset downloads (`litho fetch`).
-  `ring` is the accepted ecosystem crypto backend — BearDog itself uses `ring`
-  for TCP TLS termination (H2-10 sovereignty)
+- **HTTP**: `litho fetch` delegates to system `curl` — zero C deps in the Rust binary.
+  BearDog owns all ecosystem crypto (TLS, signing, identity).
 
 ### Network discovery
 
@@ -446,7 +445,7 @@ $CAPABILITY_PORT env → UDS discovery.sock (Songbird) → TURN relay → Standa
 ```
 
 In NUCLEUS mode, Songbird's `http.request` capability is the canonical
-HTTPS gateway. lithoSpore's `ureq` path is the standalone/airgapped fallback
+HTTPS gateway. lithoSpore's `curl` path is the standalone/airgapped fallback
 for `litho fetch` when running outside a NUCLEUS composition.
 
 ### Provenance trio delegation

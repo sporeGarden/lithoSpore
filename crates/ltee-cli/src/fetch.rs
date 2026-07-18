@@ -285,47 +285,6 @@ fn try_sra_download(accession: &str, target_dir: &Path, id: &str) -> Result<(), 
 fn try_http_download(uri: &str, target_dir: &Path, id: &str) -> Result<(), String> {
     eprintln!("[{id}]   Downloading from {uri}...");
 
-    let mut response = ureq::get(uri)
-        .header(
-            "User-Agent",
-            &format!(
-                "lithoSpore/{} (science-validation)",
-                env!("CARGO_PKG_VERSION")
-            ),
-        )
-        .call()
-        .map_err(|e| format!("HTTP request failed: {e}"))?;
-
-    let content_type = response
-        .headers()
-        .get("content-type")
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("")
-        .to_string();
-
-    let body = response
-        .body_mut()
-        .read_to_vec()
-        .map_err(|e| format!("Failed to read response body: {e}"))?;
-
-    if content_type.contains("html") || content_type.contains("xml") {
-        return Err(format!(
-            "Source URI returned {content_type} (landing page, not downloadable data). \
-             Use a direct download link or fetch via SRA toolkit."
-        ));
-    }
-
-    if body.len() < 256 {
-        let preview = String::from_utf8_lossy(&body[..body.len().min(128)]);
-        if preview.contains("<html") || preview.contains("<!DOCTYPE") || preview.contains("<HTML") {
-            return Err(
-                "Response body appears to be HTML despite content-type header. \
-                        Likely a redirect to a login/landing page."
-                    .to_string(),
-            );
-        }
-    }
-
     let uri_path = PathBuf::from(uri);
     let uri_lower = uri.to_ascii_lowercase();
     let ext_matches = |ext: &str| {
@@ -333,30 +292,58 @@ fn try_http_download(uri: &str, target_dir: &Path, id: &str) -> Result<(), Strin
             .extension()
             .is_some_and(|e| e.eq_ignore_ascii_case(ext))
     };
-    let (suffix, label) = if content_type.contains("gzip")
-        || content_type.contains("x-tar")
-        || uri_lower.ends_with(".tar.gz")
-        || ext_matches("tgz")
-    {
+    let (suffix, label) = if uri_lower.ends_with(".tar.gz") || ext_matches("tgz") {
         (".tar.gz", "tarball")
-    } else if content_type.contains("zip") || ext_matches("zip") {
+    } else if ext_matches("zip") {
         ("_raw.zip", "archive")
-    } else if content_type.contains("json") || ext_matches("json") {
+    } else if ext_matches("json") {
         (".json", "JSON")
-    } else if content_type.contains("csv") || ext_matches("csv") {
+    } else if ext_matches("csv") {
         (".csv", "CSV")
     } else {
         ("_data", "data")
     };
 
     let dest = target_dir.join(format!("{id}{suffix}"));
-    std::fs::write(&dest, &body).map_err(|e| format!("write: {e}"))?;
+    let output = std::process::Command::new("curl")
+        .args([
+            "-fSL",
+            "--max-time",
+            "300",
+            "-A",
+            &format!(
+                "lithoSpore/{} (science-validation)",
+                env!("CARGO_PKG_VERSION")
+            ),
+            "-o",
+            &dest.to_string_lossy(),
+            uri,
+        ])
+        .output()
+        .map_err(|e| format!("curl not found or failed to start: {e}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("curl failed (exit {}): {stderr}", output.status));
+    }
+
+    let body = std::fs::read(&dest).map_err(|e| format!("read downloaded file: {e}"))?;
+
+    if body.len() < 256 {
+        let preview = String::from_utf8_lossy(&body[..body.len().min(128)]);
+        if preview.contains("<html") || preview.contains("<!DOCTYPE") || preview.contains("<HTML") {
+            std::fs::remove_file(&dest).ok();
+            return Err("Response body appears to be HTML. \
+                 Likely a redirect to a login/landing page."
+                .to_string());
+        }
+    }
+
     eprintln!(
         "[{id}]   Saved {:.1} KB {label}",
         body.len() as f64 / 1024.0
     );
 
-    // Unpack archives so module validators can read individual files
     if suffix == ".tar.gz" {
         unpack_tar_gz(&dest, target_dir, id);
     } else if suffix == "_raw.zip" {

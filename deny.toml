@@ -38,10 +38,10 @@ wildcards = "allow"
 highlight = "all"
 deny = [
     # ecoBin: deny crates that link external C libraries.
-    # ring is ALLOWED — BearDog uses ring for TCP TLS (H2-10 sovereignty);
-    # ureq → rustls → ring is the accepted TLS path for standalone fetch.
+    # ring BANNED — BearDog owns ecosystem crypto; lithoSpore uses curl for HTTP.
     # blake3 uses pure Rust via features = ["pure", "std"].
     # zip uses deflate-flate2-zlib-rs only (no zstd/lzma C backends).
+    { crate = "ring" },
     { crate = "openssl-sys" },
     { crate = "libz-sys" },
     { crate = "curl-sys" },

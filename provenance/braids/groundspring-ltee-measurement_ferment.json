@@ -1,0 +1,8 @@
+{
+  "dataset_id": "groundSpring-LTEE-Measurement_v1.0.0",
+  "spring": "groundSpring",
+  "spring_version": "1.0.0",
+  "braid_id": "braid-groundSpring-LTEE-Measurement-1.0.0",
+  "timestamp": "2026-07-18T13:31:25.596873867+00:00",
+  "computation": {}
+}

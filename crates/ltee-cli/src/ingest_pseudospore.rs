@@ -435,9 +435,16 @@ mod tests {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../pseudospores/registry.toml");
         let content = std::fs::read_to_string(&root).unwrap();
         let reg: Registry = toml::from_str(&content).unwrap();
-        assert_eq!(reg.meta.total_ingested, 1);
-        assert_eq!(reg.pseudospore.len(), 1);
-        assert_eq!(reg.pseudospore[0].name, "hotSpring-CompChem-GuideStone");
-        assert_eq!(reg.pseudospore[0].status, "COMPLETE");
+        assert!(
+            reg.meta.total_ingested >= 1,
+            "registry should have at least 1 ingested pseudoSpore"
+        );
+        assert_eq!(reg.pseudospore.len(), reg.meta.total_ingested as usize);
+        let hotspring = reg
+            .pseudospore
+            .iter()
+            .find(|p| p.name == "hotSpring-CompChem-GuideStone");
+        assert!(hotspring.is_some(), "hotSpring entry must be present");
+        assert_eq!(hotspring.expect("checked above").status, "COMPLETE");
     }
 }

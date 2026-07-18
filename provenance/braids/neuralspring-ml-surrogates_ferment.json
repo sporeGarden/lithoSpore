@@ -1,0 +1,8 @@
+{
+  "dataset_id": "neuralSpring-ML-Surrogates_v1.0.0",
+  "spring": "neuralSpring",
+  "spring_version": "1.0.0",
+  "braid_id": "braid-neuralSpring-ML-Surrogates-1.0.0",
+  "timestamp": "2026-07-18T13:32:24.495896951+00:00",
+  "computation": {}
+}

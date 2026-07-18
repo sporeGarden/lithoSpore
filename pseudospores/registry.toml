@@ -7,8 +7,8 @@
 # See specs/PSEUDOSPORE_STANDARD.md for the pseudoSpore format.
 
 [meta]
-last_updated = "2026-05-24"
-total_ingested = 1
+last_updated = "2026-07-18"
+total_ingested = 7
 
 [[pseudospore]]
 name = "hotSpring-CompChem-GuideStone"
@@ -19,3 +19,63 @@ spring = "hotSpring"
 status = "COMPLETE"
 modules_pass = 7
 modules_total = 8
+
+[[pseudospore]]
+name = "groundSpring-LTEE-Measurement"
+version = "1.0.0"
+origin = "ecoPrimals/springs/groundSpring"
+date = "2026-07-18"
+spring = "groundSpring"
+status = "PENDING"
+modules_pass = 0
+modules_total = 0
+
+[[pseudospore]]
+name = "airSpring-Agricultural-Meteorology"
+version = "1.0.0"
+origin = "ecoPrimals/springs/airSpring"
+date = "2026-07-18"
+spring = "airSpring"
+status = "PENDING"
+modules_pass = 0
+modules_total = 0
+
+[[pseudospore]]
+name = "healthSpring-Clinical-PKPD"
+version = "1.0.0"
+origin = "ecoPrimals/springs/healthSpring"
+date = "2026-07-18"
+spring = "healthSpring"
+status = "PENDING"
+modules_pass = 0
+modules_total = 0
+
+[[pseudospore]]
+name = "neuralSpring-ML-Surrogates"
+version = "1.0.0"
+origin = "ecoPrimals/springs/neuralSpring"
+date = "2026-07-18"
+spring = "neuralSpring"
+status = "PENDING"
+modules_pass = 0
+modules_total = 0
+
+[[pseudospore]]
+name = "wetSpring-Life-Science-Analytics"
+version = "1.0.0"
+origin = "ecoPrimals/springs/wetSpring"
+date = "2026-07-18"
+spring = "wetSpring"
+status = "PENDING"
+modules_pass = 0
+modules_total = 0
+
+[[pseudospore]]
+name = "ludoSpring-Game-Science"
+version = "1.0.0"
+origin = "ecoPrimals/springs/ludoSpring"
+date = "2026-07-18"
+spring = "ludoSpring"
+status = "PENDING"
+modules_pass = 0
+modules_total = 0

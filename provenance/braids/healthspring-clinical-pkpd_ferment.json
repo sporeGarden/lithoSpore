@@ -1,0 +1,8 @@
+{
+  "dataset_id": "healthSpring-Clinical-PKPD_v1.0.0",
+  "spring": "healthSpring",
+  "spring_version": "1.0.0",
+  "braid_id": "braid-healthSpring-Clinical-PKPD-1.0.0",
+  "timestamp": "2026-07-18T13:32:21.452418962+00:00",
+  "computation": {}
+}

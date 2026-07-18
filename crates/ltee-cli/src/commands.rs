@@ -13,13 +13,13 @@ use clap::{Parser, Subcommand};
     version,
     long_about = "Self-contained, scope-driven validation artifact.\nCurrent instance: LTEE (Long-Term Evolution Experiment).\nSee https://github.com/sporeGarden/lithoSpore"
 )]
-pub(crate) struct Cli {
+pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
 }
 
 #[derive(Subcommand)]
-pub(crate) enum Commands {
+pub enum Commands {
     /// Run all science modules (scope-driven) and produce structured validation output
     Validate {
         #[arg(long, default_value = ".")]

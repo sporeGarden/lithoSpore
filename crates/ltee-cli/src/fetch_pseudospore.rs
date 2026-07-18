@@ -122,7 +122,7 @@ fn download(url: &str, output_dir: &Path) -> PathBuf {
         std::process::exit(1);
     }
 
-    let size = fs::metadata(&dest).map(|m| m.len()).unwrap_or(0);
+    let size = fs::metadata(&dest).map_or(0, |m| m.len());
     println!("{size} bytes");
     dest
 }

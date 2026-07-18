@@ -46,7 +46,7 @@ pub struct SelfTestResult {
 
 impl SelfTestResult {
     #[must_use]
-    pub fn all_passed(&self) -> bool {
+    pub const fn all_passed(&self) -> bool {
         self.passed == self.total && self.total > 0
     }
 }

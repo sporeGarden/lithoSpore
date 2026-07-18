@@ -22,6 +22,7 @@ mod ops;
 mod pack_pseudospore;
 mod parity;
 mod promote;
+mod spore_status;
 pub(crate) mod registry;
 mod translate_config;
 mod unpack_pseudospore;
@@ -219,6 +220,10 @@ fn main() {
             output,
             validate,
         } => unpack_pseudospore::run(&tarball, &output, validate),
+        Commands::SporeStatus {
+            artifact_root,
+            json,
+        } => spore_status::run(&artifact_root, json),
         Commands::TranslateConfig {
             index_map,
             config,

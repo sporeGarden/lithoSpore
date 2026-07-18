@@ -356,6 +356,16 @@ pub enum Commands {
         validate: bool,
     },
 
+    /// Show registry status dashboard for all pseudoSpores
+    SporeStatus {
+        #[arg(long, default_value = ".")]
+        artifact_root: String,
+
+        /// Emit structured JSON report
+        #[arg(long)]
+        json: bool,
+    },
+
     /// Translate config file indices between domain and computation frames
     TranslateConfig {
         /// Path to `index_map.toml`

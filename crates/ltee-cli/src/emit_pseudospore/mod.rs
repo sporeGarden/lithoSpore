@@ -91,11 +91,15 @@ pub fn run(config: &EmitConfig<'_>) -> Result<(), String> {
     std::fs::write(root.join("scope.toml"), &scope_content).map_err(|e| format!("emit: {e}"))?;
     println!("  [+] scope.toml");
 
-    // 2. Generate stub validation.json
-    let validation_content = scripts::generate_validation_stub(name, version);
+    // 2. Generate stub validation.json (pre-populated with module names from scope)
+    let module_names = extract_module_names_from_scope(&scope_content);
+    let validation_content = scripts::generate_validation_stub(name, version, &module_names);
     std::fs::write(root.join("validation.json"), &validation_content)
         .map_err(|e| format!("emit: {e}"))?;
-    println!("  [+] validation.json (stub — populate with results)");
+    println!(
+        "  [+] validation.json ({} modules pre-populated as PENDING)",
+        module_names.len()
+    );
 
     // 3. Capture environment (profile-aware: probes tool versions, computes total production)
     let env_content =
@@ -321,6 +325,15 @@ fn emit_derivations(root: &Path, profile_path: Option<&Path>, profile: Option<&D
     println!(
         "  [+] derivations/threshold_calibration.toml (stub — populate with calibration chain)"
     );
+}
+
+/// Extract module names from a scope.toml string (handles both `[[module]]` and `[[modules]]`).
+pub fn extract_module_names_from_scope(scope_content: &str) -> Vec<String> {
+    if let Ok(doc) = toml::from_str::<pseudospore_core::scope::ScopeDoc>(scope_content) {
+        doc.module.iter().map(|m| m.name.clone()).collect()
+    } else {
+        Vec::new()
+    }
 }
 
 fn copy_tree(src: &Path, dst: &Path) {

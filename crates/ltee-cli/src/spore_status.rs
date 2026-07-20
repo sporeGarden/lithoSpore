@@ -113,11 +113,12 @@ fn print_table(entries: &[toml::Value], total: usize, complete: usize, pending: 
 
     if pending > 0 {
         println!("\n  Next steps for PENDING spores:");
-        println!("    1. Spring team runs validators → produces module results JSON");
-        println!("    2. litho populate-validation <spore> --results <results.json>");
-        println!("    3. litho audit --path <spore> → verify all modules PASS");
-        println!("    4. litho promote-spore <spore> → PENDING → COMPLETE");
-        println!("    5. litho pack-pseudospore <spore> → redistribute");
+        println!("    1. litho init-validation <spore> → generate validation.json from scope.toml");
+        println!("    2. Spring team runs validators → produces module results JSON");
+        println!("    3. litho populate-validation <spore> --results <results.json>");
+        println!("    4. litho audit --path <spore> → verify all modules PASS");
+        println!("    5. litho promote-spore <spore> → PENDING → COMPLETE");
+        println!("    6. litho pack-pseudospore <spore> → redistribute");
     }
 
     println!();

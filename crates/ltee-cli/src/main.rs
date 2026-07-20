@@ -18,6 +18,7 @@ mod fetch;
 mod fetch_pseudospore;
 mod grow;
 mod ingest_pseudospore;
+mod init_validation;
 mod ops;
 mod pack_pseudospore;
 mod parity;
@@ -222,6 +223,12 @@ fn main() {
             output,
             validate,
         } => unpack_pseudospore::run(&tarball, &output, validate),
+        Commands::InitValidation { path, force } => {
+            if let Err(e) = init_validation::run(&path, force) {
+                eprintln!("ERROR: {e}");
+                std::process::exit(1);
+            }
+        }
         Commands::PopulateValidation {
             path,
             results,

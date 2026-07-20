@@ -364,6 +364,19 @@ pub enum Commands {
         validate: bool,
     },
 
+    /// Generate a validation.json stub from scope.toml with all modules as PENDING.
+    ///
+    /// Reads the scope.toml in the pseudoSpore directory, extracts module names,
+    /// and writes a validation.json skeleton ready for spring team population.
+    InitValidation {
+        /// Path to the pseudoSpore directory (must contain scope.toml)
+        path: String,
+
+        /// Overwrite existing validation.json (backs up to .bak)
+        #[arg(long)]
+        force: bool,
+    },
+
     /// Populate a pseudoSpore's validation.json with module results.
     ///
     /// Use `--results` to supply a JSON file containing an array of module results,

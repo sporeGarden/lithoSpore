@@ -6,22 +6,42 @@ use std::path::Path;
 
 use super::scope;
 
-pub(super) fn generate_validation_stub(name: &str, version: &str) -> String {
+pub(super) fn generate_validation_stub(
+    name: &str,
+    version: &str,
+    module_names: &[String],
+) -> String {
+    use pseudospore_core::validation::{ValidationDoc, ValidationModule, ValidationSummary};
+
     let date = chrono::Utc::now().format("%Y-%m-%d").to_string();
-    format!(
-        r#"{{
-  "artifact": "{name}",
-  "version": "{version}",
-  "date": "{date}",
-  "modules": [],
-  "summary": {{
-    "modules_total": 0,
-    "modules_pass": 0,
-    "modules_in_flight": 0
-  }}
-}}
-"#
-    )
+
+    let modules: Vec<ValidationModule> = module_names
+        .iter()
+        .map(|n| ValidationModule {
+            name: n.clone(),
+            status: "PENDING".to_string(),
+            checks_total: None,
+            checks_passed: None,
+            checks: Vec::new(),
+            errata: Vec::new(),
+        })
+        .collect();
+
+    let total = modules.len() as u32;
+
+    let doc = ValidationDoc {
+        artifact: name.to_string(),
+        version: version.to_string(),
+        date,
+        modules,
+        summary: Some(ValidationSummary {
+            modules_total: total,
+            modules_pass: 0,
+            modules_in_flight: total,
+        }),
+    };
+
+    serde_json::to_string_pretty(&doc).unwrap_or_else(|_| "{}".to_string())
 }
 
 pub(super) fn generate_ferment_stub(name: &str, version: &str, origin: &str) -> String {

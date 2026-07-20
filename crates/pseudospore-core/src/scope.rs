@@ -14,7 +14,7 @@ pub struct ScopeDoc {
     #[serde(default)]
     pub target: Option<TargetRef>,
     /// Declared validation modules and their last-known status.
-    #[serde(default)]
+    #[serde(default, alias = "modules")]
     pub module: Vec<ModuleEntry>,
     /// Evolution tier labels (Tier 0–3) for maturity tracking.
     #[serde(default)]
@@ -69,6 +69,12 @@ pub struct ModuleEntry {
     pub checks: Option<u32>,
     #[serde(default)]
     pub description: String,
+    /// Entity group this module validates (maps to data subdirectories).
+    #[serde(default)]
+    pub entity_group: Option<String>,
+    /// Computation keys within this module (e.g. sub-analyses or pipelines).
+    #[serde(default)]
+    pub computation: Vec<String>,
 }
 
 /// Evolution tier labels mapping maturity stages to version strings.
@@ -217,5 +223,35 @@ version = "0.1.0"
             Some("braid-test")
         );
         assert!(doc.field("unknown", "key").is_none());
+    }
+
+    #[test]
+    fn modules_alias_parses_spring_scope() {
+        let content = r#"
+[artifact]
+name = "airSpring-Agricultural-Meteorology"
+version = "1.0.0"
+type = "pseudoSpore"
+date = "2026-07-18"
+origin = "ecoPrimals/springs/airSpring"
+license = "AGPL-3.0-or-later"
+
+[[modules]]
+name = "et0_reference"
+entity_group = "et0_reference"
+computation = ["module1_et0"]
+
+[[modules]]
+name = "soil_physics"
+entity_group = "soil_physics"
+computation = ["module3_soil_physics"]
+"#;
+        let doc: ScopeDoc = toml::from_str(content).expect("parse spring scope");
+        assert_eq!(doc.artifact.name, "airSpring-Agricultural-Meteorology");
+        assert_eq!(doc.module.len(), 2);
+        assert_eq!(doc.module[0].name, "et0_reference");
+        assert_eq!(doc.module[0].entity_group.as_deref(), Some("et0_reference"));
+        assert_eq!(doc.module[0].computation, vec!["module1_et0"]);
+        assert_eq!(doc.module[1].name, "soil_physics");
     }
 }

@@ -6,6 +6,14 @@
 
 use clap::{Parser, Subcommand};
 
+fn parse_module_status(s: &str) -> Result<(String, String), String> {
+    let parts: Vec<&str> = s.splitn(2, '=').collect();
+    if parts.len() != 2 {
+        return Err(format!("Expected NAME=STATUS, got '{s}'"));
+    }
+    Ok((parts[0].to_string(), parts[1].to_string()))
+}
+
 #[derive(Parser)]
 #[command(
     name = "litho",
@@ -354,6 +362,33 @@ pub enum Commands {
         /// Run envelope validation after extraction
         #[arg(long)]
         validate: bool,
+    },
+
+    /// Populate a pseudoSpore's validation.json with module results.
+    ///
+    /// Use `--results` to supply a JSON file containing an array of module results,
+    /// or use `--module` to set individual module statuses inline.
+    PopulateValidation {
+        /// Path to the pseudoSpore directory
+        path: String,
+
+        /// Path to a JSON file containing module results (array of `ValidationModule`)
+        #[arg(long)]
+        results: Option<String>,
+
+        /// Set a module status inline: --module name=PASS
+        #[arg(long = "module", value_parser = parse_module_status)]
+        modules: Vec<(String, String)>,
+    },
+
+    /// Promote a pseudoSpore from PENDING to COMPLETE after all modules pass.
+    PromoteSpore {
+        /// Path to the pseudoSpore directory (must contain validation.json)
+        path: String,
+
+        /// Artifact root containing pseudospores/registry.toml (default: current dir)
+        #[arg(long, default_value = ".")]
+        artifact_root: String,
     },
 
     /// Show registry status dashboard for all pseudoSpores

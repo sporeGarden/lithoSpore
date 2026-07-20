@@ -511,4 +511,3 @@ artifact = "empty-scope"
         "scope with no modules should fall back to LTEE constant table"
     );
 }
-

@@ -47,10 +47,7 @@ pub fn run(artifact_root: &str, json: bool) {
 }
 
 fn str_field<'a>(entry: &'a toml::Value, key: &str) -> &'a str {
-    entry
-        .get(key)
-        .and_then(toml::Value::as_str)
-        .unwrap_or("?")
+    entry.get(key).and_then(toml::Value::as_str).unwrap_or("?")
 }
 
 fn int_field(entry: &toml::Value, key: &str) -> i64 {
@@ -111,17 +108,16 @@ fn print_table(entries: &[toml::Value], total: usize, complete: usize, pending: 
             format!("{pass}/{total_mods}")
         };
 
-        println!(
-            "  {name:<40} {version:<10} {spring:<10} {status:<12} {modules_str}"
-        );
+        println!("  {name:<40} {version:<10} {spring:<10} {status:<12} {modules_str}");
     }
 
     if pending > 0 {
         println!("\n  Next steps for PENDING spores:");
         println!("    1. Spring team runs validators → produces module results JSON");
-        println!("    2. litho populate-validation --path <spore> --results <results.json>");
-        println!("    3. litho audit --path <spore> → verify PASS");
-        println!("    4. litho pack-pseudospore <spore> → redistribute");
+        println!("    2. litho populate-validation <spore> --results <results.json>");
+        println!("    3. litho audit --path <spore> → verify all modules PASS");
+        println!("    4. litho promote-spore <spore> → PENDING → COMPLETE");
+        println!("    5. litho pack-pseudospore <spore> → redistribute");
     }
 
     println!();

@@ -21,9 +21,11 @@ mod ingest_pseudospore;
 mod ops;
 mod pack_pseudospore;
 mod parity;
+mod populate_validation;
 mod promote;
-mod spore_status;
+mod promote_spore;
 pub(crate) mod registry;
+mod spore_status;
 mod translate_config;
 mod unpack_pseudospore;
 mod validate;
@@ -220,6 +222,25 @@ fn main() {
             output,
             validate,
         } => unpack_pseudospore::run(&tarball, &output, validate),
+        Commands::PopulateValidation {
+            path,
+            results,
+            modules,
+        } => {
+            if let Err(e) = populate_validation::run(&path, results.as_deref(), &modules) {
+                eprintln!("ERROR: {e}");
+                std::process::exit(1);
+            }
+        }
+        Commands::PromoteSpore {
+            path,
+            artifact_root,
+        } => {
+            if let Err(e) = promote_spore::run(&path, &artifact_root) {
+                eprintln!("ERROR: {e}");
+                std::process::exit(1);
+            }
+        }
         Commands::SporeStatus {
             artifact_root,
             json,

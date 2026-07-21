@@ -1,6 +1,6 @@
 # lithoSpore Upstream Gap Registry
 
-**Last Updated**: Jul 17, 2026 (75/75 checks, 7/7 modules, Tier 3 wired, 216 tests, 3 live braids)
+**Last Updated**: Jul 21, 2026 (75/75 checks, 7/7 modules, Tier 3 wired, 242 tests, 3 live braids)
 **Phase**: Post-deployment — silicon atheism evolution pass complete
 **Scope**: lithoSpore verification chassis (LTEE first instance; chassis domain-agnostic)
 **Geo-delocalization**: Absorbed — discovery chain env → UDS → TURN → standalone

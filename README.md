@@ -11,7 +11,7 @@ with quantitative claims, source data, and expected values.
 **First Instance**: Barrick Lab, MSU (LTEE — 82,500+ generations)
 **License**: AGPL-3.0-or-later (code), CC-BY-SA 4.0 (docs)
 **Standard**: `TARGETED_GUIDESTONE_STANDARD.md` (ecoPrimals/infra/wateringHole/fossilRecord/wave138a_cleanup)
-**Repo**: [github.com/sporeGarden/lithoSpore](https://github.com/sporeGarden/lithoSpore)
+**Repo**: [git.primals.eco/sporeGarden/lithoSpore](https://git.primals.eco/sporeGarden/lithoSpore) (Forgejo-first; mirrored to GitHub)
 
 ## Spore Taxonomy
 
@@ -100,7 +100,7 @@ lithoSpore/
 │   ├── ltee-biobricks/           # Module 5: BioBrick burden
 │   ├── ltee-breseq/              # Module 6: 264-genome comparison
 │   ├── ltee-anderson/            # Module 7: Anderson-QS predictions
-│   └── ltee-cli/                 # Unified CLI: 21 subcommands + module registry + viz + dispatch (instance layer)
+│   └── ltee-cli/                 # Unified CLI: 28 subcommands + module registry + viz + dispatch (instance layer)
 │
 ├── artifact/                     # The deployable artifact
 │   ├── usb-root/                 # USB root templates (.biomeos-spore, biomeOS/)
@@ -167,7 +167,7 @@ the root file templates.
 
 **Pillar 4 EXIT GATE: EXCEEDED** — 7 modules PASS at Tier 2, gate required 2+.
 **First live handoff**: 4 USB drives deployed to Barrick Lab (MSU) for LTEE RA II interview. exFAT cross-platform, 3-zone structure, pre-rendered HTML browse layer.
-**Deployment-validated**: USB round-trip proven — assemble → verify → validate → self-test cycle. 75/75 science checks, 227 unit/integration tests, 10 chaos/fault-injection tests.
+**Deployment-validated**: USB round-trip proven — assemble → verify → validate → self-test cycle. 75/75 science checks, 242 unit/integration tests, 10 chaos/fault-injection tests.
 **Tier 3**: Provenance trio wired via JSON-RPC with partial completion support (requires NUCLEUS primals at runtime).
 **Cross-tier parity**: `litho parity` validates math stability between Python and Rust.
 **Upstream braids**: 3 live braids from wetSpring (sovereign GPU pipeline + breseq baseline + Tenaillon expected values). Known: braid accession normalization (SRP001569 vs PRJNA29543) evolving upstream.
@@ -197,14 +197,17 @@ tracking, capability-based discovery with `announce_self()`/`query_capabilities(
 scope parser with `[[module]]` registry, data manifest, shared stats, env var
 constants, harness, platform abstraction). `pseudospore-core` is the canonical crate for pseudoSpore
 parsing, validation, checksums, and domain profiles. `ltee-cli` adds instance layer: unified module registry (`registry.rs`),
-viz DataBinding adapters, 21 subcommands. pseudoSpore pipeline: `emit-pseudospore`
-(auto-figures, PDB serial extraction, BLAKE3 sealing), `ingest-pseudospore`,
+viz DataBinding adapters, 28 subcommands. pseudoSpore pipeline: `emit-pseudospore`
+(auto-figures, scope-driven validation stub, BLAKE3 sealing), `init-validation`
+(generates validation.json skeleton from scope.toml modules), `populate-validation`
+(merges spring team results into validation.json), `promote-spore` (PENDING→COMPLETE
+after all modules pass), `ingest-pseudospore`, `spore-status` (registry dashboard),
 `fetch-pseudospore` (remote download + validate + optional ingest),
 `audit` (10-check pre-handoff validation — BLAKE3 integrity, config↔data, topology
 cross-ref, derivation contract, version consistency, provenance, visual evidence),
 `promote` (pseudoSpore → lithoSpore chassis with stripped binaries, auto RELEASE.md),
 `translate-config` (domain↔computation index translation).
-227 unit/integration tests + 10
+242 unit/integration tests + 10
 chaos/fault-injection tests, zero clippy warnings, `#![forbid(unsafe_code)]`
 workspace-wide, pure Rust BLAKE3 (ecoBin compliant), `liveSpore.json` operational
 with corruption resilience and backup.
@@ -247,12 +250,12 @@ is domain-agnostic chassis — no LTEE science logic in source.
 - VM: `agentReagents/scripts/validate-lithoSpore.sh` — libvirt, full airgap simulation
 - Chaos: `litho chaos-test` — fault injection (10 tests: drift, corruption, missing files)
 
-**Ecosystem posture** (Wave 144a): All primal springs shipping Phase 2 transport.
-CAC 6/6 complete. lithoSpore silicon atheism applied (Platform trait, 18 `#[cfg]`
-gates consolidated to 2). Method stability tiers annotated in
-`config/capability_registry.toml`. Partial provenance supported (DAG without braid
-is valid). `ParityReport` published as ecosystem standard
-(`specs/PARITY_REPORT_SCHEMA.md`).
+**Ecosystem posture** (Wave 150t): 43/43 repos Forgejo-first. DNSSEC 3/3 domains.
+Silicon Atheism Phase 2 complete (14/14 primals + lithoSpore). pseudoSpore pipeline
+complete with 6-step promotion lifecycle (emit → init-validation → populate →
+audit → promote → pack). 7 springs emitted pseudoSpores (1 COMPLETE, 6 PENDING
+spring team validation). `ring` dropped — pure Rust, zero C/asm linkage.
+`ParityReport` published as ecosystem standard (`specs/PARITY_REPORT_SCHEMA.md`).
 
 See `docs/UPSTREAM_GAPS.md` for upstream integration status.
 

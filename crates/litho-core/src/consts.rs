@@ -68,6 +68,20 @@ pub const RUNTIME_SUBDIR: &str = "ecoPrimals";
 /// Filename of the discovery socket within the runtime subdirectory.
 pub const DISCOVERY_SOCKET_NAME: &str = "discovery.sock";
 
+// ── Source repository defaults ─────────────────────────────────────
+
+/// Default lithoSpore repository URL (Forgejo-first).
+pub const DEFAULT_REPO_URL: &str = "https://git.primals.eco/sporeGarden/lithoSpore.git";
+
+/// Default ecoPrimals ecosystem repository URL (Forgejo-first).
+pub const DEFAULT_ECOSYSTEM_REPO_URL: &str = "https://git.primals.eco/ecoPrimals/ecoPrimals.git";
+
+/// Default branch for source operations.
+pub const DEFAULT_BRANCH: &str = "main";
+
+/// Default Rust toolchain channel.
+pub const DEFAULT_RUST_TOOLCHAIN: &str = "stable";
+
 // ── Scientific defaults ────────────────────────────────────────────
 
 /// Default RMSD acceptance threshold (kJ/mol) for promote/verify.

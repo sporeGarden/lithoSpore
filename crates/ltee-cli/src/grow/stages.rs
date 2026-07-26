@@ -61,12 +61,12 @@ pub(super) fn load_source_metadata(root: &Path) -> SourceConfig {
 
     eprintln!("  WARNING: No [source] metadata in scope.toml — using defaults");
     SourceConfig {
-        repo: "https://github.com/sporeGarden/lithoSpore.git".into(),
-        repo_https: "https://github.com/sporeGarden/lithoSpore.git".into(),
-        branch: "main".into(),
-        ecosystem_repo: "https://github.com/sporeGarden/ecoPrimals.git".into(),
-        ecosystem_repo_https: "https://github.com/sporeGarden/ecoPrimals.git".into(),
-        rust_toolchain: "stable".into(),
+        repo: litho_core::consts::DEFAULT_REPO_URL.into(),
+        repo_https: litho_core::consts::DEFAULT_REPO_URL.into(),
+        branch: litho_core::consts::DEFAULT_BRANCH.into(),
+        ecosystem_repo: litho_core::consts::DEFAULT_ECOSYSTEM_REPO_URL.into(),
+        ecosystem_repo_https: litho_core::consts::DEFAULT_ECOSYSTEM_REPO_URL.into(),
+        rust_toolchain: litho_core::consts::DEFAULT_RUST_TOOLCHAIN.into(),
         rust_target: default_rust_target(),
     }
 }

@@ -1,5 +1,7 @@
 # lithoSpore
 
+**External maturity**: deployment-ready
+
 The ecosystem's first **Targeted GuideStone** — a self-contained, USB-deployable
 verification chassis that reproduces published scientific results and proves its
 own correctness. The LTEE (Long-Term Evolution Experiment) is the first instance;
@@ -37,8 +39,8 @@ See `ecoPrimals/infra/wateringHole/fossilRecord/wave138a_cleanup/LITHOSPORE_USB_
 
 lithoSpore builds a portable validation artifact — a ~16GB USB that:
 
-- Runs `./validate` on any Linux machine (no install, no internet, no dependencies)
-- Runs Python notebooks on any machine with Python 3.10+
+- Runs `./validate` on Linux x86_64 or aarch64 (no install, no internet, no dependencies beyond libc)
+- Runs Python notebooks on any machine with Python 3.10+ (numpy, scipy, matplotlib bundled)
 - Carries all data on the drive (BLAKE3-hashed, licensed, with source URIs for refresh)
 - Produces structured JSON with PASS/FAIL per module and named tolerances
 - Tracks its own deployment history via `liveSpore.json` (append-only, publishable)
@@ -133,6 +135,21 @@ lithoSpore/
 └── docs/                         # Architecture, gap analysis, degradation behavior
 ```
 
+## Quick Verification (5 minutes)
+
+A stranger can verify lithoSpore's scientific claims with three commands:
+
+```bash
+git clone https://git.primals.eco/sporeGarden/lithoSpore.git && cd lithoSpore
+cargo test
+cargo run --bin litho -- validate --json
+```
+
+**Requirements**: Rust toolchain (`rustup`), git. No Python, no containers,
+no network access beyond the initial clone. The validation runs 7 modules
+against published LTEE data, checks 75 numerical tolerances, and reports
+PASS/FAIL as structured JSON.
+
 ## Building
 
 ```bash
@@ -160,14 +177,14 @@ cargo run --bin litho -- assemble --dry-run
 ```
 
 The assembled USB is a self-sufficient hypogeal cotyledon: plug it into
-any Linux machine and run `./validate`. See `artifact/usb-root/` for
+a Linux x86_64 or aarch64 machine and run `./validate`. See `artifact/usb-root/` for
 the root file templates.
 
 ## Current Status — 7/7 PASS, Live Deployment
 
 **Pillar 4 EXIT GATE: EXCEEDED** — 7 modules PASS at Tier 2, gate required 2+.
 **First live handoff**: 4 USB drives deployed to Barrick Lab (MSU) for LTEE RA II interview. exFAT cross-platform, 3-zone structure, pre-rendered HTML browse layer.
-**Deployment-validated**: USB round-trip proven — assemble → verify → validate → self-test cycle. 75/75 science checks, 242 unit/integration tests, 10 chaos/fault-injection tests.
+**Deployment-validated**: USB round-trip proven — assemble → verify → validate → self-test cycle. 75/75 science checks, 242 unit/integration tests, 10 chaos/fault-injection tests. <!-- metrics: 2026-07-26 -->
 **Tier 3**: Provenance trio wired via JSON-RPC with partial completion support (requires NUCLEUS primals at runtime).
 **Cross-tier parity**: `litho parity` validates math stability between Python and Rust.
 **Upstream braids**: 3 live braids from wetSpring (sovereign GPU pipeline + breseq baseline + Tenaillon expected values). Known: braid accession normalization (SRP001569 vs PRJNA29543) evolving upstream.
@@ -197,7 +214,7 @@ tracking, capability-based discovery with `announce_self()`/`query_capabilities(
 scope parser with `[[module]]` registry, data manifest, shared stats, env var
 constants, harness, platform abstraction). `pseudospore-core` is the canonical crate for pseudoSpore
 parsing, validation, checksums, and domain profiles. `ltee-cli` adds instance layer: unified module registry (`registry.rs`),
-viz DataBinding adapters, 28 subcommands. pseudoSpore pipeline: `emit-pseudospore`
+viz DataBinding adapters, 28 subcommands. <!-- metrics: 2026-07-26 --> pseudoSpore pipeline: `emit-pseudospore`
 (auto-figures, scope-driven validation stub, BLAKE3 sealing), `init-validation`
 (generates validation.json skeleton from scope.toml modules), `populate-validation`
 (merges spring team results into validation.json), `promote-spore` (PENDING→COMPLETE
@@ -208,12 +225,14 @@ cross-ref, derivation contract, version consistency, provenance, visual evidence
 `promote` (pseudoSpore → lithoSpore chassis with stripped binaries, auto RELEASE.md),
 `translate-config` (domain↔computation index translation).
 242 unit/integration tests + 10
-chaos/fault-injection tests, zero clippy warnings, `#![forbid(unsafe_code)]`
-workspace-wide, pure Rust BLAKE3 (ecoBin compliant), `liveSpore.json` operational
-with corruption resilience and backup.
+chaos/fault-injection tests. <!-- metrics: 2026-07-26 -->
+Unsafe code forbidden by default (`unsafe_code = "forbid"` at workspace lint level;
+all 10 crates inherit). No C/C++/Fortran libraries in the runtime dependency chain;
+pure Rust cryptography (BLAKE3 via `blake3` crate with `features = ["pure", "std"]`).
+`liveSpore.json` operational with corruption resilience and backup.
 
 **Architecture**:
-- `unsafe_code = "forbid"` enforced at workspace lint level — all 10 crates inherit
+- `unsafe_code = "forbid"` enforced at workspace lint level — all 10 crates inherit. No unsafe blocks in this workspace
 - **Silicon Atheism**: `Platform` trait abstracts all OS-specific operations (hostname, symlinks, permissions, UDS, binary stripping) — only 2 `#[cfg]` blocks remain (in `platform.rs`)
 - Shared harness (`litho_core::harness`) eliminates ~200 LOC of duplicated skip/load/dispatch
 - Shared stats (`litho_core::stats`) deduplicates `pearson_r` with safe length checks
@@ -222,8 +241,8 @@ with corruption resilience and backup.
   capability-generic (`$RELAY_SERVER`, `$VISUALIZATION_SOCKET`) with legacy fallback.
   `DiscoveryPath` + `turn_relay` recorded in `liveSpore.json` for provenance.
 - `probe_operating_mode()` detects standalone/LAN/geo-delocalized before validation
-- Clippy pedantic + nursery clean — scientific casts allowed; all other lints enforced
-- `litho fetch` pure Rust data pipeline (curl HTTP + BLAKE3 hashing, replaces 7 bash scripts — zero C deps in binary)
+- Clippy pedantic + nursery clean — scientific casts allowed; all other workspace lints enforced. Zero warnings <!-- metrics: 2026-07-26 -->
+- `litho fetch` data pipeline (curl subprocess for HTTP + BLAKE3 hashing, replaces 7 bash scripts — no C/C++ in the compiled binary)
 - `litho assemble` pure Rust USB assembly (replaces assemble-usb.sh)
 - `litho deploy-report` structured TOML output for deployment validation
 - `litho self-test` artifact integrity check (23 checks)
@@ -250,11 +269,12 @@ is domain-agnostic chassis — no LTEE science logic in source.
 - VM: `agentReagents/scripts/validate-lithoSpore.sh` — libvirt, full airgap simulation
 - Chaos: `litho chaos-test` — fault injection (10 tests: drift, corruption, missing files)
 
-**Ecosystem posture** (Wave 150t): 43/43 repos Forgejo-first. DNSSEC 3/3 domains.
+**Ecosystem posture** (Wave 151b): <!-- metrics: 2026-07-26 -->
+43/43 repos Forgejo-first. DNSSEC 3/3 domains.
 Silicon Atheism Phase 2 complete (14/14 primals + lithoSpore). pseudoSpore pipeline
 complete with 6-step promotion lifecycle (emit → init-validation → populate →
 audit → promote → pack). 7 springs emitted pseudoSpores (1 COMPLETE, 6 PENDING
-spring team validation). `ring` dropped — pure Rust, zero C/asm linkage.
+spring team validation). `ring` dropped — no C/C++/assembly in runtime dependency chain.
 `ParityReport` published as ecosystem standard (`specs/PARITY_REPORT_SCHEMA.md`).
 
 See `docs/UPSTREAM_GAPS.md` for upstream integration status.

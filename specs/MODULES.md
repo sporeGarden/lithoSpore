@@ -40,7 +40,7 @@ Cross-tier parity testable for all 7 modules.
   typed errors (`LithoError` via `error.rs`), env var constants
 
 - **`ltee-cli`** (instance wiring + chassis glue):
-  unified `litho` binary with 21 subcommands,
+  unified `litho` binary with 28 subcommands, <!-- metrics: 2026-07-26 -->
   scope-driven module registry (`registry.rs` — `load_module_table()`, `dispatch_module()`,
   `module_name_matches()`), visualization adapters (`viz/` — DataBinding for all 7 LTEE
   modules + 7 Barrick baselines). `.biomeos-spore` generated from scope.toml during assembly.
@@ -94,8 +94,8 @@ Each carries `doi`, `source_figures`, and tolerance specifications.
 
 ## Test Coverage
 
-199 tests across 10 crates:
-- `litho-core`: 47 unit tests (discovery, provenance, validation, braid, spore, scope, harness, env_vars, tolerance, manifest, stats)
-- `pseudospore-core`: 45 unit tests (manifest, validation, tarball, braid envelope, receipts, scope, domain profile, envelope load+validate, error types)
-- `ltee-cli`: 63 unit + integration tests (lib 35, cli_integration 20, integration 8)
-- Module crates: 42 combined (fitness 9, mutations 9, anderson 7, biobricks 5, breseq 4, alleles 4, citrate 4)
+242 tests across 10 crates: <!-- metrics: 2026-07-26 -->
+- `litho-core`: 54 unit tests (discovery, provenance, validation, braid, spore, scope, harness, env_vars, tolerance, manifest, stats, consts, platform)
+- `pseudospore-core`: 57 unit tests (manifest, validation, tarball, braid envelope, receipts, scope, domain profile, envelope load+validate, error types)
+- `ltee-cli`: 87 unit + integration tests (lib 51, cli_integration 20, integration 8, usb_roundtrip 5, pseudospore_lifecycle 3)
+- Module crates: 44 combined (fitness 10, mutations 10, anderson 7, biobricks 5, breseq 4, alleles 4, citrate 4)

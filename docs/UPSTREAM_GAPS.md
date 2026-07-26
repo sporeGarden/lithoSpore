@@ -344,13 +344,13 @@ currently embed (standalone CLI pattern).
   `audit/domain.rs` split to `audit/derivation.rs` (797→585 lines). Idiomatic Rust:
   `Cow<str>` in provenance, `write!`-based string building in braid, clone elimination
   in visualize. 16 new tests added. All deps confirmed pure Rust. Zero production mocks.
-  216/216 tests, 0 clippy warnings, fmt clean, doc clean.
+  216/216 tests, 0 clippy warnings, fmt clean, doc clean. [updated: 242 tests post Wave 150t evolution]
 - **2026-05-17 PM**: Chassis Abstraction Evolution — all 7 coupling points resolved.
   `scope.toml` `[[module]]` entries carry name/binary/data_dir/expected/tier1_notebook.
   New `registry.rs` centralizes module resolution for all 6 consumer files. `.biomeos-spore`
   generated from scope.toml. Braid accessions from data.toml. `viz/` moved from litho-core
   to ltee-cli (instance layer). `litho-core` 12 modules, domain-agnostic chassis. Graph/target paths
-  parameterized. Test fixtures isolated. 199 tests, zero clippy warnings. [updated: 216 tests post evolution pass]
+  parameterized. Test fixtures isolated. 199 tests, zero clippy warnings. [updated: 242 tests post Wave 150t evolution]
 - **2026-05-17 PM**: wetSpring braid ingestion — `litho-core::braid` module (4 tests),
   sovereign + breseq baseline braids parsed, accession validated (SRP001569 PASS),
   braids displayed in `litho validate` output. URI fixes: gzip/zip content-type

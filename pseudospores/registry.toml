@@ -7,8 +7,8 @@
 # See specs/PSEUDOSPORE_STANDARD.md for the pseudoSpore format.
 
 [meta]
-last_updated = "2026-07-18"
-total_ingested = 7
+last_updated = "2026-08-08"
+total_ingested = 8
 
 [[pseudospore]]
 name = "hotSpring-CompChem-GuideStone"
@@ -79,3 +79,13 @@ spring = "ludoSpring"
 status = "PENDING"
 modules_pass = 0
 modules_total = 0
+
+[[pseudospore]]
+name = "hotSpring-QCD-Lattice"
+version = "1.0.0-rung1"
+origin = "ecoPrimals/springs/hotSpring"
+date = "2026-08-08"
+spring = "hotSpring"
+status = "COMPLETE"
+modules_pass = 3
+modules_total = 3

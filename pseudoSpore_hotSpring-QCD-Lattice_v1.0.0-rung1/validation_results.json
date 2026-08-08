@@ -1,0 +1,164 @@
+[
+  {
+    "name": "su3_beta_scan",
+    "status": "PASS",
+    "checks_total": 6,
+    "checks_passed": 6,
+    "checks": [
+      {
+        "name": "beta_2.0_plaquette",
+        "expected": 0.111,
+        "observed": 0.128862,
+        "tolerance": 0.03,
+        "unit": "plaquette",
+        "status": "PASS",
+        "note": "ref: SC: \u03b2/18"
+      },
+      {
+        "name": "beta_2.3_plaquette",
+        "expected": 0.15,
+        "observed": 0.151206,
+        "tolerance": 0.03,
+        "unit": "plaquette",
+        "status": "PASS",
+        "note": "ref: SC+corrections"
+      },
+      {
+        "name": "beta_3.0_plaquette",
+        "expected": 0.22,
+        "observed": 0.204844,
+        "tolerance": 0.03,
+        "unit": "plaquette",
+        "status": "PASS",
+        "note": "ref: SC+corrections"
+      },
+      {
+        "name": "beta_5.5_plaquette",
+        "expected": 0.505,
+        "observed": 0.495752,
+        "tolerance": 0.0505,
+        "unit": "plaquette",
+        "status": "PASS",
+        "note": "ref: GL10/C83"
+      },
+      {
+        "name": "beta_5.7_plaquette",
+        "expected": 0.546,
+        "observed": 0.538092,
+        "tolerance": 0.0546,
+        "unit": "plaquette",
+        "status": "PASS",
+        "note": "ref: GL10/B00"
+      },
+      {
+        "name": "beta_6.0_plaquette",
+        "expected": 0.593,
+        "observed": 0.58623,
+        "tolerance": 0.0593,
+        "unit": "plaquette",
+        "status": "PASS",
+        "note": "ref: GL10/B00"
+      }
+    ],
+    "errata": []
+  },
+  {
+    "name": "su3_dual_gpu_cross_vendor",
+    "status": "PASS",
+    "checks_total": 3,
+    "checks_passed": 3,
+    "checks": [
+      {
+        "name": "cross_vendor_beta_5.9",
+        "expected": 0.581638,
+        "observed": 0.581558,
+        "tolerance": 0.000773,
+        "unit": "plaquette",
+        "status": "PASS",
+        "note": "0.31 sigma separation"
+      },
+      {
+        "name": "cross_vendor_beta_6.0",
+        "expected": 0.593451,
+        "observed": 0.593569,
+        "tolerance": 0.000746,
+        "unit": "plaquette",
+        "status": "PASS",
+        "note": "0.47 sigma separation"
+      },
+      {
+        "name": "cross_vendor_beta_6.2",
+        "expected": 0.613391,
+        "observed": 0.613384,
+        "tolerance": 0.000576,
+        "unit": "plaquette",
+        "status": "PASS",
+        "note": "0.03 sigma separation"
+      }
+    ],
+    "errata": []
+  },
+  {
+    "name": "su3_performance_scaling",
+    "status": "PASS",
+    "checks_total": 6,
+    "checks_passed": 6,
+    "checks": [
+      {
+        "name": "nvidia_beta_5.9_throughput",
+        "expected": 10000,
+        "observed": 2535.2,
+        "tolerance": 10000,
+        "unit": "ms/trajectory",
+        "status": "PASS",
+        "note": "16^4 SU(3) HMC"
+      },
+      {
+        "name": "amd_beta_5.9_throughput",
+        "expected": 10000,
+        "observed": 274.9,
+        "tolerance": 10000,
+        "unit": "ms/trajectory",
+        "status": "PASS",
+        "note": "16^4 SU(3) HMC"
+      },
+      {
+        "name": "nvidia_beta_6.0_throughput",
+        "expected": 10000,
+        "observed": 2551.2,
+        "tolerance": 10000,
+        "unit": "ms/trajectory",
+        "status": "PASS",
+        "note": "16^4 SU(3) HMC"
+      },
+      {
+        "name": "amd_beta_6.0_throughput",
+        "expected": 10000,
+        "observed": 278.0,
+        "tolerance": 10000,
+        "unit": "ms/trajectory",
+        "status": "PASS",
+        "note": "16^4 SU(3) HMC"
+      },
+      {
+        "name": "nvidia_beta_6.2_throughput",
+        "expected": 10000,
+        "observed": 2538.5,
+        "tolerance": 10000,
+        "unit": "ms/trajectory",
+        "status": "PASS",
+        "note": "16^4 SU(3) HMC"
+      },
+      {
+        "name": "amd_beta_6.2_throughput",
+        "expected": 10000,
+        "observed": 276.8,
+        "tolerance": 10000,
+        "unit": "ms/trajectory",
+        "status": "PASS",
+        "note": "16^4 SU(3) HMC"
+      }
+    ],
+    "errata": []
+  }
+]

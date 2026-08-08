@@ -1,0 +1,77 @@
+#!/bin/bash
+set -euo pipefail
+# refresh — data freshness protocol for hotSpring-QCD-Lattice v1.0.0-rung1
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
+
+echo "=== pseudoSpore refresh: hotSpring-QCD-Lattice v1.0.0-rung1 ==="
+echo
+
+if [[ ! -f data.toml ]]; then
+    echo "ERROR: data.toml not found"
+    exit 1
+fi
+
+if ! command -v python3 &>/dev/null; then
+    echo "ERROR: python3 required for data.toml parsing"
+    exit 1
+fi
+
+python3 << 'PYEOF'
+import subprocess, os, sys
+
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
+
+with open('data.toml', 'rb') as f:
+    manifest = tomllib.load(f)
+
+datasets = manifest.get('dataset', [])
+changed = 0
+total = 0
+
+for ds in datasets:
+    ds_id = ds.get('id', '?')
+    local = ds.get('local_path', '')
+    old_hash = ds.get('blake3', '')
+    refresh = ds.get('refresh_command', '')
+    total += 1
+
+    if refresh.startswith('#') or not refresh.strip():
+        print(f'  [{ds_id}] SKIP (manual refresh required)')
+        continue
+
+    print(f'  [{ds_id}] Refreshing from source...', end=' ')
+    result = subprocess.run(refresh, shell=True, capture_output=True)
+    if result.returncode != 0:
+        print('FAILED')
+        continue
+
+    # Re-hash with b3sum fallback
+    if os.path.isdir(local):
+        result2 = subprocess.run(['b3sum', '--no-names'] + sorted(
+            os.path.join(r, f) for r, _, fs in os.walk(local) for f in fs
+        ), capture_output=True, text=True)
+        new_hash = result2.stdout.strip().split('\n')[-1] if result2.returncode == 0 else 'error'
+    elif os.path.isfile(local):
+        result2 = subprocess.run(['b3sum', '--no-names', local], capture_output=True, text=True)
+        new_hash = result2.stdout.strip() if result2.returncode == 0 else 'error'
+    else:
+        print('MISSING')
+        continue
+
+    if new_hash == old_hash:
+        print('UNCHANGED')
+    else:
+        print(f'CHANGED (was {old_hash[:12]}... now {new_hash[:12]}...)')
+        changed += 1
+
+print()
+print(f'=== Refresh complete: {total} datasets, {changed} changed ===')
+if changed > 0:
+    print('  Re-run ./validate to verify with updated data')
+    print('  Update data.toml blake3 hashes if refresh is permanent')
+PYEOF

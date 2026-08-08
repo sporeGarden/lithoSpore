@@ -1,0 +1,38 @@
+[artifact]
+name = "hotSpring-QCD-Lattice"
+version = "1.0.0-rung1"
+type = "pseudoSpore"
+date = "2026-08-08"
+origin = "ecoPrimals/springs/hotSpring"
+license = "AGPL-3.0-or-later"
+
+[target]
+paper_title = "Sovereign GPU Lattice QCD: SU(N) on Consumer Hardware via WGSL"
+paper_status = "arXiv draft, 4/5 sections filled"
+gauge_group = "SU(3)"
+method = "Hybrid Monte Carlo with Omelyan 2MN integrator"
+compute_engine = "barraCuda (WGSL compute shaders via wgpu)"
+
+[evolution]
+tier_0 = "Control (published lattice QCD references)"
+tier_1 = "Python (not applicable — GPU compute only)"
+tier_2 = "Rust (barraCuda + coralReef + toadStool)"
+tier_3 = "NUCLEUS (provenance trio anchoring)"
+
+[[modules]]
+name = "su3_beta_scan"
+entity_group = "plaquette"
+computation = ["hmc_thermalization", "plaquette_measurement", "beta_scan"]
+description = "SU(3) plaquette vs coupling: 8 beta points on 8^4, compared to published strong-coupling and Monte Carlo references"
+
+[[modules]]
+name = "su3_dual_gpu_cross_vendor"
+entity_group = "plaquette"
+computation = ["hmc_production", "cross_vendor_comparison"]
+description = "SU(3) 16^4 production on NVIDIA RTX 3090 vs AMD RX 6950 XT at beta=5.9, 6.0, 6.2 — vendor-independent plaquette agreement"
+
+[[modules]]
+name = "su3_performance_scaling"
+entity_group = "performance"
+computation = ["timing_benchmark", "speedup_analysis"]
+description = "GPU trajectory throughput: ms/traj across lattice sizes and GPU architectures, demonstrating consumer-GPU viability for lattice QCD"

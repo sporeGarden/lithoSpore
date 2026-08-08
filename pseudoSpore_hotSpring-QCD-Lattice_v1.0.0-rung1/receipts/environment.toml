@@ -1,0 +1,22 @@
+# Environment captured at emit time.
+# [emit_host] = machine running `litho emit-pseudospore`
+# [software] = tool versions on PATH during emit
+# Simulations may have run on different hardware; see provenance braids.
+
+[emit_host]
+host = "ironGate"
+os = "Pop!_OS 22.04 LTS"
+kernel = "6.12.10-76061203-generic"
+cpu = "Intel(R) Core(TM) i9-14900K"
+gpu = "NVIDIA GeForce RTX 5070"
+
+[software]
+python = "3.10.12"
+litho = "0.1.0"
+
+[production]
+total_production_ns = 0
+modules = 0
+
+[timestamps]
+captured = "2026-08-08T13:17:23.556409348+00:00"

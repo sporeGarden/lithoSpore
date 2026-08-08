@@ -1,0 +1,45 @@
+{
+  "experiment": "su3-performance-summary",
+  "source": "arxiv_dual_gpu_scan_results.json",
+  "lattice": "16^4",
+  "gauge_group": "SU(3)",
+  "integrator": "Omelyan 2MN",
+  "results": [
+    {
+      "gpu": "NVIDIA GeForce RTX 3090",
+      "beta": 5.9,
+      "ms_per_traj": 2535.178242505,
+      "acceptance_rate": 0.995
+    },
+    {
+      "gpu": "AMD Radeon RX 6950 XT (RADV NAVI21)",
+      "beta": 5.9,
+      "ms_per_traj": 274.930747104,
+      "acceptance_rate": 0.995
+    },
+    {
+      "gpu": "NVIDIA GeForce RTX 3090",
+      "beta": 6.0,
+      "ms_per_traj": 2551.153506602,
+      "acceptance_rate": 0.996
+    },
+    {
+      "gpu": "AMD Radeon RX 6950 XT (RADV NAVI21)",
+      "beta": 6.0,
+      "ms_per_traj": 278.047186221,
+      "acceptance_rate": 0.994
+    },
+    {
+      "gpu": "NVIDIA GeForce RTX 3090",
+      "beta": 6.2,
+      "ms_per_traj": 2538.525941207,
+      "acceptance_rate": 0.989
+    },
+    {
+      "gpu": "AMD Radeon RX 6950 XT (RADV NAVI21)",
+      "beta": 6.2,
+      "ms_per_traj": 276.786688232,
+      "acceptance_rate": 0.99
+    }
+  ]
+}

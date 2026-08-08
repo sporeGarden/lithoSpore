@@ -1,0 +1,20 @@
+[present]
+"README.md" = "d51737047482c4a8d51edc77129654ed67dcd5cb8fc41643ec0005effc1dd733"
+"TRANSLATE.md" = "ca3b45550f79f728d5723844acd9cab223b74270ce4f48925e2c2b0716607abc"
+"derivations/threshold_calibration.toml" = "802d6a5fc2368436a95628e5af700b556a3e4c0d1b817eb3533901f3ab360c64"
+"liveSpore.json" = "593a5888dd091e54862780dc0595ac22bfd7b9f63c2586f80c8647838dcd03e2"
+"provenance/ferment_transcript.json" = "4f835c9f0ac086ac35229e8a7754177e4fe69a2cabb2cd565851cbd79a9e3b14"
+"receipts/checksums.blake3" = "38fb07539cb59c4cee4aa268dd9c5252ff4c8812297146f4e2ed6e0e03d8415c"
+"receipts/environment.toml" = "a68e7cf75838bec0ce619492fb8911a8a96143d68fb8e24bf651bea87b9a0cce"
+"refresh" = "280b9e9f0bf447df6f1480bf328ecf754facc1308d47e782b005cccead2b80dc"
+"scope.toml" = "6773cae7865106177db543c83676653272943866e67347cab82de63a1c4d75d9"
+"tolerances.toml" = "741971af3c6e06929a12f40711a19788785d7703d04ecf50e3c0815af0437cd1"
+"validate" = "94ff6f5c3e15a876bb12b497faf956f6bca7b085de1a85ed01ee1dbaf61bc24c"
+"validation.json" = "1201a50b48cd78a62280ee863df541f46eb7d095b1042b311fe4d0b38e392ae2"
+"validation.json.bak" = "b66a1ccd99686fecdb6f37c5182cfbff70a9a0313a12f5b0444d27f08c5240fc"
+"validation_results.json" = "b5653b4dbec615c6a8cf5dc2950f0a62e13bea5ed23bbe68b6ca90b0f1a4eab3"
+
+[external]
+"data/performance/su3_gpu_throughput.json" = "caa5d75678342eebc922a85eefba29467e11034db7d0cddf10e449ceed5ee97d"
+"data/plaquette/su3_beta_scan_8x4.json" = "806a465b4189887e6f41e517aed90bd11c66c2fe90222ea17229ac9cd8daf3c3"
+"data/plaquette/su3_dual_gpu_16x4.json" = "f6df775497306cea8becfcf4c3e5ce8175f3a03404e034e5ef8d041be55e70f8"

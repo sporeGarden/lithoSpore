@@ -1,0 +1,8 @@
+{
+  "dataset_id": "hotSpring-QCD-Lattice_v1.0.0-rung1",
+  "spring": "hotSpring",
+  "spring_version": "1.0.0-rung1",
+  "braid_id": "braid-hotSpring-QCD-Lattice-1.0.0-rung1",
+  "timestamp": "2026-08-08T13:17:23.558337812+00:00",
+  "computation": {}
+}

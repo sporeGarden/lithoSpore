@@ -1,0 +1,20 @@
+# DERIVATION ANCHORING — threshold_calibration.toml
+# See DERIVATION_ANCHORING_STANDARD.md for the 5-layer chain.
+# Populate each [[constant]] with empirical derivation data.
+
+[metadata]
+standard = "DERIVATION_ANCHORING_STANDARD v1.0"
+domain = "unknown"
+status = "STUB"
+
+# Example constant (replace with actual calibration):
+# [[constant]]
+# name = "rmsd_convergence_threshold"
+# value = 2.0
+# unit = "kJ/mol"
+# layer1_source = "paper Table N"
+# layer2_method = "block-averaged standard error"
+# layer3_calibration = "3x SEM across N trajectories"
+# layer4_validation = "Phase 0 self-consistency"
+# layer5_runtime = "litho validate --tier 0"
+# _anchoring = "CALIBRATED"

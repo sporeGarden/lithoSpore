@@ -1,0 +1,174 @@
+{
+  "artifact": "hotSpring-QCD-Lattice",
+  "version": "1.0.0-rung1",
+  "date": "2026-08-08",
+  "modules": [
+    {
+      "name": "su3_beta_scan",
+      "status": "PASS",
+      "checks_total": 6,
+      "checks_passed": 6,
+      "checks": [
+        {
+          "expected": 0.111,
+          "name": "beta_2.0_plaquette",
+          "note": "ref: SC: β/18",
+          "observed": 0.128862,
+          "status": "PASS",
+          "tolerance": 0.03,
+          "unit": "plaquette"
+        },
+        {
+          "expected": 0.15,
+          "name": "beta_2.3_plaquette",
+          "note": "ref: SC+corrections",
+          "observed": 0.151206,
+          "status": "PASS",
+          "tolerance": 0.03,
+          "unit": "plaquette"
+        },
+        {
+          "expected": 0.22,
+          "name": "beta_3.0_plaquette",
+          "note": "ref: SC+corrections",
+          "observed": 0.204844,
+          "status": "PASS",
+          "tolerance": 0.03,
+          "unit": "plaquette"
+        },
+        {
+          "expected": 0.505,
+          "name": "beta_5.5_plaquette",
+          "note": "ref: GL10/C83",
+          "observed": 0.495752,
+          "status": "PASS",
+          "tolerance": 0.0505,
+          "unit": "plaquette"
+        },
+        {
+          "expected": 0.546,
+          "name": "beta_5.7_plaquette",
+          "note": "ref: GL10/B00",
+          "observed": 0.538092,
+          "status": "PASS",
+          "tolerance": 0.0546,
+          "unit": "plaquette"
+        },
+        {
+          "expected": 0.593,
+          "name": "beta_6.0_plaquette",
+          "note": "ref: GL10/B00",
+          "observed": 0.58623,
+          "status": "PASS",
+          "tolerance": 0.0593,
+          "unit": "plaquette"
+        }
+      ],
+      "errata": []
+    },
+    {
+      "name": "su3_dual_gpu_cross_vendor",
+      "status": "PASS",
+      "checks_total": 3,
+      "checks_passed": 3,
+      "checks": [
+        {
+          "expected": 0.581638,
+          "name": "cross_vendor_beta_5.9",
+          "note": "0.31 sigma separation",
+          "observed": 0.581558,
+          "status": "PASS",
+          "tolerance": 0.000773,
+          "unit": "plaquette"
+        },
+        {
+          "expected": 0.593451,
+          "name": "cross_vendor_beta_6.0",
+          "note": "0.47 sigma separation",
+          "observed": 0.593569,
+          "status": "PASS",
+          "tolerance": 0.000746,
+          "unit": "plaquette"
+        },
+        {
+          "expected": 0.613391,
+          "name": "cross_vendor_beta_6.2",
+          "note": "0.03 sigma separation",
+          "observed": 0.613384,
+          "status": "PASS",
+          "tolerance": 0.000576,
+          "unit": "plaquette"
+        }
+      ],
+      "errata": []
+    },
+    {
+      "name": "su3_performance_scaling",
+      "status": "PASS",
+      "checks_total": 6,
+      "checks_passed": 6,
+      "checks": [
+        {
+          "expected": 10000,
+          "name": "nvidia_beta_5.9_throughput",
+          "note": "16^4 SU(3) HMC",
+          "observed": 2535.2,
+          "status": "PASS",
+          "tolerance": 10000,
+          "unit": "ms/trajectory"
+        },
+        {
+          "expected": 10000,
+          "name": "amd_beta_5.9_throughput",
+          "note": "16^4 SU(3) HMC",
+          "observed": 274.9,
+          "status": "PASS",
+          "tolerance": 10000,
+          "unit": "ms/trajectory"
+        },
+        {
+          "expected": 10000,
+          "name": "nvidia_beta_6.0_throughput",
+          "note": "16^4 SU(3) HMC",
+          "observed": 2551.2,
+          "status": "PASS",
+          "tolerance": 10000,
+          "unit": "ms/trajectory"
+        },
+        {
+          "expected": 10000,
+          "name": "amd_beta_6.0_throughput",
+          "note": "16^4 SU(3) HMC",
+          "observed": 278.0,
+          "status": "PASS",
+          "tolerance": 10000,
+          "unit": "ms/trajectory"
+        },
+        {
+          "expected": 10000,
+          "name": "nvidia_beta_6.2_throughput",
+          "note": "16^4 SU(3) HMC",
+          "observed": 2538.5,
+          "status": "PASS",
+          "tolerance": 10000,
+          "unit": "ms/trajectory"
+        },
+        {
+          "expected": 10000,
+          "name": "amd_beta_6.2_throughput",
+          "note": "16^4 SU(3) HMC",
+          "observed": 276.8,
+          "status": "PASS",
+          "tolerance": 10000,
+          "unit": "ms/trajectory"
+        }
+      ],
+      "errata": []
+    }
+  ],
+  "summary": {
+    "modules_total": 3,
+    "modules_pass": 3,
+    "modules_in_flight": 0
+  }
+}

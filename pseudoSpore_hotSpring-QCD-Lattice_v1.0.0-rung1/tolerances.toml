@@ -1,0 +1,9 @@
+# Named Tolerances — guideStone validation contract
+# Per wateringHole/TARGETED_GUIDESTONE_STANDARD v1.0
+
+[[tolerance]]
+name = "checksum_integrity"
+value = 0
+unit = "bits"
+justification = "BLAKE3 cryptographic hash; any bit flip is a failure"
+

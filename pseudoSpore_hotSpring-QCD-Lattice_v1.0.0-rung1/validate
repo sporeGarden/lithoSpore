@@ -1,0 +1,75 @@
+#!/bin/bash
+set -euo pipefail
+# validate — guideStone entry point for hotSpring-QCD-Lattice v1.0.0-rung1
+# Runs airgapped; no network or NUCLEUS required.
+# Exit: 0=PASS, 1=FAIL, 2=partial (Tier 3 unavailable)
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
+
+echo "=== pseudoSpore validate: hotSpring-QCD-Lattice v1.0.0-rung1 ==="
+echo
+
+# Check if litho is available (bundled or PATH)
+if [[ -x "./runtime/bin/litho" ]]; then
+    LITHO="./runtime/bin/litho"
+elif command -v litho &>/dev/null; then
+    LITHO="litho"
+else
+    echo "WARN: litho CLI not found; falling back to BLAKE3 check only"
+    if command -v b3sum &>/dev/null; then
+        echo "[1] Verifying BLAKE3 checksums..."
+        b3sum --check receipts/checksums.blake3 && echo "  PASS" || exit 1
+    else
+        echo "ERROR: neither litho nor b3sum available"
+        exit 1
+    fi
+    exit 2
+fi
+
+# Run full audit
+START_MS=$(($(date +%s%N)/1000000))
+if [[ "${1:-}" == "--json" ]]; then
+    "$LITHO" audit --path . --json
+else
+    "$LITHO" audit --path . --verbose
+fi
+RESULT=$?
+END_MS=$(($(date +%s%N)/1000000))
+RUNTIME=$((END_MS - START_MS))
+
+# Append to liveSpore.json on success
+if [[ $RESULT -eq 0 && -f liveSpore.json ]]; then
+    HOSTNAME_HASH=$(echo -n "$(hostname)" | b3sum --no-names 2>/dev/null || echo "unknown")
+    ARCH=$(uname -m)
+    OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+    TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+    MODULES_TOTAL=$(find data/ -maxdepth 1 -type d | tail -n +2 | wc -l)
+    python3 -c "
+import json, sys
+entry = {
+    'timestamp': '$TIMESTAMP',
+    'hostname_hash': '$HOSTNAME_HASH',
+    'arch': '$ARCH',
+    'os': '$OS',
+    'tier_reached': 2,
+    'modules_passed': $MODULES_TOTAL,
+    'modules_total': $MODULES_TOTAL,
+    'runtime_ms': $RUNTIME
+}
+with open('liveSpore.json', 'r') as f:
+    data = json.load(f)
+# Unified schema: {envelope, validations}
+if isinstance(data, dict) and 'validations' in data:
+    data['validations'].append(entry)
+elif isinstance(data, list):
+    data = {'envelope': {}, 'validations': data + [entry]}
+else:
+    data = {'envelope': data, 'validations': [entry]}
+with open('liveSpore.json', 'w') as f:
+    json.dump(data, f, indent=2)
+" 2>/dev/null || true
+fi
+
+exit $RESULT

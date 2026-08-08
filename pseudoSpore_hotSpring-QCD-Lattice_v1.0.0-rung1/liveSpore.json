@@ -1,0 +1,12 @@
+{
+  "envelope": {
+    "artifact": "hotSpring-QCD-Lattice",
+    "emit_host": "ironGate",
+    "emit_timestamp": "2026-08-08T13:17:23.558488270+00:00",
+    "integrity": "BLAKE3 (receipts/checksums.blake3)",
+    "tool": "litho emit-pseudospore",
+    "tool_version": "0.1.0",
+    "version": "1.0.0-rung1"
+  },
+  "validations": []
+}

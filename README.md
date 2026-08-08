@@ -269,13 +269,16 @@ is domain-agnostic chassis — no LTEE science logic in source.
 - VM: `agentReagents/scripts/validate-lithoSpore.sh` — libvirt, full airgap simulation
 - Chaos: `litho chaos-test` — fault injection (10 tests: drift, corruption, missing files)
 
-**Ecosystem posture** (Wave 151b): <!-- metrics: 2026-07-26 -->
-43/43 repos Forgejo-first. DNSSEC 3/3 domains.
+**Ecosystem posture** (Wave 157a): <!-- metrics: 2026-08-08 -->
+43/43 repos Forgejo-first. DNSSEC 3/3 domains. K-Derm SSH discipline enforced.
 Silicon Atheism Phase 2 complete (14/14 primals + lithoSpore). pseudoSpore pipeline
 complete with 6-step promotion lifecycle (emit → init-validation → populate →
-audit → promote → pack). 7 springs emitted pseudoSpores (1 COMPLETE, 6 PENDING
-spring team validation). `ring` dropped — no C/C++/assembly in runtime dependency chain.
+audit → promote → pack). 8 pseudoSpores registered (2 COMPLETE, 6 PENDING
+spring team validation). QCD bundle `v1.0.0-rung1` packaged for arXiv trust surface
+(SU(3) lattice gauge theory, 15/15 checks, 3 modules). `ring` dropped — no
+C/C++/assembly in runtime dependency chain.
 `ParityReport` published as ecosystem standard (`specs/PARITY_REPORT_SCHEMA.md`).
+Trust surfaces live: `/pseudospore/` + `/api/pseudospore/bundles` on nestgate.io.
 
 See `docs/UPSTREAM_GAPS.md` for upstream integration status.
 

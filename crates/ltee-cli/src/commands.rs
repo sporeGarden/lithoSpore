@@ -19,7 +19,7 @@ fn parse_module_status(s: &str) -> Result<(String, String), String> {
     name = "litho",
     about = "lithoSpore — guideStone verification chassis",
     version,
-    long_about = "Self-contained, scope-driven validation artifact.\nCurrent instance: LTEE (Long-Term Evolution Experiment).\nSee https://github.com/sporeGarden/lithoSpore"
+    long_about = "Self-contained, scope-driven validation artifact.\nCurrent instance: LTEE (Long-Term Evolution Experiment).\nSee https://git.primals.eco/sporeGarden/lithoSpore"
 )]
 pub struct Cli {
     #[command(subcommand)]

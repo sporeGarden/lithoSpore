@@ -57,8 +57,8 @@ pub trait Platform: Send + Sync {
     ///
     /// # Errors
     ///
-    /// Returns an error string on platforms without UDS support or on I/O failure.
-    fn uds_send(&self, socket_path: &str, payload: &[u8]) -> Result<String, String>;
+    /// Returns [`io::Error`] on platforms without UDS support or on I/O failure.
+    fn uds_send(&self, socket_path: &str, payload: &[u8]) -> io::Result<String>;
 }
 
 /// Returns the platform implementation for the current target.
@@ -158,11 +158,11 @@ impl Platform for UnixPlatform {
         Some(response)
     }
 
-    fn uds_send(&self, socket_path: &str, payload: &[u8]) -> Result<String, String> {
+    fn uds_send(&self, socket_path: &str, payload: &[u8]) -> io::Result<String> {
         use std::io::{Read, Write};
         use std::os::unix::net::UnixStream;
 
-        let mut stream = UnixStream::connect(socket_path).map_err(|e| format!("connect: {e}"))?;
+        let mut stream = UnixStream::connect(socket_path)?;
         stream
             .set_write_timeout(Some(crate::consts::IPC_WRITE_TIMEOUT))
             .ok();
@@ -170,16 +170,12 @@ impl Platform for UnixPlatform {
             .set_read_timeout(Some(crate::consts::IPC_READ_TIMEOUT))
             .ok();
 
-        stream
-            .write_all(payload)
-            .map_err(|e| format!("write: {e}"))?;
-        stream.flush().map_err(|e| format!("flush: {e}"))?;
+        stream.write_all(payload)?;
+        stream.flush()?;
         stream.shutdown(std::net::Shutdown::Write).ok();
 
         let mut response = String::new();
-        stream
-            .read_to_string(&mut response)
-            .map_err(|e| format!("read: {e}"))?;
+        stream.read_to_string(&mut response)?;
         Ok(response)
     }
 }
@@ -229,8 +225,11 @@ impl Platform for FallbackPlatform {
         None
     }
 
-    fn uds_send(&self, _socket_path: &str, _payload: &[u8]) -> Result<String, String> {
-        Err("UDS transport not available on this platform".to_string())
+    fn uds_send(&self, _socket_path: &str, _payload: &[u8]) -> io::Result<String> {
+        Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "UDS transport not available on this platform",
+        ))
     }
 }
 

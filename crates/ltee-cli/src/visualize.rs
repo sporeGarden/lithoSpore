@@ -287,7 +287,9 @@ fn resolve_xdg_runtime() -> String {
 }
 
 fn send_uds(socket_path: &str, payload: &[u8]) -> Result<String, String> {
-    litho_core::platform::current().uds_send(socket_path, payload)
+    litho_core::platform::current()
+        .uds_send(socket_path, payload)
+        .map_err(|e| e.to_string())
 }
 
 #[cfg(test)]

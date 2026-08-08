@@ -29,7 +29,7 @@ Cross-tier parity testable for all 7 modules.
 
 ## Shared Infrastructure
 
-- **`litho-core`** (chassis — domain-agnostic, 12 modules):
+- **`litho-core`** (chassis — domain-agnostic, 14 modules):
   validation types (`ModuleResult`, `ValidationReport`, `Tier3Session`, `ParityReport`),
   tolerance framework, provenance chain + JSON-RPC client for trio,
   braid ingestion with dual wire format support,

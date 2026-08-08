@@ -38,7 +38,7 @@ A guideStone-grade artifact satisfies five properties (per primals.eco):
 ## Crate Architecture
 
 ```
-litho-core          ← shared library (CHASSIS — domain-agnostic, 13 modules)
+litho-core          ← shared library (CHASSIS — domain-agnostic, 14 modules)
   ├── validation/     ModuleResult, ValidationReport, Tier3Session, ParityReport
   ├── tolerance/      named tolerances with scientific justification
   ├── provenance/     ProvenanceChain + JSON-RPC client for trio (dag/spine/braid)
@@ -48,6 +48,7 @@ litho-core          ← shared library (CHASSIS — domain-agnostic, 13 modules)
   ├── scope/          ScopeManifest + ScopeModule parser (scope.toml → module table)
   ├── braid/          upstream ferment transcript braid ingestion + validation
   ├── manifest/       DataManifest (data.toml → BLAKE3 verification)
+  ├── consts/         centralized named constants (timeouts, buffers, repo URLs)
   ├── error/          LithoError typed error hierarchy (thiserror)
   ├── stats/          shared statistics (pearson_r)
   ├── env_vars/       centralized environment variable constants
@@ -75,12 +76,14 @@ pseudospore-core    ← canonical pseudoSpore parsing, validation, checksums, ta
   ├── ltee-anderson  ← Module 7: Anderson-QS predictions
   └── ltee-cli       ← Unified CLI (INSTANCE + CHASSIS GLUE)
       ├── main.rs         thin wiring (arg parse → dispatch.rs for argv[0])
+      ├── commands.rs     clap derive: Cli struct + Commands enum (28 subcommands)
       ├── dispatch.rs     symlink-based CLI dispatch (validate/verify/refresh/spore/parity/grow)
       ├── registry.rs     scope-driven module registry (replaces LTEE_MODULES constants)
       ├── validate.rs     litho validate — in-process module execution + Tier 3 branch
       ├── parity.rs       litho parity — cross-tier numerical parity check
       ├── verify.rs       litho verify — BLAKE3 integrity
       ├── fetch.rs        litho fetch — data pipeline (curl + blake3)
+      ├── fetch_pseudospore.rs  litho fetch-pseudospore — remote download + validate
       ├── assemble.rs     litho assemble — USB artifact assembly + .biomeos-spore generation
       ├── grow/           litho grow — self-bootstrap from USB
       │   ├── mod.rs
@@ -106,13 +109,29 @@ pseudospore-core    ← canonical pseudoSpore parsing, validation, checksums, ta
       │   ├── mod.rs
       │   └── report.rs
       ├── ingest_pseudospore.rs  litho ingest-pseudospore
+      ├── init_validation.rs     litho init-validation — stub from scope.toml
+      ├── populate_validation.rs litho populate-validation — merge module results
+      ├── promote_spore.rs       litho promote-spore — PENDING → COMPLETE
+      ├── spore_status.rs        litho spore-status — registry dashboard
+      ├── pack_pseudospore.rs    litho pack-pseudospore — tar.gz creation
+      ├── unpack_pseudospore.rs  litho unpack-pseudospore — tarball extraction
+      ├── translate_config.rs    litho translate-config — domain↔computation index
+      ├── domain_profile.rs      litho domain-profile — profile introspection
       ├── visualize.rs    litho visualize — petalTongue IPC
       ├── chaos.rs        litho chaos-test — 10 fault injection tests
       ├── deploy_test.rs  litho deploy-test — local deployment cycle
       ├── ops.rs          refresh / status / spore / self-test / deploy-report / tier
       └── viz/            petalTongue DataBinding adapters (INSTANCE — LTEE-specific)
           ├── modules.rs    m1–m7 LTEE module bindings
-          └── baselines.rs  Barrick Lab baseline tool bindings
+          └── baselines/    Barrick Lab baseline tool bindings (7 adapters)
+              ├── mod.rs
+              ├── breseq_adapter.rs
+              ├── efm_adapter.rs
+              ├── cryptkeeper_adapter.rs
+              ├── marker_divergence_adapter.rs
+              ├── ostir_adapter.rs
+              ├── rna_mi_adapter.rs
+              └── plannotate_adapter.rs
 ```
 
 Each module crate exposes `lib.rs::run_validation()` for in-process execution.
@@ -133,7 +152,7 @@ only `scope.toml` + `data.toml` + module crates. No changes to `litho-core`.
 
 | Layer | What | Current Files | Agnostic? |
 |-------|------|---------------|-----------|
-| **Chassis** | Validation pipeline, data integrity, provenance, discovery, deployment, pseudoSpore | `litho-core` (12 modules), `scope.toml`, `data.toml`, `tolerances.toml`, `liveSpore.json` | **Yes** |
+| **Chassis** | Validation pipeline, data integrity, provenance, discovery, deployment, pseudoSpore | `litho-core` (14 modules), `scope.toml`, `data.toml`, `tolerances.toml`, `liveSpore.json` | **Yes** |
 | **Registry** | Scope-driven module resolution, dispatch, name mapping | `ltee-cli/registry.rs` — reads `[[module]]` from scope.toml, falls back to compiled LTEE defaults | **Yes** (data-driven from scope.toml) |
 | **Instance** | Science modules, expected values, datasets, viz, papers | `crates/ltee-*`, `ltee-cli/viz/`, `validation/expected/`, `artifact/data/`, `papers/` | LTEE-specific |
 
@@ -145,7 +164,7 @@ only `scope.toml` + `data.toml` + module crates. No changes to `litho-core`.
    `registry.rs`. `.biomeos-spore` generated from scope.toml during assembly.
    Braid accessions derived from `data.toml`. Target coverage and graph paths
    parameterized. viz/ moved from `litho-core` to `ltee-cli` instance layer.
-   `litho-core` is domain-agnostic chassis (12 modules).
+   `litho-core` is domain-agnostic chassis (14 modules).
 2. **DONE**: pseudoSpore standard. `pseudospore-core` is the canonical crate for
    parsing, validation, and checksum verification (legacy `pseudospore.rs` and
    `graph_checks.rs` retired). `litho ingest-pseudospore` and

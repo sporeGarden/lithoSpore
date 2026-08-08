@@ -140,7 +140,7 @@ All 7 coupling points from the original inventory have been resolved:
 | `viz/` in litho-core | **RESOLVED** | Moved to `ltee-cli/src/viz/` (instance layer) — `litho-core` is domain-agnostic chassis |
 | Hardcoded graph/target paths | **RESOLVED** | `guidestone.graph_file` + `guidestone.targets_file` in scope.toml |
 | Hardcoded braid accessions | **RESOLVED** | Derived from `data.toml` `sra_accession` fields at runtime |
-| `litho-core` | **Agnostic** | 12 modules, no LTEE science logic in source |
+| `litho-core` | **Agnostic** | 14 modules, no LTEE science logic in source |
 | `scope.toml` loader | **Agnostic** | `ScopeModule` struct + `[[module]]` table + `module_binaries()` |
 | `data.toml` manifest | **Agnostic** | Dataset registry with BLAKE3, source URIs, licenses, SRA accessions |
 | `discovery.rs` / `provenance.rs` | **Agnostic** | Capability strings, JSON-RPC to capability-discovered endpoints |
@@ -349,7 +349,7 @@ currently embed (standalone CLI pattern).
   `scope.toml` `[[module]]` entries carry name/binary/data_dir/expected/tier1_notebook.
   New `registry.rs` centralizes module resolution for all 6 consumer files. `.biomeos-spore`
   generated from scope.toml. Braid accessions from data.toml. `viz/` moved from litho-core
-  to ltee-cli (instance layer). `litho-core` 12 modules, domain-agnostic chassis. Graph/target paths
+  to ltee-cli (instance layer). `litho-core` 14 modules, domain-agnostic chassis. Graph/target paths
   parameterized. Test fixtures isolated. 199 tests, zero clippy warnings. [updated: 242 tests post Wave 150t evolution]
 - **2026-05-17 PM**: wetSpring braid ingestion — `litho-core::braid` module (4 tests),
   sovereign + breseq baseline braids parsed, accession validated (SRP001569 PASS),

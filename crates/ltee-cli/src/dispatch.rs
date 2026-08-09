@@ -91,7 +91,7 @@ fn dispatch_grow(root: &str) -> bool {
     let ecosystem = args.iter().any(|a| a == "--ecosystem");
     let skip_build = args.iter().any(|a| a == "--skip-build");
     let skip_fetch = args.iter().any(|a| a == "--skip-fetch");
-    crate::grow::run(&crate::grow::GrowOptions {
+    if let Err(e) = crate::grow::run(&crate::grow::GrowOptions {
         artifact_root: root,
         target: &target,
         mode: crate::grow::GrowModeFlags {
@@ -103,7 +103,10 @@ fn dispatch_grow(root: &str) -> bool {
             build: skip_build,
             fetch: skip_fetch,
         },
-    });
+    }) {
+        eprintln!("ERROR: {e}");
+        std::process::exit(1);
+    }
     true
 }
 

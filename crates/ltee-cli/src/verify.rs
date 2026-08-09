@@ -341,9 +341,9 @@ fn hash_file(path: &std::path::Path) -> Result<String, std::io::Error> {
 /// Well-known upstream hosts used only for connectivity probing (not data fetch).
 /// Overridable via `$LITHO_CONNECTIVITY_HOSTS` (comma-separated host:port).
 const DEFAULT_CONNECTIVITY_HOSTS: &[&str] = &[
+    "git.primals.eco:443",
     "datadryad.org:443",
     "www.ncbi.nlm.nih.gov:443",
-    "github.com:443",
 ];
 
 fn check_connectivity() -> bool {

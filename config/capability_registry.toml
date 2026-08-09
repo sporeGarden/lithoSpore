@@ -26,7 +26,7 @@
 [health]
 owner = "all"
 stability = "stable"
-consumed_by = "litho-core::discovery"
+consumed_by = "litho-core::discovery (indirect — primals respond to health probes)"
 methods = [
     "health.liveness",
     "health.readiness",
@@ -135,7 +135,8 @@ methods = [
 [crypto]
 owner = "beardog"
 stability = "stable"
-consumed_by = "litho-core::provenance"
+consumed_by = "litho-core::provenance (indirect — trio delegates signing to bearDog)"
+note = "P0-A: depot binary v0.9.0 returns health for ALL methods including crypto.sign_ed25519. Spine commits unsigned."
 methods = [
     "crypto.hash",
     "crypto.sign",
@@ -152,6 +153,18 @@ signal = "node.compute"
 methods = [
     "compute.dispatch",
     "compute.status",
+]
+
+# ─── lithoSpore own methods (announced via primal.announce) ──────────
+
+[validation]
+owner = "lithospore"
+stability = "stable"
+consumed_by = "biomeOS mesh (announced to orchestration)"
+methods = [
+    "validate.run",
+    "validate.parity",
+    "validate.verify",
 ]
 
 # ─── Test fixtures ───────────────────────────────────────────────────

@@ -71,7 +71,12 @@ pub(super) fn load_source_metadata(root: &Path) -> SourceConfig {
     }
 }
 
-pub(super) fn stage_clone(_root: &Path, target: &Path, scope: &SourceConfig, ecosystem: bool) {
+pub(super) fn stage_clone(
+    _root: &Path,
+    target: &Path,
+    scope: &SourceConfig,
+    ecosystem: bool,
+) -> Result<(), String> {
     step("1. Cloning source repository");
 
     if ecosystem {
@@ -95,7 +100,7 @@ pub(super) fn stage_clone(_root: &Path, target: &Path, scope: &SourceConfig, eco
                     &repo_url,
                     &eco_target.to_string_lossy(),
                 ],
-            );
+            )?;
         }
         let garden_path = eco_target.join("gardens/lithoSpore");
         if garden_path.exists() && !target.exists() {
@@ -107,14 +112,14 @@ pub(super) fn stage_clone(_root: &Path, target: &Path, scope: &SourceConfig, eco
     if target.join(".git").exists() {
         println!("  Source repo already exists at {}", target.display());
         println!("  Pulling latest...");
-        run_cmd_in("git", &["pull", "--ff-only"], target);
-        return;
+        run_cmd_in("git", &["pull", "--ff-only"], target)?;
+        return Ok(());
     }
 
     if target.exists() && std::fs::read_dir(target).is_ok_and(|mut d| d.next().is_some()) {
         println!("  Target directory is not empty and not a git repo.");
         println!("  Skipping clone — will attempt to use existing content.");
-        return;
+        return Ok(());
     }
 
     let repo_url = pick_git_url(&scope.repo, &scope.repo_https);
@@ -130,11 +135,12 @@ pub(super) fn stage_clone(_root: &Path, target: &Path, scope: &SourceConfig, eco
             &repo_url,
             &target.to_string_lossy(),
         ],
-    );
+    )?;
     println!("  Source cloned successfully");
+    Ok(())
 }
 
-pub(super) fn stage_toolchain(scope: &SourceConfig) {
+pub(super) fn stage_toolchain(scope: &SourceConfig) -> Result<(), String> {
     step("2. Checking Rust toolchain");
 
     if let Ok(output) = Command::new("rustc").arg("--version").output() {
@@ -144,21 +150,12 @@ pub(super) fn stage_toolchain(scope: &SourceConfig) {
         println!("  Rust not found — installing via rustup...");
         let status = Command::new("sh")
             .args(["-c", &format!("curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain {}", scope.rust_toolchain)])
-            .status();
-        match status {
-            Ok(s) if s.success() => println!("  Rust installed successfully"),
-            Ok(s) => {
-                eprintln!("  ERROR: rustup exited with {s}");
-                std::process::exit(1);
-            }
-            Err(e) => {
-                eprintln!("  ERROR: Could not run rustup installer: {e}");
-                eprintln!(
-                    "  Install manually: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
-                );
-                std::process::exit(1);
-            }
+            .status()
+            .map_err(|e| format!("could not run rustup installer: {e}\n  Install manually: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"))?;
+        if !status.success() {
+            return Err(format!("rustup exited with {status}"));
         }
+        println!("  Rust installed successfully");
     }
 
     if let Ok(output) = Command::new("rustup")
@@ -170,7 +167,7 @@ pub(super) fn stage_toolchain(scope: &SourceConfig) {
             println!("  Target {} already installed", scope.rust_target);
         } else {
             println!("  Adding target: {}", scope.rust_target);
-            run_cmd("rustup", &["target", "add", &scope.rust_target]);
+            run_cmd("rustup", &["target", "add", &scope.rust_target])?;
         }
     }
 
@@ -180,15 +177,17 @@ pub(super) fn stage_toolchain(scope: &SourceConfig) {
         println!("  WARNING: musl-gcc not found — `apt install musl-tools` or equivalent");
         println!("           Build will proceed without musl (non-static binary)");
     }
+    Ok(())
 }
 
-pub(super) fn stage_build(target: &Path, scope: &SourceConfig) {
+pub(super) fn stage_build(target: &Path, scope: &SourceConfig) -> Result<(), String> {
     step("3. Building from source");
 
     if !target.join("Cargo.toml").exists() {
-        eprintln!("  ERROR: No Cargo.toml found at {}", target.display());
-        eprintln!("  Cannot build — clone may have failed.");
-        return;
+        return Err(format!(
+            "no Cargo.toml found at {} — clone may have failed",
+            target.display()
+        ));
     }
 
     let mut args = vec!["build", "--release"];
@@ -199,7 +198,7 @@ pub(super) fn stage_build(target: &Path, scope: &SourceConfig) {
         println!("  Building: cargo {} (native)", args.join(" "));
     }
 
-    run_cmd_in("cargo", &args, target);
+    run_cmd_in("cargo", &args, target)?;
 
     let binary = if which("musl-gcc") {
         target.join(format!("target/{}/release/litho", scope.rust_target))
@@ -219,6 +218,7 @@ pub(super) fn stage_build(target: &Path, scope: &SourceConfig) {
             binary.display()
         );
     }
+    Ok(())
 }
 
 pub(super) fn stage_seed_data(usb_root: &Path, target: &Path) {

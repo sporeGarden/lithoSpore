@@ -49,7 +49,7 @@ pub struct GrowOptions<'a> {
     pub skip: GrowSkipFlags,
 }
 
-pub fn run(opts: &GrowOptions<'_>) {
+pub fn run(opts: &GrowOptions<'_>) -> Result<(), String> {
     let GrowOptions {
         artifact_root,
         target,
@@ -64,11 +64,8 @@ pub fn run(opts: &GrowOptions<'_>) {
     let root = Path::new(artifact_root);
     let target_path = PathBuf::from(target);
 
-    // Container-only mode: build OCI image and validate inside it.
-    // No clone/build/fetch needed — the USB artifact is self-contained.
     if container {
-        stage_container(root);
-        return;
+        return stage_container(root);
     }
 
     println!("=== lithoSpore grow — germinating hypogeal cotyledon ===");
@@ -78,31 +75,21 @@ pub fn run(opts: &GrowOptions<'_>) {
 
     let scope = load_source_metadata(root);
 
-    // Stage 1: Clone
-    stage_clone(root, &target_path, &scope, ecosystem);
+    stage_clone(root, &target_path, &scope, ecosystem)?;
 
-    // Stage 2: Toolchain
     if !skip_build {
-        stage_toolchain(&scope);
+        stage_toolchain(&scope)?;
+        stage_build(&target_path, &scope)?;
     }
 
-    // Stage 3: Build
-    if !skip_build {
-        stage_build(&target_path, &scope);
-    }
-
-    // Stage 4: Seed data from USB
     stage_seed_data(root, &target_path);
 
-    // Stage 5: Fetch
     if !skip_fetch {
         stage_fetch(&target_path);
     }
 
-    // Stage 6: Validate
     stage_validate(&target_path);
 
-    // Stage 7: VM (optional)
     if vm {
         stage_vm(root);
     }
@@ -121,4 +108,5 @@ pub fn run(opts: &GrowOptions<'_>) {
         let eco = target_path.parent().unwrap_or(&target_path);
         println!("  Ecosystem:   {}", eco.display());
     }
+    Ok(())
 }

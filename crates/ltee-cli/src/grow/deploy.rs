@@ -12,28 +12,24 @@ fn libvirt_images_dir() -> PathBuf {
         .map_or_else(|_| PathBuf::from(DEFAULT_LIBVIRT_IMAGES), PathBuf::from)
 }
 
-pub(super) fn stage_container(root: &Path) {
+pub(super) fn stage_container(root: &Path) -> Result<(), String> {
     step("Container Deployment — benchScale substrate");
 
-    let runtime = detect_container_runtime();
-    let runtime = if let Some(r) = runtime {
-        r
-    } else {
-        eprintln!("  ERROR: No container runtime found.");
-        eprintln!("  Install Docker:  https://docs.docker.com/get-docker/");
-        eprintln!("  Install Podman:  https://podman.io/getting-started/installation");
-        std::process::exit(1);
-    };
+    let runtime = detect_container_runtime().ok_or_else(|| {
+        "no container runtime found.\n  \
+         Install Docker:  https://docs.docker.com/get-docker/\n  \
+         Install Podman:  https://podman.io/getting-started/installation"
+            .to_string()
+    })?;
     println!("  Runtime: {runtime}");
 
     let containerfile = root.join("Containerfile");
     if !containerfile.exists() {
-        eprintln!(
-            "  ERROR: No Containerfile found at {}",
+        return Err(format!(
+            "no Containerfile found at {}\n  \
+             The USB artifact should contain a Containerfile at its root.",
             containerfile.display()
-        );
-        eprintln!("  The USB artifact should contain a Containerfile at its root.");
-        std::process::exit(1);
+        ));
     }
 
     let image_name = "litho-spore:local";
@@ -41,18 +37,12 @@ pub(super) fn stage_container(root: &Path) {
     let status = Command::new(&runtime)
         .args(["build", "-f", "Containerfile", "-t", image_name, "."])
         .current_dir(root)
-        .status();
-    match status {
-        Ok(s) if s.success() => println!("  Image built successfully"),
-        Ok(s) => {
-            eprintln!("  ERROR: {runtime} build exited with {s}");
-            std::process::exit(1);
-        }
-        Err(e) => {
-            eprintln!("  ERROR: Could not run `{runtime} build`: {e}");
-            std::process::exit(1);
-        }
+        .status()
+        .map_err(|e| format!("could not run `{runtime} build`: {e}"))?;
+    if !status.success() {
+        return Err(format!("{runtime} build exited with {status}"));
     }
+    println!("  Image built successfully");
 
     println!();
     println!("  Running Tier 2 (Rust) validation in container...");
@@ -120,6 +110,7 @@ pub(super) fn stage_container(root: &Path) {
     println!(
         "  Custom command:   {runtime} run --rm {image_name} self-test --artifact-root /opt/lithoSpore"
     );
+    Ok(())
 }
 
 fn detect_container_runtime() -> Option<String> {

@@ -120,19 +120,24 @@ fn main() {
             ecosystem,
             skip_build,
             skip_fetch,
-        } => grow::run(&grow::GrowOptions {
-            artifact_root: &artifact_root,
-            target: &target,
-            mode: grow::GrowModeFlags {
-                vm,
-                container,
-                ecosystem,
-            },
-            skip: grow::GrowSkipFlags {
-                build: skip_build,
-                fetch: skip_fetch,
-            },
-        }),
+        } => {
+            if let Err(e) = grow::run(&grow::GrowOptions {
+                artifact_root: &artifact_root,
+                target: &target,
+                mode: grow::GrowModeFlags {
+                    vm,
+                    container,
+                    ecosystem,
+                },
+                skip: grow::GrowSkipFlags {
+                    build: skip_build,
+                    fetch: skip_fetch,
+                },
+            }) {
+                eprintln!("ERROR: {e}");
+                std::process::exit(1);
+            }
+        }
         Commands::IngestPseudospore {
             path,
             artifact_root,

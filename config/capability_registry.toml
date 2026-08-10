@@ -169,18 +169,19 @@ methods = [
 
 # ─── Gossip injection points (Wave 157e — ant colony activation) ─────
 #
-# Events lithoSpore SHOULD announce to the mesh via swarmVine when
-# gossip enmeshment is live. These are fire-and-forget publications;
-# lithoSpore does not depend on gossip for correctness (graceful
-# degradation — standalone mode works without swarmVine).
+# Events lithoSpore announces to the mesh via swarmVine `gossip.spread`.
+# Fire-and-forget — lithoSpore does not depend on gossip for correctness
+# (graceful degradation — standalone mode works without swarmVine).
 #
 # Injection is gated behind `discover("gossip")` — zero-cost when
 # swarmVine is absent.
+#
+# Wired in: validate.rs, parity.rs, emit_pseudospore/mod.rs, promote_spore.rs
 
 [gossip_injection]
 owner = "lithospore"
 stability = "evolving"
-note = "Not yet wired — specification only. Activate when swarmVine gossip mesh is enmeshed (TCP 7800)."
+note = "LIVE since 4ac6cd1 (Wave 157e). Gossip fires on validate/parity/emit/promote. Delivery depends on swarmVine TCP 7800 enmeshment."
 events = [
     # After a full validation run completes (any exit code).
     # Payload: artifact, version, tier_reached, pass/fail/partial, module count.

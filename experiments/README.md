@@ -142,7 +142,7 @@ Graph and target staging paths parameterized from scope.toml.
 
 **Phase 4**: `viz/` moved from litho-core to ltee-cli (instance layer).
 LTEE test fixtures isolated in `crates/litho-core/tests/fixtures/`.
-`litho-core` reaches domain-agnostic chassis — 14 modules, no LTEE science logic in source.
+`litho-core` reaches domain-agnostic chassis — 15 modules, no LTEE science logic in source.
 199 workspace tests pass (75/75 science checks at Tier 2).
 
 ### 012 — Hypogeal Deployment to Barrick Lab (May 18)

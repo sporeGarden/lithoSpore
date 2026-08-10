@@ -109,6 +109,8 @@ pub fn run(root: &str, json: bool) {
         }
     }
 
+    litho_core::gossip::inject(&litho_core::gossip::from_parity_report(&report));
+
     if all_match {
         std::process::exit(0);
     } else {

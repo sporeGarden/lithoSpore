@@ -12,6 +12,7 @@ pub mod consts;
 pub mod discovery;
 pub mod env_vars;
 pub mod error;
+pub mod gossip;
 pub mod harness;
 pub mod manifest;
 pub mod platform;

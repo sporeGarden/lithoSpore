@@ -282,6 +282,12 @@ pub fn run(config: &EmitConfig<'_>) -> Result<(), String> {
     println!("  ./validate                  # airgapped validation + liveSpore append");
     println!("  ./refresh                   # re-fetch datasets from source_uri");
     println!("  litho audit --path . --json # structured JSON report");
+
+    litho_core::gossip::inject(&litho_core::gossip::GossipEvent::PseudosporeEmitted {
+        spore_name: format!("{name}_v{version}"),
+        modules: module_names.len(),
+    });
+
     Ok(())
 }
 

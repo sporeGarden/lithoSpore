@@ -109,6 +109,13 @@ pub fn run(spore_path: &str, artifact_root: &str) -> Result<(), String> {
     println!("  Registry: {}", registry_path.display());
     println!("  Status: PENDING → COMPLETE");
 
+    let total = doc.modules.len();
+    litho_core::gossip::inject(&litho_core::gossip::GossipEvent::PseudosporePromoted {
+        spore_name: scope_name,
+        modules_passing: total,
+        modules_total: total,
+    });
+
     Ok(())
 }
 

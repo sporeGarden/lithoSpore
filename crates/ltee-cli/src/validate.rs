@@ -172,6 +172,9 @@ pub fn run_with_provenance(root: &str, json: bool, max_tier: u8, provenance_dir:
     }
 
     write_livespore(root, &report);
+
+    litho_core::gossip::inject(&litho_core::gossip::from_validation_report(&report));
+
     std::process::exit(report.exit_code());
 }
 

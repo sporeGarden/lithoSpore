@@ -1,5 +1,6 @@
 [package]
 name = "ltee-anderson"
+license = "AGPL-3.0-or-later"
 description = "Module 7: Anderson-QS predictions — new predictions via disorder framework"
 version.workspace = true
 edition.workspace = true

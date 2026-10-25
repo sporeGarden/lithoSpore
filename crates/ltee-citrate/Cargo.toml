@@ -1,5 +1,6 @@
 [package]
 name = "ltee-citrate"
+license = "AGPL-3.0-or-later"
 description = "Module 4: Citrate innovation cascade (Blount 2008/2012 / B4)"
 version.workspace = true
 edition.workspace = true

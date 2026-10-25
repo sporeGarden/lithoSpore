@@ -1,5 +1,6 @@
 [package]
 name = "ltee-fitness"
+license = "AGPL-3.0-or-later"
 description = "Module 1: Power-law fitness trajectories (Wiser 2013 / B2)"
 version.workspace = true
 edition.workspace = true

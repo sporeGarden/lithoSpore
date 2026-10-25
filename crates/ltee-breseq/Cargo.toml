@@ -1,5 +1,6 @@
 [package]
 name = "ltee-breseq"
+license = "AGPL-3.0-or-later"
 description = "Module 6: 264 genome breseq comparison (Tenaillon 2016 / B7)"
 version.workspace = true
 edition.workspace = true

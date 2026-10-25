@@ -1,5 +1,6 @@
 [package]
 name = "litho-core"
+license = "AGPL-3.0-or-later"
 description = "Shared types, tolerances, provenance, and validation harness for lithoSpore modules"
 version.workspace = true
 edition.workspace = true

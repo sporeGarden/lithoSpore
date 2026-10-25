@@ -1,5 +1,6 @@
 [package]
 name = "ltee-alleles"
+license = "AGPL-3.0-or-later"
 description = "Module 3: Allele frequency trajectories (Good 2017 / B3)"
 version.workspace = true
 edition.workspace = true

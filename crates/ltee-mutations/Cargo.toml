@@ -1,5 +1,6 @@
 [package]
 name = "ltee-mutations"
+license = "AGPL-3.0-or-later"
 description = "Module 2: Mutation accumulation curves (Barrick 2009 / B1)"
 version.workspace = true
 edition.workspace = true
